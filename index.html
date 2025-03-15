@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -52,6 +51,28 @@
         .score, .size {
             margin: 5px 0;
         }
+
+        /* Virtual joystick styles */
+        .joystick {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            width: 100px;
+            height: 100px;
+            background-color: rgba(0, 0, 0, 0.5);
+            border-radius: 50%;
+            display: none;
+        }
+
+        .joystick-handle {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            background-color: rgba(255, 255, 255, 0.8);
+            border-radius: 50%;
+            top: 30px;
+            left: 30px;
+        }
     </style>
     <!-- Telegram Web App script -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
@@ -62,6 +83,10 @@
         <div class="ui-overlay">
             <div class="score">Score: <span id="scoreValue">0</span></div>
             <div class="size">Size: <span id="sizeValue">1</span></div>
+        </div>
+        <!-- Virtual joystick -->
+        <div class="joystick">
+            <div class="joystick-handle"></div>
         </div>
     </div>
 
@@ -237,10 +262,11 @@
 
                 this.food = [];
                 this.predators = [];
-                this.foodSpawnRate = 60; // Frames between food spawns
+                this.foodSpawnRate = 30; // Increased food spawn rate (every 0.5 seconds at 60fps)
                 this.foodSpawnTimer = 0;
                 this.predatorSpawnRate = 300; // Frames between predator spawns
                 this.predatorSpawnTimer = 0;
+                this.maxPredators = 5; // Maximum number of predators on screen
 
                 // Input handling
                 this.mouseX = 0;
@@ -248,6 +274,13 @@
                 this.touchX = 0;
                 this.touchY = 0;
                 this.isTouching = false;
+
+                // Virtual joystick
+                this.joystick = document.querySelector('.joystick');
+                this.joystickHandle = document.querySelector('.joystick-handle');
+                this.joystickActive = false;
+                this.joystickX = 0;
+                this.joystickY = 0;
 
                 // Initialize
                 this.setupEventListeners();
@@ -270,16 +303,51 @@
                     this.isTouching = true;
                     this.touchX = e.touches[0].clientX;
                     this.touchY = e.touches[0].clientY;
+
+                    // Show and activate joystick
+                    this.joystick.style.display = 'block';
+                    this.joystick.style.left = `${this.touchX - 50}px`;
+                    this.joystick.style.bottom = `${window.innerHeight - this.touchY - 50}px`;
+                    this.joystickActive = true;
                 });
 
                 this.canvas.addEventListener('touchmove', (e) => {
                     e.preventDefault();
                     this.touchX = e.touches[0].clientX;
                     this.touchY = e.touches[0].clientY;
+
+                    if (this.joystickActive) {
+                        // Calculate joystick handle position
+                        let joystickRect = this.joystick.getBoundingClientRect();
+                        let centerX = joystickRect.left + 50;
+                        let centerY = joystickRect.top + 50;
+
+                        let dx = this.touchX - centerX;
+                        let dy = this.touchY - centerY;
+                        let distance = Math.sqrt(dx * dx + dy * dy);
+
+                        if (distance > 40) {
+                            dx = dx * 40 / distance;
+                            dy = dy * 40 / distance;
+                        }
+
+                        this.joystickHandle.style.left = `${dx + 30}px`;
+                        this.joystickHandle.style.top = `${dy + 30}px`;
+
+                        // Set joystick direction
+                        this.joystickX = dx / 40;
+                        this.joystickY = dy / 40;
+                    }
                 });
 
                 this.canvas.addEventListener('touchend', () => {
                     this.isTouching = false;
+                    this.joystickActive = false;
+                    this.joystick.style.display = 'none';
+                    this.joystickHandle.style.left = '30px';
+                    this.joystickHandle.style.top = '30px';
+                    this.joystickX = 0;
+                    this.joystickY = 0;
                 });
 
                 // Handle window resize
@@ -329,7 +397,7 @@
 
             spawnPredator() {
                 // Only spawn predators when player has grown enough
-                if (this.size < 3) return;
+                if (this.size < 3 || this.predators.length >= this.maxPredators) return;
 
                 // Spawn from outside the viewport
                 let side = Math.floor(Math.random() * 4); // 0: top, 1: right, 2: bottom, 3: left
@@ -381,9 +449,17 @@
                     this.predatorSpawnTimer = 0;
                 }
 
-                // Movement based on mouse or touch
-                let targetX = this.isTouching ? this.touchX : this.mouseX;
-                let targetY = this.isTouching ? this.touchY : this.mouseY;
+                // Movement based on mouse, touch, or joystick
+                let targetX, targetY;
+                if (this.joystickActive) {
+                    // Use joystick input
+                    targetX = this.creature.x + this.joystickX * this.creature.speed * 2;
+                    targetY = this.creature.y + this.joystickY * this.creature.speed * 2;
+                } else {
+                    // Use mouse or touch input
+                    targetX = this.isTouching ? this.touchX : this.mouseX;
+                    targetY = this.isTouching ? this.touchY : this.mouseY;
+                }
 
                 // Calculate angle to target
                 let dx = targetX - this.creature.x;
