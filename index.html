@@ -73,6 +73,38 @@
             top: 30px;
             left: 30px;
         }
+
+        /* Menu styles */
+        .menu {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            background-color: rgba(0, 0, 0, 0.8);
+            padding: 20px;
+            border-radius: 10px;
+            color: white;
+            z-index: 20;
+        }
+
+        .menu button {
+            background-color: #4CAF50;
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 10px;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+
+        .menu button:hover {
+            background-color: #45a049;
+        }
     </style>
     <!-- Telegram Web App script -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
@@ -87,6 +119,12 @@
         <!-- Virtual joystick -->
         <div class="joystick">
             <div class="joystick-handle"></div>
+        </div>
+        <!-- Menu -->
+        <div class="menu" id="menu">
+            <h1>Spore-like Game</h1>
+            <button id="startButton">Start Game</button>
+            <button id="exitButton">Exit</button>
         </div>
     </div>
 
@@ -264,6 +302,7 @@
                 this.predators = [];
                 this.foodSpawnRate = 30; // Increased food spawn rate (every 0.5 seconds at 60fps)
                 this.foodSpawnTimer = 0;
+                this.maxFood = 10; // Maximum number of food items on screen
                 this.predatorSpawnRate = 300; // Frames between predator spawns
                 this.predatorSpawnTimer = 0;
                 this.maxPredators = 5; // Maximum number of predators on screen
@@ -282,11 +321,37 @@
                 this.joystickX = 0;
                 this.joystickY = 0;
 
+                // Menu
+                this.menu = document.getElementById('menu');
+                this.startButton = document.getElementById('startButton');
+                this.exitButton = document.getElementById('exitButton');
+
                 // Initialize
                 this.setupEventListeners();
-                this.spawnInitialFood(20);
-                
-                // Start game loop
+                this.setupMenu();
+            }
+
+            setupMenu() {
+                this.startButton.addEventListener('click', () => {
+                    this.menu.style.display = 'none';
+                    this.startGame();
+                });
+
+                this.exitButton.addEventListener('click', () => {
+                    tg.close();
+                });
+            }
+
+            startGame() {
+                this.score = 0;
+                this.size = 1;
+                this.mutationPoints = 0;
+                this.creature.size = 20;
+                this.creature.x = this.canvas.width / 2;
+                this.creature.y = this.canvas.height / 2;
+                this.food = [];
+                this.predators = [];
+                this.spawnInitialFood(10);
                 this.loop();
             }
 
@@ -367,6 +432,9 @@
             }
 
             spawnFood() {
+                // Only spawn food if there are less than maxFood on screen
+                if (this.food.length >= this.maxFood) return;
+
                 // Determine food type based on chances
                 let randomValue = Math.random();
                 let cumulativeChance = 0;
@@ -455,10 +523,14 @@
                     // Use joystick input
                     targetX = this.creature.x + this.joystickX * this.creature.speed * 2;
                     targetY = this.creature.y + this.joystickY * this.creature.speed * 2;
+                } else if (this.isTouching) {
+                    // Use touch input
+                    targetX = this.touchX;
+                    targetY = this.touchY;
                 } else {
-                    // Use mouse or touch input
-                    targetX = this.isTouching ? this.touchX : this.mouseX;
-                    targetY = this.isTouching ? this.touchY : this.mouseY;
+                    // Use mouse input
+                    targetX = this.mouseX;
+                    targetY = this.mouseY;
                 }
 
                 // Calculate angle to target
@@ -473,11 +545,13 @@
                     this.creature.effects.speedBoost--;
                 }
 
-                // Move creature towards target
-                let distance = Math.sqrt(dx * dx + dy * dy);
-                if (distance > 5) { // Only move if not very close to target
-                    this.creature.x += Math.cos(this.creature.angle) * currentSpeed;
-                    this.creature.y += Math.sin(this.creature.angle) * currentSpeed;
+                // Move creature towards target only if there is input
+                if (this.joystickActive || this.isTouching || (this.mouseX !== 0 && this.mouseY !== 0)) {
+                    let distance = Math.sqrt(dx * dx + dy * dy);
+                    if (distance > 5) { // Only move if not very close to target
+                        this.creature.x += Math.cos(this.creature.angle) * currentSpeed;
+                        this.creature.y += Math.sin(this.creature.angle) * currentSpeed;
+                    }
                 }
 
                 // Keep creature within bounds
