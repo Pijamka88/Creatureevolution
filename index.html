@@ -64,11 +64,10 @@
             color: white;
             z-index: 20;
             display: none;
-            text-align: center;
         }
 
         .evolution-menu h2 {
-            margin-bottom: 10px;
+            margin-top: 0;
         }
 
         .evolution-menu button {
@@ -80,7 +79,7 @@
             text-decoration: none;
             display: inline-block;
             font-size: 16px;
-            margin: 5px;
+            margin: 10px;
             cursor: pointer;
             border-radius: 5px;
         }
@@ -101,12 +100,10 @@
         </div>
         <!-- Evolution menu -->
         <div class="evolution-menu" id="evolutionMenu">
-            <h2>Choose an Evolution</h2>
-            <button id="evolveSpeed">Speed +</button>
-            <button id="evolveDefense">Defense +</button>
-            <button id="evolveAttack">Attack +</button>
-            <button id="evolveWings">Add Wings</button>
-            <button id="evolveTentacles">Add Tentacles</button>
+            <h2>Choose Evolution Path</h2>
+            <button id="speedEvolution">Speed +</button>
+            <button id="defenseEvolution">Defense +</button>
+            <button id="attackEvolution">Attack +</button>
         </div>
     </div>
 
@@ -249,9 +246,16 @@
                 this.lastMutationSize = 1;
                 this.powerUps = [];
 
-                // Send score updates to Telegram periodically
-                this.lastScoreSent = 0;
+                // Evolution menu
+                this.evolutionMenu = document.getElementById('evolutionMenu');
+                this.speedEvolutionButton = document.getElementById('speedEvolution');
+                this.defenseEvolutionButton = document.getElementById('defenseEvolution');
+                this.attackEvolutionButton = document.getElementById('attackEvolution');
 
+                // Initialize evolution menu event listeners
+                this.setupEvolutionMenu();
+
+                // Creature customization
                 this.creature = {
                     x: this.canvas.width / 2,
                     y: this.canvas.height / 2,
@@ -271,8 +275,7 @@
                         trail: []
                     },
                     glow: 0,
-                    wings: false,
-                    tentacles: false
+                    bodyParts: [] // Array to store custom body parts
                 };
 
                 this.foodTypes = [
@@ -284,51 +287,36 @@
 
                 this.food = [];
                 this.predators = [];
-                this.foodSpawnRate = 30; // Increased food spawn rate (every 0.5 seconds at 60fps)
+                this.foodSpawnRate = 30;
                 this.foodSpawnTimer = 0;
-                this.maxFood = 10; // Maximum number of food items on screen
-                this.predatorSpawnRate = 300; // Frames between predator spawns
+                this.maxFood = 10;
+                this.predatorSpawnRate = 300;
                 this.predatorSpawnTimer = 0;
-                this.maxPredators = 5; // Maximum number of predators on screen
-
-                // Evolution menu
-                this.evolutionMenu = document.getElementById('evolutionMenu');
-                this.evolveSpeedButton = document.getElementById('evolveSpeed');
-                this.evolveDefenseButton = document.getElementById('evolveDefense');
-                this.evolveAttackButton = document.getElementById('evolveAttack');
-                this.evolveWingsButton = document.getElementById('evolveWings');
-                this.evolveTentaclesButton = document.getElementById('evolveTentacles');
+                this.maxPredators = 5;
 
                 // Initialize
                 this.setupEventListeners();
-                this.setupEvolutionMenu();
                 this.spawnInitialFood(10);
+                
+                // Start game loop
                 this.loop();
             }
 
             setupEvolutionMenu() {
-                this.evolveSpeedButton.addEventListener('click', () => {
+                this.speedEvolutionButton.addEventListener('click', () => {
                     this.creature.mutations.speed += 0.5;
+                    this.creature.speed += 1;
                     this.hideEvolutionMenu();
                 });
 
-                this.evolveDefenseButton.addEventListener('click', () => {
+                this.defenseEvolutionButton.addEventListener('click', () => {
                     this.creature.mutations.defense += 0.5;
+                    this.creature.size += 5;
                     this.hideEvolutionMenu();
                 });
 
-                this.evolveAttackButton.addEventListener('click', () => {
+                this.attackEvolutionButton.addEventListener('click', () => {
                     this.creature.mutations.attack += 0.5;
-                    this.hideEvolutionMenu();
-                });
-
-                this.evolveWingsButton.addEventListener('click', () => {
-                    this.creature.wings = true;
-                    this.hideEvolutionMenu();
-                });
-
-                this.evolveTentaclesButton.addEventListener('click', () => {
-                    this.creature.tentacles = true;
                     this.hideEvolutionMenu();
                 });
             }
@@ -342,7 +330,11 @@
                 this.mutationPoints = 0;
             }
 
-            // ... (остальной код остается без изменений)
+            evolve() {
+                this.showEvolutionMenu();
+            }
+
+            // Rest of the code remains the same...
         }
 
         // Start the game when the page loads
