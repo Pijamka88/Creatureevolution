@@ -8,24 +8,48 @@
         #gameCanvas { position: absolute; }
         .ui {
             position: fixed; padding: 10px; background: #00000055; border-radius: 5px; 
-            color: white; font-family: Arial;
+            color: white; font-family: Arial; backdrop-filter: blur(3px);
         }
         #stats { top: 10px; left: 10px; }
         #abilities { bottom: 10px; right: 10px; text-align: right; }
         button { background: #444; color: white; border: none; padding: 8px; margin: 2px; border-radius: 3px; }
+        #menu {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            background: #000000aa;
+            padding: 20px;
+            border-radius: 10px;
+        }
+        #gameOver {
+            display: none;
+        }
     </style>
 </head>
 <body>
     <canvas id="gameCanvas"></canvas>
-    <div id="stats" class="ui">
+    <div id="stats" class="ui" style="display: none;">
         <div>Health: <span id="health">100</span></div>
         <div>Energy: <span id="energy">50</span></div>
         <div>DNA: <span id="dna">0</span></div>
     </div>
-    <div id="abilities" class="ui">
+    <div id="abilities" class="ui" style="display: none;">
         <button onclick="evolve('speed')">Speed+ (10 DNA)</button>
         <button onclick="evolve('health')">Health+ (15 DNA)</button>
         <button onclick="evolve('vision')">Vision+ (20 DNA)</button>
+    </div>
+
+    <div id="menu" class="ui">
+        <h1>Microbe Evolution</h1>
+        <button onclick="startNewGame()">New Game</button>
+        <button onclick="continueGame()" id="continueBtn">Continue</button>
+    </div>
+
+    <div id="gameOver" class="ui">
+        <h2>Game Over!</h2>
+        <button onclick="showMenu()">Back to Menu</button>
     </div>
 
 <script>
@@ -33,24 +57,10 @@ const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 const WORLD_SIZE = 2000;
 let cameraX = 0, cameraY = 0;
+let gameState = 'menu';
+let animationFrameId;
 
-// Настройки стайного поведения
-const FLOCK_SETTINGS = {
-    separationDistance: 40,
-    alignmentDistance: 80,
-    cohesionDistance: 100,
-    separationForce: 0.05,
-    alignmentForce: 0.05,
-    cohesionForce: 0.05
-};
-
-// Настройки размножения
-const REPRODUCTION_SETTINGS = {
-    minHealth: 80,
-    energyCost: 30,
-    cooldown: 10000
-};
-
+// Setup canvas
 function resizeCanvas() {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
@@ -58,59 +68,57 @@ function resizeCanvas() {
 resizeCanvas();
 window.addEventListener('resize', resizeCanvas);
 
-const player = {
+let player = {
     x: WORLD_SIZE/2, y: WORLD_SIZE/2, size: 20,
     speed: 2, health: 100, energy: 50, dna: 0,
     vision: 200, direction: 0
 };
 
-const world = {
+let world = {
     resources: [],
     creatures: [],
     particles: []
 };
 
-function createCreature(type, x, y, parent) {
-    const base = parent ? {
-        ...parent,
-        x, y,
-        health: 100,
-        lastReproduction: Date.now()
-    } : {
+function createCreature(type, x, y) {
+    const base = {
         x, y, size: 15, health: 100,
         direction: 0, speed: 1.5,
         attack: 0, lastAttack: 0,
-        lastReproduction: 0
+        cooldown: false
     };
     
-    if(!parent) {
-        switch(type) {
-            case 'predator':
-                return {...base, 
-                    color: '#ff4444', 
-                    speed: 2.2,
-                    attack: 5,
-                    vision: 300
-                };
-            case 'herbivore':
-                return {...base,
-                    color: '#44ff44',
-                    speed: 1.8,
-                    flee: true
-                };
-            case 'parasite':
-                return {...base,
-                    color: '#aa44ff',
-                    size: 10,
-                    speed: 1.7,
-                    drain: 2
-                };
-        }
+    switch(type) {
+        case 'predator':
+            return {...base, 
+                color: '#ff4444', 
+                speed: 1.8,
+                attack: 5,
+                vision: 300,
+                attackCooldown: 2000
+            };
+        case 'herbivore':
+            return {...base,
+                color: '#44ff44',
+                speed: 1.8,
+                flee: true,
+                herd: []
+            };
+        case 'parasite':
+            return {...base,
+                color: '#aa44ff',
+                size: 10,
+                speed: 1.7,
+                drain: 2
+            };
     }
-    return base;
 }
 
 function generateWorld() {
+    world.resources = [];
+    world.creatures = [];
+    
+    // Resources
     for(let i = 0; i < 100; i++) {
         world.resources.push({
             x: Math.random() * WORLD_SIZE,
@@ -120,7 +128,8 @@ function generateWorld() {
         });
     }
     
-    for(let i = 0; i < 20; i++) {
+    // Creatures
+    for(let i = 0; i < 15; i++) {
         const type = ['predator', 'herbivore', 'parasite'][Math.floor(Math.random()*3)];
         world.creatures.push(createCreature(type, 
             Math.random() * WORLD_SIZE,
@@ -129,109 +138,297 @@ function generateWorld() {
     }
 }
 
-function updateFlocking(creature) {
-    if(!creature.flee) return;
-    
-    let separation = { x: 0, y: 0 };
-    let alignment = { x: 0, y: 0 };
-    let cohesion = { x: 0, y: 0 };
-    let neighbors = 0;
+function updateCreatures() {
+    world.creatures.forEach((creature, index) => {
+        // Herd behavior for herbivores
+        if(creature.herd) {
+            creature.herd = world.creatures
+                .filter(c => c !== creature && c.herd)
+                .filter(c => distance(c, creature) < 100)
+                .slice(0, 3);
+        }
 
-    world.creatures.forEach(other => {
-        if(other === creature || !other.flee) return;
-        const dist = distance(creature, other);
-        
-        if(dist < FLOCK_SETTINGS.separationDistance) {
-            separation.x += (creature.x - other.x)/dist;
-            separation.y += (creature.y - other.y)/dist;
+        // Movement logic
+        let target = null;
+        if(creature.attack) { // Predator
+            if(!creature.cooldown) {
+                const dx = player.x - creature.x;
+                const dy = player.y - creature.y;
+                if(Math.sqrt(dx*dx + dy*dy) < creature.vision) {
+                    target = player;
+                }
+            }
+        } else if(creature.flee) { // Herbivore
+            // Flee from predators and follow herd
+            const predator = world.creatures.find(c => c.attack && distance(c, creature) < 200);
+            if(predator) {
+                target = predator;
+            } else if(creature.herd.length > 0) {
+                const avgX = creature.herd.reduce((sum, c) => sum + c.x, 0) / creature.herd.length;
+                const avgY = creature.herd.reduce((sum, c) => sum + c.y, 0) / creature.herd.length;
+                creature.direction = Math.atan2(avgY - creature.y, avgX - creature.x);
+            }
+        } else if(creature.drain) { // Parasite
+            const closest = world.creatures.concat([player])
+                .reduce((closest, curr) => 
+                    distance(curr, creature) < distance(closest, creature) ? curr : closest);
+            if(distance(closest, creature) < 500) target = closest;
+        }
+
+        // Move
+        if(target) {
+            const angle = Math.atan2(target.y - creature.y, target.x - creature.x);
+            creature.direction = creature.flee ? angle + Math.PI : angle;
+            
+            creature.x += Math.cos(creature.direction) * creature.speed;
+            creature.y += Math.sin(creature.direction) * creature.speed;
+        } else {
+            creature.direction += (Math.random()-0.5)*0.5;
+            creature.x += Math.cos(creature.direction) * creature.speed;
+            creature.y += Math.sin(creature.direction) * creature.speed;
+        }
+
+        // Boundaries
+        creature.x = Math.max(0, Math.min(WORLD_SIZE, creature.x));
+        creature.y = Math.max(0, Math.min(WORLD_SIZE, creature.y));
+
+        // Combat
+        if(creature.attack && Date.now() - creature.lastAttack > creature.attackCooldown) {
+            if(distance(creature, player) < creature.size + player.size) {
+                player.health -= creature.attack;
+                creature.lastAttack = Date.now();
+                creature.cooldown = true;
+                setTimeout(() => creature.cooldown = false, 1000);
+                createParticles(player.x, player.y, 10, '#ff0000');
+            }
         }
         
-        if(dist < FLOCK_SETTINGS.alignmentDistance) {
-            alignment.x += Math.cos(other.direction);
-            alignment.y += Math.sin(other.direction);
-        }
-        
-        if(dist < FLOCK_SETTINGS.cohesionDistance) {
-            cohesion.x += other.x;
-            cohesion.y += other.y;
-            neighbors++;
+        // Reproduction
+        if(creature.health > 150 && Math.random() < 0.002) {
+            creature.health -= 50;
+            world.creatures.push(createCreature(
+                creature.flee ? 'herbivore' : 
+                creature.attack ? 'predator' : 'parasite',
+                creature.x + Math.random()*20 -10,
+                creature.y + Math.random()*20 -10
+            ));
         }
     });
+}
 
-    if(neighbors > 0) {
-        cohesion.x /= neighbors;
-        cohesion.y /= neighbors;
-        cohesion.x -= creature.x;
-        cohesion.y -= creature.y;
-        const dist = Math.sqrt(cohesion.x**2 + cohesion.y**2);
-        if(dist > 0) {
-            cohesion.x /= dist;
-            cohesion.y /= dist;
+function createParticles(x, y, count, color) {
+    for(let i = 0; i < count; i++) {
+        world.particles.push({
+            x, y,
+            vx: (Math.random()-0.5)*4,
+            vy: (Math.random()-0.5)*4,
+            life: 1,
+            color
+        });
+    }
+}
+
+function update() {
+    if(gameState !== 'playing') return;
+    
+    // Player movement
+    const speed = player.speed * (player.energy > 0 ? 1 : 0.5);
+    if(targetX !== null && targetY !== null) {
+        const dx = (targetX - canvas.width/2) - cameraX;
+        const dy = (targetY - canvas.height/2) - cameraY;
+        const dist = Math.sqrt(dx*dx + dy*dy);
+        
+        if(dist > speed) {
+            player.x += (dx/dist)*speed;
+            player.y += (dy/dist)*speed;
+            player.direction = Math.atan2(dy, dx);
+            player.energy = Math.max(0, player.energy - 0.1);
         }
     }
-
-    creature.direction += Math.atan2(
-        separation.y * FLOCK_SETTINGS.separationForce +
-        alignment.y * FLOCK_SETTINGS.alignmentForce +
-        cohesion.y * FLOCK_SETTINGS.cohesionForce,
-        separation.x * FLOCK_SETTINGS.separationForce +
-        alignment.x * FLOCK_SETTINGS.alignmentForce +
-        cohesion.x * FLOCK_SETTINGS.cohesionForce
-    );
-}
-
-function tryReproduce(creature) {
-    if(creature.health < REPRODUCTION_SETTINGS.minHealth) return;
-    if(Date.now() - creature.lastReproduction < REPRODUCTION_SETTINGS.cooldown) return;
-    if(Math.random() > 0.01) return;
     
-    const angle = Math.random() * Math.PI * 2;
-    const offspring = createCreature(null, 
-        creature.x + Math.cos(angle) * 30,
-        creature.y + Math.sin(angle) * 30,
-        creature
-    );
-    
-    world.creatures.push(offspring);
-    creature.health -= REPRODUCTION_SETTINGS.energyCost;
-    creature.lastReproduction = Date.now();
-    createParticles(creature.x, creature.y, 20, '#ffff00');
-}
+    cameraX = player.x - canvas.width/2;
+    cameraY = player.y - canvas.height/2;
 
-function updateCreatures() {
-    world.creatures.forEach(creature => {
-        // Стайное поведение для травоядных
-        if(creature.flee) {
-            updateFlocking(creature);
-            tryReproduce(creature);
+    // Resource collection
+    world.resources = world.resources.filter(resource => {
+        if(distance(resource, player) < player.size) {
+            createParticles(resource.x, resource.y, 5, resource.type === 'food' ? '#00ff00' : '#00ffff');
+            if(resource.type === 'food') {
+                player.health = Math.min(100, player.health + 5);
+            } else {
+                player.dna += 1;
+            }
+            return false;
         }
-
-        // Логика движения...
-        // (остальная часть функции остается без изменений)
+        return true;
     });
+
+    updateCreatures();
+    
+    // Update particles
+    world.particles.forEach(p => {
+        p.x += p.vx;
+        p.y += p.vy;
+        p.life -= 0.02;
+    });
+    world.particles = world.particles.filter(p => p.life > 0);
+
+    // Update UI
+    document.getElementById('health').textContent = Math.round(player.health);
+    document.getElementById('energy').textContent = Math.round(player.energy);
+    document.getElementById('dna').textContent = player.dna;
+
+    // Game Over check
+    if(player.health <= 0) {
+        gameOver();
+        return;
+    }
+
+    animationFrameId = requestAnimationFrame(update);
+    draw();
 }
 
-// Остальной код остается как в предыдущей версии
-// (функции update, draw, createParticles, обработка ввода и т.д.)
+function draw() {
+    ctx.fillStyle = '#1a1a1a';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-// Измененная функция расстояния
+    // Draw resources
+    world.resources.forEach(resource => {
+        ctx.fillStyle = resource.type === 'food' ? '#00ff00' : '#00ffff';
+        ctx.beginPath();
+        ctx.arc(resource.x - cameraX, resource.y - cameraY, 5, 0, Math.PI*2);
+        ctx.fill();
+    });
+
+    // Draw creatures
+    world.creatures.concat([player]).forEach(creature => {
+        const screenX = creature.x - cameraX;
+        const screenY = creature.y - cameraY;
+        
+        // Body
+        ctx.fillStyle = creature.color || '#ffffff';
+        ctx.beginPath();
+        ctx.arc(screenX, screenY, creature.size, 0, Math.PI*2);
+        ctx.fill();
+
+        // Eyes
+        const eyeDist = creature.size * 0.4;
+        const eyeAngle = creature.direction;
+        [Math.PI/6, -Math.PI/6].forEach(offset => {
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.arc(
+                screenX + Math.cos(eyeAngle + offset) * eyeDist,
+                screenY + Math.sin(eyeAngle + offset) * eyeDist,
+                creature.size * 0.15, 0, Math.PI*2
+            );
+            ctx.fill();
+        });
+    });
+
+    // Draw particles
+    world.particles.forEach(p => {
+        ctx.fillStyle = p.color;
+        ctx.globalAlpha = p.life;
+        ctx.beginPath();
+        ctx.arc(p.x - cameraX, p.y - cameraY, 2, 0, Math.PI*2);
+        ctx.fill();
+    });
+    ctx.globalAlpha = 1;
+}
+
+// Utilities
 function distance(a, b) {
-    const dx = a.x - b.x;
-    const dy = a.y - b.y;
-    return Math.sqrt(dx*dx + dy*dy);
+    return Math.sqrt((a.x - b.x)**2 + (a.y - b.y)**2);
 }
 
-// Инициализация и остальные функции...
-generateWorld();
-update();
-window.Telegram.WebApp.ready();
+// Input handling
+let targetX = null, targetY = null;
+canvas.addEventListener('click', e => {
+    targetX = e.clientX;
+    targetY = e.clientY;
+});
+canvas.addEventListener('touchstart', e => {
+    e.preventDefault();
+    targetX = e.touches[0].clientX;
+    targetY = e.touches[0].clientY;
+});
 
+// Evolution
+function evolve(type) {
+    const upgrades = {
+        speed: { cost: 10, effect: p => p.speed += 0.5 },
+        health: { cost: 15, effect: p => p.health += 20 },
+        vision: { cost: 20, effect: p => p.vision += 50 }
+    };
+    const upgrade = upgrades[type];
+    if(player.dna >= upgrade.cost) {
+        upgrade.effect(player);
+        player.dna -= upgrade.cost;
+    }
+}
+
+// Game state management
+function startNewGame() {
+    gameState = 'playing';
+    document.getElementById('menu').style.display = 'none';
+    document.getElementById('stats').style.display = 'block';
+    document.getElementById('abilities').style.display = 'block';
+    document.getElementById('gameOver').style.display = 'none';
+    
+    player = {
+        x: WORLD_SIZE/2, y: WORLD_SIZE/2, size: 20,
+        speed: 2, health: 100, energy: 50, dna: 0,
+        vision: 200, direction: 0
+    };
+    
+    generateWorld();
+    update();
+}
+
+function continueGame() {
+    const saved = localStorage.getItem('gameState');
+    if(saved) {
+        const state = JSON.parse(saved);
+        Object.assign(player, state.player);
+        Object.assign(world, state.world);
+        gameState = 'playing';
+        document.getElementById('menu').style.display = 'none';
+        document.getElementById('stats').style.display = 'block';
+        document.getElementById('abilities').style.display = 'block';
+        update();
+    }
+}
+
+function gameOver() {
+    gameState = 'gameOver';
+    cancelAnimationFrame(animationFrameId);
+    document.getElementById('stats').style.display = 'none';
+    document.getElementById('abilities').style.display = 'none';
+    document.getElementById('gameOver').style.display = 'block';
+}
+
+function showMenu() {
+    gameState = 'menu';
+    document.getElementById('menu').style.display = 'block';
+    document.getElementById('gameOver').style.display = 'none';
+    document.getElementById('continueBtn').style.display = 
+        localStorage.getItem('gameState') ? 'inline-block' : 'none';
+}
+
+// Auto-save
 setInterval(() => {
-    localStorage.setItem('gameState', JSON.stringify({
-        player,
-        world
-    }));
+    if(gameState === 'playing') {
+        localStorage.setItem('gameState', JSON.stringify({
+            player,
+            world
+        }));
+    }
 }, 5000);
+
+// Init
+showMenu();
+window.Telegram.WebApp.ready();
 </script>
 </body>
 </html>
