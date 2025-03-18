@@ -1,1182 +1,328 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
+    <title>Microbe Evolution</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Spore-like Game for Telegram</title>
     <style>
-        /* CSS styles from style.css */
-        body {
-            margin: 0;
-            padding: 0;
-            overflow: hidden;
-            font-family: Arial, sans-serif;
+        body { margin: 0; overflow: hidden; touch-action: none; background: #1a1a1a; }
+        #gameCanvas { position: absolute; }
+        .ui {
+            position: fixed; padding: 10px; background: #00000055; border-radius: 5px; 
+            color: white; font-family: Arial;
         }
-
-        body.dark {
-            background-color: #1e1e1e;
-            color: #ffffff;
-        }
-
-        body.light {
-            background-color: #ffffff;
-            color: #1e1e1e;
-        }
-
-        .game-container {
-            position: relative;
-            width: 100vw;
-            height: 100vh;
-            overflow: hidden;
-        }
-
-        canvas {
-            display: block;
-            width: 100%;
-            height: 100%;
-        }
-
-        .ui-overlay {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            z-index: 10;
-            padding: 10px;
-            background-color: rgba(0, 0, 0, 0.5);
-            border-radius: 5px;
-            color: white;
-            font-size: 18px;
-        }
-
-        .score, .size {
-            margin: 5px 0;
-        }
-
-        /* Virtual joystick styles */
-        .joystick {
-            position: absolute;
-            bottom: 20px;
-            left: 20px;
-            width: 100px;
-            height: 100px;
-            background-color: rgba(0, 0, 0, 0.5);
-            border-radius: 50%;
-            display: none;
-        }
-
-        .joystick-handle {
-            position: absolute;
-            width: 40px;
-            height: 40px;
-            background-color: rgba(255, 255, 255, 0.8);
-            border-radius: 50%;
-            top: 30px;
-            left: 30px;
-        }
-
-        /* Menu styles */
-        .menu {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            text-align: center;
-            background-color: rgba(0, 0, 0, 0.8);
-            padding: 20px;
-            border-radius: 10px;
-            color: white;
-            z-index: 20;
-        }
-
-        .menu button {
-            background-color: #4CAF50;
-            border: none;
-            color: white;
-            padding: 10px 20px;
-            text-align: center;
-            text-decoration: none;
-            display: inline-block;
-            font-size: 16px;
-            margin: 10px;
-            cursor: pointer;
-            border-radius: 5px;
-        }
-
-        .menu button:hover {
-            background-color: #45a049;
-        }
-
-        /* Evolution menu */
-        .evolution-menu {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background-color: rgba(0, 0, 0, 0.8);
-            padding: 20px;
-            border-radius: 10px;
-            color: white;
-            z-index: 20;
-            display: none;
-        }
-
-        .evolution-menu button {
-            background-color: #4CAF50;
-            border: none;
-            color: white;
-            padding: 10px 20px;
-            text-align: center;
-            text-decoration: none;
-            display: inline-block;
-            font-size: 16px;
-            margin: 10px;
-            cursor: pointer;
-            border-radius: 5px;
-        }
-
-        .evolution-menu button:hover {
-            background-color: #45a049;
-        }
+        #stats { top: 10px; left: 10px; }
+        #abilities { bottom: 10px; right: 10px; text-align: right; }
+        button { background: #444; color: white; border: none; padding: 8px; margin: 2px; border-radius: 3px; }
     </style>
-    <!-- Telegram Web App script -->
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
-    <div class="game-container">
-        <canvas id="gameCanvas"></canvas>
-        <div class="ui-overlay">
-            <div class="score">Score: <span id="scoreValue">0</span></div>
-            <div class="size">Size: <span id="sizeValue">1</span></div>
-        </div>
-        <!-- Virtual joystick -->
-        <div class="joystick">
-            <div class="joystick-handle"></div>
-        </div>
-        <!-- Menu -->
-        <div class="menu" id="menu">
-            <h1>Spore-like Game</h1>
-            <button id="startButton">Start Game</button>
-            <button id="exitButton">Exit</button>
-        </div>
-        <!-- Evolution menu -->
-        <div class="evolution-menu" id="evolutionMenu">
-            <h2>Evolve Your Creature</h2>
-            <button id="evolveSpeed">Increase Speed</button>
-            <button id="evolveDefense">Increase Defense</button>
-            <button id="evolveAttack">Increase Attack</button>
-        </div>
+    <canvas id="gameCanvas"></canvas>
+    <div id="stats" class="ui">
+        <div>Health: <span id="health">100</span></div>
+        <div>Energy: <span id="energy">50</span></div>
+        <div>DNA: <span id="dna">0</span></div>
+    </div>
+    <div id="abilities" class="ui">
+        <button onclick="evolve('speed')">Speed+ (10 DNA)</button>
+        <button onclick="evolve('health')">Health+ (15 DNA)</button>
+        <button onclick="evolve('vision')">Vision+ (20 DNA)</button>
     </div>
 
-    <script>
-        // particles.js code
-        class ParticleSystem {
-            constructor(canvas, ctx) {
-                this.canvas = canvas;
-                this.ctx = ctx;
-                this.particles = [];
-            }
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const WORLD_SIZE = 2000;
+let cameraX = 0, cameraY = 0;
 
-            createParticle(x, y, color) {
-                return {
-                    x: x,
-                    y: y,
-                    color: color,
-                    velocity: {
-                        x: (Math.random() - 0.5) * 4,
-                        y: (Math.random() - 0.5) * 4
-                    },
-                    life: 1.0,
-                    decay: 0.02
-                };
-            }
+// Setup canvas
+function resizeCanvas() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+}
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
 
-            emit(x, y, color, count) {
-                for (let i = 0; i < count; i++) {
-                    this.particles.push(this.createParticle(x, y, color));
-                }
-            }
+const player = {
+    x: WORLD_SIZE/2, y: WORLD_SIZE/2, size: 20,
+    speed: 2, health: 100, energy: 50, dna: 0,
+    vision: 200, direction: 0
+};
 
-            update() {
-                for (let i = this.particles.length - 1; i >= 0; i--) {
-                    const particle = this.particles[i];
-                    
-                    particle.x += particle.velocity.x;
-                    particle.y += particle.velocity.y;
-                    particle.life -= particle.decay;
+const world = {
+    resources: [],
+    creatures: [],
+    particles: []
+};
 
-                    if (particle.life <= 0) {
-                        this.particles.splice(i, 1);
-                    }
-                }
-            }
-
-            draw() {
-                this.particles.forEach(particle => {
-                    this.ctx.beginPath();
-                    this.ctx.arc(particle.x, particle.y, 2, 0, Math.PI * 2);
-                    this.ctx.fillStyle = `rgba(${particle.color}, ${particle.life})`;
-                    this.ctx.fill();
-                });
-            }
-        }
-
-        // telegramApp.js code
-        // Initialize Telegram Web App
-        const tg = window.Telegram.WebApp;
-
-        // Expand the web app to full height
-        tg.expand();
-
-        // Setting theme
-        document.body.className = tg.colorScheme;
-
-        // Function to send score to bot
-        function sendScoreToBot(score, size) {
-            // Get user info if available
-            const user = tg.initDataUnsafe?.user || {};
-            
-            const gameData = {
-                score: score,
-                size: size,
-                userId: user.id || 'unknown',
-                username: user.username || 'anonymous',
-                timestamp: new Date().toISOString()
+function createCreature(type, x, y) {
+    const base = {
+        x, y, size: 15, health: 100,
+        direction: 0, speed: 1.5,
+        attack: 0, lastAttack: 0
+    };
+    
+    switch(type) {
+        case 'predator':
+            return {...base, 
+                color: '#ff4444', 
+                speed: 2.2,
+                attack: 5,
+                vision: 300
             };
-            
-            // On GitHub Pages we can only send data directly to Telegram
-            // We can't make a server request since there is no backend
-            console.log('Sending game data to Telegram:', gameData);
-            
-            // Send data back to the Telegram bot
-            tg.sendData(JSON.stringify(gameData));
-        }
+        case 'herbivore':
+            return {...base,
+                color: '#44ff44',
+                speed: 1.8,
+                flee: true
+            };
+        case 'parasite':
+            return {...base,
+                color: '#aa44ff',
+                size: 10,
+                speed: 1.7,
+                drain: 2
+            };
+    }
+}
 
-        // Function to show game completion in Telegram
-        function completeGame(score, size) {
-            // Send final score to bot
-            sendScoreToBot(score, size);
-            
-            // Close the Web App and send the data back
-            tg.close();
-        }
+function generateWorld() {
+    // Resources
+    for(let i = 0; i < 100; i++) {
+        world.resources.push({
+            x: Math.random() * WORLD_SIZE,
+            y: Math.random() * WORLD_SIZE,
+            type: Math.random() > 0.2 ? 'food' : 'dna',
+            value: 10
+        });
+    }
+    
+    // Creatures
+    for(let i = 0; i < 20; i++) {
+        const type = ['predator', 'herbivore', 'parasite'][Math.floor(Math.random()*3)];
+        world.creatures.push(createCreature(type, 
+            Math.random() * WORLD_SIZE,
+            Math.random() * WORLD_SIZE
+        ));
+    }
+}
 
-        // Telegram button to show in the game
-        function showTelegramBackButton() {
-            tg.BackButton.show();
-            tg.BackButton.onClick(() => {
-                // Handle back button click
-                if (confirm('Are you sure you want to exit the game?')) {
-                    tg.close();
+function updateCreatures() {
+    world.creatures.forEach(creature => {
+        // Movement logic
+        let target = null;
+        if(creature.attack) { // Predator
+            const dx = player.x - creature.x;
+            const dy = player.y - creature.y;
+            if(Math.sqrt(dx*dx + dy*dy) < creature.vision) {
+                target = player;
+            }
+        } else if(creature.flee) { // Herbivore
+            world.creatures.forEach(c => {
+                if(c.attack && distance(c, creature) < 200) {
+                    target = c;
                 }
             });
+        } else if(creature.drain) { // Parasite
+            const closest = world.creatures.concat([player])
+                .reduce((closest, curr) => 
+                    distance(curr, creature) < distance(closest, creature) ? curr : closest);
+            if(distance(closest, creature) < 500) target = closest;
         }
 
-        // Hide the back button when not needed
-        function hideTelegramBackButton() {
-            tg.BackButton.hide();
+        // Move
+        if(target) {
+            const angle = Math.atan2(target.y - creature.y, target.x - creature.x);
+            creature.direction = angle;
+            if(creature.flee) {
+                creature.x -= Math.cos(angle) * creature.speed;
+                creature.y -= Math.sin(angle) * creature.speed;
+            } else {
+                creature.x += Math.cos(angle) * creature.speed;
+                creature.y += Math.sin(angle) * creature.speed;
+            }
+        } else {
+            creature.direction += (Math.random()-0.5)*0.5;
+            creature.x += Math.cos(creature.direction) * creature.speed;
+            creature.y += Math.sin(creature.direction) * creature.speed;
         }
 
-        // Telegram haptic feedback
-        function telegramHapticFeedback(type) {
-            switch(type) {
-                case 'notification':
-                    tg.HapticFeedback.notificationOccurred('success');
-                    break;
-                case 'impact':
-                    tg.HapticFeedback.impactOccurred('medium');
-                    break;
-                case 'selection':
-                    tg.HapticFeedback.selectionChanged();
-                    break;
+        // Boundaries
+        creature.x = Math.max(0, Math.min(WORLD_SIZE, creature.x));
+        creature.y = Math.max(0, Math.min(WORLD_SIZE, creature.y));
+
+        // Combat
+        if(creature.attack && Date.now() - creature.lastAttack > 1000) {
+            if(distance(creature, player) < creature.size + player.size) {
+                player.health -= creature.attack;
+                creature.lastAttack = Date.now();
+                createParticles(player.x, player.y, 10, '#ff0000');
             }
         }
-
-        // game.js code
-        class Game {
-            constructor() {
-                this.canvas = document.getElementById('gameCanvas');
-                this.ctx = this.canvas.getContext('2d');
-                this.canvas.width = window.innerWidth * 2; // Увеличение игрового поля
-                this.canvas.height = window.innerHeight * 2;
-
-                this.score = 0;
-                this.size = 1;
-                this.particles = new ParticleSystem(this.canvas, this.ctx);
-                this.mutationPoints = 0;
-                this.lastMutationSize = 1;
-                this.powerUps = [];
-
-                // Send score updates to Telegram periodically
-                this.lastScoreSent = 0;
-
-                this.creature = {
-                    x: this.canvas.width / 2,
-                    y: this.canvas.height / 2,
-                    size: 20,
-                    speed: 5,
-                    segments: [{x: 0, y: 0}],
-                    angle: 0,
-                    mutations: {
-                        speed: 0,
-                        defense: 0,
-                        attack: 0
-                    },
-                    color: '0, 255, 0',
-                    effects: {
-                        speedBoost: 0,
-                        defenseBoost: 0,
-                        trail: []
-                    },
-                    glow: 0,
-                    stage: 'cell' // Current stage: 'cell' or 'creature'
-                };
-
-                this.foodTypes = [
-                    { type: 'normal', color: '0, 255, 0', chance: 0.7, points: 10, effectType: 'none' },
-                    { type: 'speed', color: '255, 0, 0', chance: 0.1, points: 15, effectType: 'orbit' },
-                    { type: 'defense', color: '0, 0, 255', chance: 0.1, points: 15, effectType: 'orbit' },
-                    { type: 'bonus', color: '255, 255, 0', chance: 0.1, points: 30, effectType: 'pulse' }
-                ];
-
-                this.food = [];
-                this.predators = [];
-                this.herbivores = []; // Травоядные
-                this.parasites = []; // Паразиты
-                this.foodSpawnRate = 30; // Increased food spawn rate (every 0.5 seconds at 60fps)
-                this.foodSpawnTimer = 0;
-                this.maxFood = 10; // Maximum number of food items on screen
-                this.predatorSpawnRate = 300; // Frames between predator spawns
-                this.predatorSpawnTimer = 0;
-                this.maxPredators = 5; // Maximum number of predators on screen
-                this.herbivoreSpawnRate = 200; // Frames between herbivore spawns
-                this.herbivoreSpawnTimer = 0;
-                this.maxHerbivores = 10; // Maximum number of herbivores on screen
-                this.parasiteSpawnRate = 400; // Frames between parasite spawns
-                this.parasiteSpawnTimer = 0;
-                this.maxParasites = 3; // Maximum number of parasites on screen
-
-                // Input handling
-                this.mouseX = 0;
-                this.mouseY = 0;
-                this.touchX = 0;
-                this.touchY = 0;
-                this.isTouching = false;
-
-                // Virtual joystick
-                this.joystick = document.querySelector('.joystick');
-                this.joystickHandle = document.querySelector('.joystick-handle');
-                this.joystickActive = false;
-                this.joystickX = 0;
-                this.joystickY = 0;
-
-                // Menu
-                this.menu = document.getElementById('menu');
-                this.startButton = document.getElementById('startButton');
-                this.exitButton = document.getElementById('exitButton');
-
-                // Evolution menu
-                this.evolutionMenu = document.getElementById('evolutionMenu');
-                this.evolveSpeedButton = document.getElementById('evolveSpeed');
-                this.evolveDefenseButton = document.getElementById('evolveDefense');
-                this.evolveAttackButton = document.getElementById('evolveAttack');
-
-                // Initialize
-                this.setupEventListeners();
-                this.setupMenu();
-                this.setupEvolutionMenu();
-            }
-
-            setupMenu() {
-                this.startButton.addEventListener('click', () => {
-                    this.menu.style.display = 'none';
-                    this.startGame();
-                });
-
-                this.exitButton.addEventListener('click', () => {
-                    tg.close();
-                });
-            }
-
-            setupEvolutionMenu() {
-                this.evolveSpeedButton.addEventListener('click', () => {
-                    this.creature.mutations.speed += 0.5;
-                    this.evolutionMenu.style.display = 'none';
-                    this.mutationPoints = 0;
-                });
-
-                this.evolveDefenseButton.addEventListener('click', () => {
-                    this.creature.mutations.defense += 0.5;
-                    this.evolutionMenu.style.display = 'none';
-                    this.mutationPoints = 0;
-                });
-
-                this.evolveAttackButton.addEventListener('click', () => {
-                    this.creature.mutations.attack += 0.5;
-                    this.evolutionMenu.style.display = 'none';
-                    this.mutationPoints = 0;
-                });
-            }
-
-            startGame() {
-                this.score = 0;
-                this.size = 1;
-                this.mutationPoints = 0;
-                this.creature.size = 20;
-                this.creature.x = this.canvas.width / 2;
-                this.creature.y = this.canvas.height / 2;
-                this.creature.stage = 'cell'; // Start in cell stage
-                this.food = [];
-                this.predators = [];
-                this.herbivores = [];
-                this.parasites = [];
-                this.spawnInitialFood(10);
-                this.loop();
-            }
-
-            setupEventListeners() {
-                // Mouse movement
-                this.canvas.addEventListener('mousemove', (e) => {
-                    this.mouseX = e.clientX;
-                    this.mouseY = e.clientY;
-                });
-
-                // Touch handling for mobile
-                this.canvas.addEventListener('touchstart', (e) => {
-                    e.preventDefault();
-                    this.isTouching = true;
-                    this.touchX = e.touches[0].clientX;
-                    this.touchY = e.touches[0].clientY;
-
-                    // Show and activate joystick
-                    this.joystick.style.display = 'block';
-                    this.joystick.style.left = `${this.touchX - 50}px`;
-                    this.joystick.style.bottom = `${window.innerHeight - this.touchY - 50}px`;
-                    this.joystickActive = true;
-                });
-
-                this.canvas.addEventListener('touchmove', (e) => {
-                    e.preventDefault();
-                    this.touchX = e.touches[0].clientX;
-                    this.touchY = e.touches[0].clientY;
-
-                    if (this.joystickActive) {
-                        // Calculate joystick handle position
-                        let joystickRect = this.joystick.getBoundingClientRect();
-                        let centerX = joystickRect.left + 50;
-                        let centerY = joystickRect.top + 50;
-
-                        let dx = this.touchX - centerX;
-                        let dy = this.touchY - centerY;
-                        let distance = Math.sqrt(dx * dx + dy * dy);
-
-                        if (distance > 40) {
-                            dx = dx * 40 / distance;
-                            dy = dy * 40 / distance;
-                        }
-
-                        this.joystickHandle.style.left = `${dx + 30}px`;
-                        this.joystickHandle.style.top = `${dy + 30}px`;
-
-                        // Set joystick direction
-                        this.joystickX = dx / 40;
-                        this.joystickY = dy / 40;
-                    }
-                });
-
-                this.canvas.addEventListener('touchend', () => {
-                    this.isTouching = false;
-                    this.joystickActive = false;
-                    this.joystick.style.display = 'none';
-                    this.joystickHandle.style.left = '30px';
-                    this.joystickHandle.style.top = '30px';
-                    this.joystickX = 0;
-                    this.joystickY = 0;
-                });
-
-                // Handle window resize
-                window.addEventListener('resize', () => {
-                    this.canvas.width = window.innerWidth * 2;
-                    this.canvas.height = window.innerHeight * 2;
-                });
-
-                // Show Telegram back button
-                showTelegramBackButton();
-            }
-
-            spawnInitialFood(count) {
-                for (let i = 0; i < count; i++) {
-                    this.spawnFood();
-                }
-            }
-
-            spawnFood() {
-                // Only spawn food if there are less than maxFood on screen
-                if (this.food.length >= this.maxFood) return;
-
-                // Determine food type based on chances
-                let randomValue = Math.random();
-                let cumulativeChance = 0;
-                let selectedType;
-
-                for (let type of this.foodTypes) {
-                    cumulativeChance += type.chance;
-                    if (randomValue <= cumulativeChance) {
-                        selectedType = type;
-                        break;
-                    }
-                }
-
-                // Create food object
-                let padding = 50;
-                this.food.push({
-                    x: padding + Math.random() * (this.canvas.width - padding * 2),
-                    y: padding + Math.random() * (this.canvas.height - padding * 2),
-                    size: 5 + Math.random() * 5,
-                    type: selectedType.type,
-                    color: selectedType.color,
-                    points: selectedType.points,
-                    effectType: selectedType.effectType,
-                    angle: 0,
-                    oscillation: 0
-                });
-            }
-
-            spawnPredator() {
-                // Only spawn predators when player has grown enough
-                if (this.size < 3 || this.predators.length >= this.maxPredators) return;
-
-                // Spawn from outside the viewport
-                let side = Math.floor(Math.random() * 4); // 0: top, 1: right, 2: bottom, 3: left
-                let x, y;
-                let padding = 100;
-
-                switch (side) {
-                    case 0: // top
-                        x = Math.random() * this.canvas.width;
-                        y = -padding;
-                        break;
-                    case 1: // right
-                        x = this.canvas.width + padding;
-                        y = Math.random() * this.canvas.height;
-                        break;
-                    case 2: // bottom
-                        x = Math.random() * this.canvas.width;
-                        y = this.canvas.height + padding;
-                        break;
-                    case 3: // left
-                        x = -padding;
-                        y = Math.random() * this.canvas.height;
-                        break;
-                }
-
-                this.predators.push({
-                    x: x,
-                    y: y,
-                    size: 15 + Math.random() * 10 + this.size * 2, // Scale with player size
-                    speed: 2 + Math.random() * 1.5,
-                    color: '255, 0, 100',
-                    angle: 0,
-                    segments: [{x: 0, y: 0}]
-                });
-            }
-
-            spawnHerbivore() {
-                // Only spawn herbivores if there are less than maxHerbivores on screen
-                if (this.herbivores.length >= this.maxHerbivores) return;
-
-                // Spawn from outside the viewport
-                let side = Math.floor(Math.random() * 4); // 0: top, 1: right, 2: bottom, 3: left
-                let x, y;
-                let padding = 100;
-
-                switch (side) {
-                    case 0: // top
-                        x = Math.random() * this.canvas.width;
-                        y = -padding;
-                        break;
-                    case 1: // right
-                        x = this.canvas.width + padding;
-                        y = Math.random() * this.canvas.height;
-                        break;
-                    case 2: // bottom
-                        x = Math.random() * this.canvas.width;
-                        y = this.canvas.height + padding;
-                        break;
-                    case 3: // left
-                        x = -padding;
-                        y = Math.random() * this.canvas.height;
-                        break;
-                }
-
-                this.herbivores.push({
-                    x: x,
-                    y: y,
-                    size: 10 + Math.random() * 5,
-                    speed: 1 + Math.random() * 1,
-                    color: '0, 150, 0',
-                    angle: 0,
-                    segments: [{x: 0, y: 0}]
-                });
-            }
-
-            spawnParasite() {
-                // Only spawn parasites if there are less than maxParasites on screen
-                if (this.parasites.length >= this.maxParasites) return;
-
-                // Spawn from outside the viewport
-                let side = Math.floor(Math.random() * 4); // 0: top, 1: right, 2: bottom, 3: left
-                let x, y;
-                let padding = 100;
-
-                switch (side) {
-                    case 0: // top
-                        x = Math.random() * this.canvas.width;
-                        y = -padding;
-                        break;
-                    case 1: // right
-                        x = this.canvas.width + padding;
-                        y = Math.random() * this.canvas.height;
-                        break;
-                    case 2: // bottom
-                        x = Math.random() * this.canvas.width;
-                        y = this.canvas.height + padding;
-                        break;
-                    case 3: // left
-                        x = -padding;
-                        y = Math.random() * this.canvas.height;
-                        break;
-                }
-
-                this.parasites.push({
-                    x: x,
-                    y: y,
-                    size: 5 + Math.random() * 5,
-                    speed: 3 + Math.random() * 1,
-                    color: '150, 0, 150',
-                    angle: 0,
-                    segments: [{x: 0, y: 0}]
-                });
-            }
-
-            update() {
-                // Food spawning
-                this.foodSpawnTimer++;
-                if (this.foodSpawnTimer >= this.foodSpawnRate) {
-                    this.spawnFood();
-                    this.foodSpawnTimer = 0;
-                }
-
-                // Predator spawning
-                this.predatorSpawnTimer++;
-                if (this.predatorSpawnTimer >= this.predatorSpawnRate) {
-                    this.spawnPredator();
-                    this.predatorSpawnTimer = 0;
-                }
-
-                // Herbivore spawning
-                this.herbivoreSpawnTimer++;
-                if (this.herbivoreSpawnTimer >= this.herbivoreSpawnRate) {
-                    this.spawnHerbivore();
-                    this.herbivoreSpawnTimer = 0;
-                }
-
-                // Parasite spawning
-                this.parasiteSpawnTimer++;
-                if (this.parasiteSpawnTimer >= this.parasiteSpawnRate) {
-                    this.spawnParasite();
-                    this.parasiteSpawnTimer = 0;
-                }
-
-                // Movement based on mouse, touch, or joystick
-                let targetX, targetY;
-                if (this.joystickActive) {
-                    // Use joystick input
-                    targetX = this.creature.x + this.joystickX * this.creature.speed * 2;
-                    targetY = this.creature.y + this.joystickY * this.creature.speed * 2;
-                } else if (this.isTouching) {
-                    // Use touch input
-                    targetX = this.touchX;
-                    targetY = this.touchY;
-                } else {
-                    // Use mouse input
-                    targetX = this.mouseX;
-                    targetY = this.mouseY;
-                }
-
-                // Calculate angle to target
-                let dx = targetX - this.creature.x;
-                let dy = targetY - this.creature.y;
-                this.creature.angle = Math.atan2(dy, dx);
-
-                // Apply speed boost effect
-                let currentSpeed = this.creature.speed + this.creature.mutations.speed;
-                if (this.creature.effects.speedBoost > 0) {
-                    currentSpeed += 3;
-                    this.creature.effects.speedBoost--;
-                }
-
-                // Move creature towards target only if there is input
-                if (this.joystickActive || this.isTouching || (this.mouseX !== 0 && this.mouseY !== 0)) {
-                    let distance = Math.sqrt(dx * dx + dy * dy);
-                    if (distance > 5) { // Only move if not very close to target
-                        this.creature.x += Math.cos(this.creature.angle) * currentSpeed;
-                        this.creature.y += Math.sin(this.creature.angle) * currentSpeed;
-                    }
-                }
-
-                // Keep creature within bounds
-                this.creature.x = Math.max(20, Math.min(this.canvas.width - 20, this.creature.x));
-                this.creature.y = Math.max(20, Math.min(this.canvas.height - 20, this.creature.y));
-
-                // Update creature trail
-                this.creature.effects.trail.unshift({x: this.creature.x, y: this.creature.y, size: this.creature.size});
-                if (this.creature.effects.trail.length > 10) {
-                    this.creature.effects.trail.pop();
-                }
-
-                // Collision detection with food
-                for (let i = this.food.length - 1; i >= 0; i--) {
-                    let food = this.food[i];
-                    let dx = this.creature.x - food.x;
-                    let dy = this.creature.y - food.y;
-                    let distance = Math.sqrt(dx * dx + dy * dy);
-
-                    // Update food animations
-                    food.angle += 0.02;
-                    food.oscillation += 0.1;
-
-                    if (distance < this.creature.size + food.size) {
-                        // Collect food
-                        this.score += food.points;
-                        this.mutationPoints += food.points;
-                        
-                        // Special effects based on food type
-                        if (food.type === 'speed') {
-                            this.creature.effects.speedBoost = 120; // 2 seconds boost at 60fps
-                            telegramHapticFeedback('impact');
-                        } else if (food.type === 'defense') {
-                            this.creature.effects.defenseBoost = 300; // 5 seconds boost at 60fps
-                            telegramHapticFeedback('impact');
-                        } else if (food.type === 'bonus') {
-                            this.mutationPoints += 20; // Extra mutation points
-                            telegramHapticFeedback('notification');
-                        }
-
-                        // Create particle effect
-                        this.particles.emit(food.x, food.y, food.color, 15);
-                        
-                        // Remove collected food
-                        this.food.splice(i, 1);
-
-                        // Check for evolution
-                        if (this.mutationPoints >= 100 * (this.size)) {
-                            this.evolutionMenu.style.display = 'block';
-                        }
-
-                        // Update UI
-                        document.getElementById('scoreValue').textContent = this.score;
-                        document.getElementById('sizeValue').textContent = this.size;
-                    }
-                }
-
-                // Update predators
-                for (let i = this.predators.length - 1; i >= 0; i--) {
-                    let predator = this.predators[i];
-                    
-                    // Move towards player
-                    let dx = this.creature.x - predator.x;
-                    let dy = this.creature.y - predator.y;
-                    let distance = Math.sqrt(dx * dx + dy * dy);
-                    predator.angle = Math.atan2(dy, dx);
-                    
-                    predator.x += Math.cos(predator.angle) * predator.speed;
-                    predator.y += Math.sin(predator.angle) * predator.speed;
-
-                    // Collision with player
-                    if (distance < predator.size + this.creature.size) {
-                        // Check if player has defense boost
-                        if (this.creature.effects.defenseBoost > 0) {
-                            // Player defeats predator
-                            this.score += 50;
-                            this.particles.emit(predator.x, predator.y, predator.color, 30);
-                            this.predators.splice(i, 1);
-                            telegramHapticFeedback('notification');
-                        } else if (predator.size > this.creature.size * 1.2) {
-                            // Game over if predator is much larger
-                            this.gameOver();
-                            return;
-                        } else if (this.creature.size > predator.size * 1.2) {
-                            // Player defeats predator if much larger
-                            this.score += 50;
-                            this.particles.emit(predator.x, predator.y, predator.color, 30);
-                            this.predators.splice(i, 1);
-                            telegramHapticFeedback('notification');
-                        } else {
-                            // Both take damage
-                            this.creature.size *= 0.9;
-                            predator.size *= 0.9;
-                            telegramHapticFeedback('impact');
-                        }
-                    }
-
-                    // Remove predators that go too far off screen
-                    if (predator.x < -200 || predator.x > this.canvas.width + 200 || 
-                        predator.y < -200 || predator.y > this.canvas.height + 200) {
-                        this.predators.splice(i, 1);
-                    }
-                }
-
-                // Update herbivores
-                for (let i = this.herbivores.length - 1; i >= 0; i--) {
-                    let herbivore = this.herbivores[i];
-                    
-                    // Move randomly
-                    herbivore.angle += (Math.random() - 0.5) * 0.1;
-                    herbivore.x += Math.cos(herbivore.angle) * herbivore.speed;
-                    herbivore.y += Math.sin(herbivore.angle) * herbivore.speed;
-
-                    // Collision with player
-                    let dx = this.creature.x - herbivore.x;
-                    let dy = this.creature.y - herbivore.y;
-                    let distance = Math.sqrt(dx * dx + dy * dy);
-
-                    if (distance < this.creature.size + herbivore.size) {
-                        // Player eats herbivore
-                        this.score += 10;
-                        this.particles.emit(herbivore.x, herbivore.y, herbivore.color, 15);
-                        this.herbivores.splice(i, 1);
-                        telegramHapticFeedback('impact');
-                    }
-
-                    // Remove herbivores that go too far off screen
-                    if (herbivore.x < -200 || herbivore.x > this.canvas.width + 200 || 
-                        herbivore.y < -200 || herbivore.y > this.canvas.height + 200) {
-                        this.herbivores.splice(i, 1);
-                    }
-                }
-
-                // Update parasites
-                for (let i = this.parasites.length - 1; i >= 0; i--) {
-                    let parasite = this.parasites[i];
-                    
-                    // Move towards player
-                    let dx = this.creature.x - parasite.x;
-                    let dy = this.creature.y - parasite.y;
-                    let distance = Math.sqrt(dx * dx + dy * dy);
-                    parasite.angle = Math.atan2(dy, dx);
-                    
-                    parasite.x += Math.cos(parasite.angle) * parasite.speed;
-                    parasite.y += Math.sin(parasite.angle) * parasite.speed;
-
-                    // Collision with player
-                    if (distance < parasite.size + this.creature.size) {
-                        // Player takes damage
-                        this.creature.size *= 0.95;
-                        this.particles.emit(parasite.x, parasite.y, parasite.color, 15);
-                        this.parasites.splice(i, 1);
-                        telegramHapticFeedback('impact');
-                    }
-
-                    // Remove parasites that go too far off screen
-                    if (parasite.x < -200 || parasite.x > this.canvas.width + 200 || 
-                        parasite.y < -200 || parasite.y > this.canvas.height + 200) {
-                        this.parasites.splice(i, 1);
-                    }
-                }
-
-                // Update particles
-                this.particles.update();
-
-                // Send score to bot periodically (every 5 seconds)
-                if (this.score > 0 && Date.now() - this.lastScoreSent > 5000) {
-                    sendScoreToBot(this.score, this.size);
-                    this.lastScoreSent = Date.now();
-                }
-            }
-
-            draw() {
-                // Clear canvas
-                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-
-                // Draw background
-                this.ctx.fillStyle = document.body.className === 'dark' ? '#121212' : '#f5f5f5';
-                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-
-                // Draw food
-                this.food.forEach(food => {
-                    this.ctx.save();
-                    this.ctx.translate(food.x, food.y);
-
-                    // Different rendering based on food type
-                    if (food.effectType === 'pulse') {
-                        // Pulsing effect for bonus food
-                        let pulseSize = food.size + Math.sin(food.oscillation) * 2;
-                        this.ctx.beginPath();
-                        this.ctx.arc(0, 0, pulseSize, 0, Math.PI * 2);
-                        this.ctx.fillStyle = `rgba(${food.color}, 0.8)`;
-                        this.ctx.fill();
-                        
-                        // Glow effect
-                        this.ctx.beginPath();
-                        this.ctx.arc(0, 0, pulseSize + 5, 0, Math.PI * 2);
-                        this.ctx.fillStyle = `rgba(${food.color}, 0.3)`;
-                        this.ctx.fill();
-                    } else if (food.effectType === 'orbit') {
-                        // Orbiting particles for speed/defense food
-                        this.ctx.beginPath();
-                        this.ctx.arc(0, 0, food.size, 0, Math.PI * 2);
-                        this.ctx.fillStyle = `rgba(${food.color}, 0.8)`;
-                        this.ctx.fill();
-                        
-                        // Orbiting particles
-                        for (let i = 0; i < 3; i++) {
-                            let orbitAngle = food.angle + (i * Math.PI * 2 / 3);
-                            let orbitX = Math.cos(orbitAngle) * (food.size + 5);
-                            let orbitY = Math.sin(orbitAngle) * (food.size + 5);
-                            
-                            this.ctx.beginPath();
-                            this.ctx.arc(orbitX, orbitY, 2, 0, Math.PI * 2);
-                            this.ctx.fillStyle = `rgba(${food.color}, 0.9)`;
-                            this.ctx.fill();
-                        }
-                    } else {
-                        // Normal food
-                        this.ctx.beginPath();
-                        this.ctx.arc(0, 0, food.size, 0, Math.PI * 2);
-                        this.ctx.fillStyle = `rgba(${food.color}, 0.8)`;
-                        this.ctx.fill();
-                    }
-                    
-                    this.ctx.restore();
-                });
-
-                // Draw predators
-                this.predators.forEach(predator => {
-                    this.ctx.save();
-                    this.ctx.translate(predator.x, predator.y);
-                    this.ctx.rotate(predator.angle);
-
-                    // Predator body
-                    this.ctx.beginPath();
-                    this.ctx.arc(0, 0, predator.size, 0, Math.PI * 2);
-                    this.ctx.fillStyle = `rgba(${predator.color}, 0.8)`;
-                    this.ctx.fill();
-
-                    // Predator eye
-                    this.ctx.beginPath();
-                    this.ctx.arc(predator.size / 2, -predator.size / 3, predator.size / 5, 0, Math.PI * 2);
-                    this.ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-                    this.ctx.fill();
-
-                    // Predator pupil
-                    this.ctx.beginPath();
-                    this.ctx.arc(predator.size / 2, -predator.size / 3, predator.size / 10, 0, Math.PI * 2);
-                    this.ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
-                    this.ctx.fill();
-
-                    this.ctx.restore();
-                });
-
-                // Draw herbivores
-                this.herbivores.forEach(herbivore => {
-                    this.ctx.save();
-                    this.ctx.translate(herbivore.x, herbivore.y);
-                    this.ctx.rotate(herbivore.angle);
-
-                    // Herbivore body
-                    this.ctx.beginPath();
-                    this.ctx.arc(0, 0, herbivore.size, 0, Math.PI * 2);
-                    this.ctx.fillStyle = `rgba(${herbivore.color}, 0.8)`;
-                    this.ctx.fill();
-
-                    // Herbivore eye
-                    this.ctx.beginPath();
-                    this.ctx.arc(herbivore.size / 2, -herbivore.size / 3, herbivore.size / 5, 0, Math.PI * 2);
-                    this.ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-                    this.ctx.fill();
-
-                    // Herbivore pupil
-                    this.ctx.beginPath();
-                    this.ctx.arc(herbivore.size / 2, -herbivore.size / 3, herbivore.size / 10, 0, Math.PI * 2);
-                    this.ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
-                    this.ctx.fill();
-
-                    this.ctx.restore();
-                });
-
-                // Draw parasites
-                this.parasites.forEach(parasite => {
-                    this.ctx.save();
-                    this.ctx.translate(parasite.x, parasite.y);
-                    this.ctx.rotate(parasite.angle);
-
-                    // Parasite body
-                    this.ctx.beginPath();
-                    this.ctx.arc(0, 0, parasite.size, 0, Math.PI * 2);
-                    this.ctx.fillStyle = `rgba(${parasite.color}, 0.8)`;
-                    this.ctx.fill();
-
-                    // Parasite eye
-                    this.ctx.beginPath();
-                    this.ctx.arc(parasite.size / 2, -parasite.size / 3, parasite.size / 5, 0, Math.PI * 2);
-                    this.ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-                    this.ctx.fill();
-
-                    // Parasite pupil
-                    this.ctx.beginPath();
-                    this.ctx.arc(parasite.size / 2, -parasite.size / 3, parasite.size / 10, 0, Math.PI * 2);
-                    this.ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
-                    this.ctx.fill();
-
-                    this.ctx.restore();
-                });
-
-                // Draw player trail
-                for (let i = this.creature.effects.trail.length - 1; i >= 0; i--) {
-                    let segment = this.creature.effects.trail[i];
-                    let alpha = 0.5 * (1 - i / this.creature.effects.trail.length);
-                    let size = segment.size * (1 - i / this.creature.effects.trail.length);
-                    
-                    this.ctx.beginPath();
-                    this.ctx.arc(segment.x, segment.y, size, 0, Math.PI * 2);
-                    this.ctx.fillStyle = `rgba(${this.creature.color}, ${alpha})`;
-                    this.ctx.fill();
-                }
-
-                // Draw player (creature)
-                this.ctx.save();
-                this.ctx.translate(this.creature.x, this.creature.y);
-                this.ctx.rotate(this.creature.angle);
-
-                // Defense boost effect
-                if (this.creature.effects.defenseBoost > 0) {
-                    this.ctx.beginPath();
-                    this.ctx.arc(0, 0, this.creature.size + 5, 0, Math.PI * 2);
-                    this.ctx.fillStyle = 'rgba(0, 100, 255, 0.3)';
-                    this.ctx.fill();
-                    this.creature.effects.defenseBoost--;
-                }
-
-                // Speed boost effect
-                if (this.creature.effects.speedBoost > 0) {
-                    this.ctx.beginPath();
-                    this.ctx.arc(0, 0, this.creature.size + 3, 0, Math.PI * 2);
-                    this.ctx.fillStyle = 'rgba(255, 50, 0, 0.3)';
-                    this.ctx.fill();
-                }
-
-                // Creature body
-                this.ctx.beginPath();
-                this.ctx.arc(0, 0, this.creature.size, 0, Math.PI * 2);
-                this.ctx.fillStyle = `rgba(${this.creature.color}, 0.8)`;
-                this.ctx.fill();
-
-                // Creature eyes
-                this.ctx.beginPath();
-                this.ctx.arc(this.creature.size / 2, -this.creature.size / 3, this.creature.size / 5, 0, Math.PI * 2);
-                this.ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-                this.ctx.fill();
-
-                this.ctx.beginPath();
-                this.ctx.arc(this.creature.size / 2, this.creature.size / 3, this.creature.size / 5, 0, Math.PI * 2);
-                this.ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-                this.ctx.fill();
-
-                // Creature pupils
-                this.ctx.beginPath();
-                this.ctx.arc(this.creature.size / 2, -this.creature.size / 3, this.creature.size / 10, 0, Math.PI * 2);
-                this.ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
-                this.ctx.fill();
-
-                this.ctx.beginPath();
-                this.ctx.arc(this.creature.size / 2, this.creature.size / 3, this.creature.size / 10, 0, Math.PI * 2);
-                this.ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
-                this.ctx.fill();
-
-                this.ctx.restore();
-
-                // Draw particles
-                this.particles.draw();
-
-                // Draw mutation progress bar if there are mutation points
-                if (this.mutationPoints > 0) {
-                    let nextEvolutionPoints = 100 * this.size;
-                    let progress = Math.min(1, this.mutationPoints / nextEvolutionPoints);
-                    
-                    this.ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-                    this.ctx.fillRect(this.canvas.width / 2 - 100, 20, 200, 10);
-                    
-                    this.ctx.fillStyle = 'rgba(0, 255, 0, 0.8)';
-                    this.ctx.fillRect(this.canvas.width / 2 - 100, 20, 200 * progress, 10);
-                }
-            }
-
-            evolve() {
-                // Increase creature size
-                this.size++;
-                this.creature.size += 5;
-                
-                // Reset mutation points
-                this.mutationPoints = 0;
-                
-                // Increase creature stats
-                let statToImprove = Math.floor(Math.random() * 3);
-                switch (statToImprove) {
-                    case 0:
-                        this.creature.mutations.speed += 0.5;
-                        break;
-                    case 1:
-                        this.creature.mutations.defense += 0.5;
-                        break;
-                    case 2:
-                        this.creature.mutations.attack += 0.5;
-                        break;
-                }
-                
-                // Visual and haptic feedback
-                this.particles.emit(this.creature.x, this.creature.y, this.creature.color, 50);
-                telegramHapticFeedback('notification');
-                
-                // Update UI
-                document.getElementById('sizeValue').textContent = this.size;
-            }
-
-            gameOver() {
-                // Clear canvas and show game over message
-                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-                this.ctx.fillStyle = document.body.className === 'dark' ? '#121212' : '#f5f5f5';
-                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-                
-                this.ctx.fillStyle = document.body.className === 'dark' ? '#ffffff' : '#000000';
-                this.ctx.font = '30px Arial';
-                this.ctx.textAlign = 'center';
-                this.ctx.fillText('Game Over!', this.canvas.width / 2, this.canvas.height / 2 - 30);
-                this.ctx.fillText(`Final Score: ${this.score}`, this.canvas.width / 2, this.canvas.height / 2 + 20);
-                this.ctx.fillText(`Final Size: ${this.size}`, this.canvas.width / 2, this.canvas.height / 2 + 70);
-                
-                // Send final score to Telegram
-                completeGame(this.score, this.size);
-                
-                // Stop game loop
-                this.gameRunning = false;
-            }
-
-            loop() {
-                // Game loop
-                this.gameRunning = true;
-                this.update();
-                this.draw();
-                
-                if (this.gameRunning) {
-                    requestAnimationFrame(() => this.loop());
-                }
-            }
+        
+        if(creature.drain && distance(creature, player) < 20) {
+            player.energy -= 0.5;
+            creature.health += 1;
         }
+    });
+}
 
-        // Start the game when the page loads
-        window.onload = () => {
-            new Game();
-        };
-    </script>
+function createParticles(x, y, count, color) {
+    for(let i = 0; i < count; i++) {
+        world.particles.push({
+            x, y,
+            vx: (Math.random()-0.5)*4,
+            vy: (Math.random()-0.5)*4,
+            life: 1,
+            color
+        });
+    }
+}
+
+function update() {
+    // Player movement
+    const speed = player.speed * (player.energy > 0 ? 1 : 0.5);
+    if(targetX !== null && targetY !== null) {
+        const dx = (targetX - canvas.width/2) - cameraX;
+        const dy = (targetY - canvas.height/2) - cameraY;
+        const dist = Math.sqrt(dx*dx + dy*dy);
+        
+        if(dist > speed) {
+            player.x += (dx/dist)*speed;
+            player.y += (dy/dist)*speed;
+            player.direction = Math.atan2(dy, dx);
+            player.energy = Math.max(0, player.energy - 0.1);
+        }
+    }
+    
+    cameraX = player.x - canvas.width/2;
+    cameraY = player.y - canvas.height/2;
+
+    // Resource collection
+    world.resources = world.resources.filter(resource => {
+        if(distance(resource, player) < player.size) {
+            createParticles(resource.x, resource.y, 5, resource.type === 'food' ? '#00ff00' : '#00ffff');
+            if(resource.type === 'food') {
+                player.health = Math.min(100, player.health + 5);
+            } else {
+                player.dna += 1;
+            }
+            return false;
+        }
+        return true;
+    });
+
+    updateCreatures();
+    
+    // Update particles
+    world.particles.forEach(p => {
+        p.x += p.vx;
+        p.y += p.vy;
+        p.life -= 0.02;
+    });
+    world.particles = world.particles.filter(p => p.life > 0);
+
+    // Update UI
+    document.getElementById('health').textContent = Math.round(player.health);
+    document.getElementById('energy').textContent = Math.round(player.energy);
+    document.getElementById('dna').textContent = player.dna;
+
+    requestAnimationFrame(update);
+    draw();
+}
+
+function draw() {
+    ctx.fillStyle = '#1a1a1a';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Draw resources
+    world.resources.forEach(resource => {
+        ctx.fillStyle = resource.type === 'food' ? '#00ff00' : '#00ffff';
+        ctx.beginPath();
+        ctx.arc(resource.x - cameraX, resource.y - cameraY, 5, 0, Math.PI*2);
+        ctx.fill();
+    });
+
+    // Draw creatures
+    world.creatures.concat([player]).forEach(creature => {
+        const isPlayer = creature === player;
+        const screenX = creature.x - cameraX;
+        const screenY = creature.y - cameraY;
+        
+        // Body
+        ctx.fillStyle = creature.color || '#ffffff';
+        ctx.beginPath();
+        ctx.arc(screenX, screenY, creature.size, 0, Math.PI*2);
+        ctx.fill();
+
+        // Eyes
+        const eyeDist = creature.size * 0.4;
+        const eyeAngle = creature.direction;
+        [Math.PI/6, -Math.PI/6].forEach(offset => {
+            ctx.fillStyle = '#000000';
+            ctx.beginPath();
+            ctx.arc(
+                screenX + Math.cos(eyeAngle + offset) * eyeDist,
+                screenY + Math.sin(eyeAngle + offset) * eyeDist,
+                creature.size * 0.2, 0, Math.PI*2
+            );
+            ctx.fill();
+        });
+    });
+
+    // Draw particles
+    world.particles.forEach(p => {
+        ctx.fillStyle = p.color;
+        ctx.globalAlpha = p.life;
+        ctx.beginPath();
+        ctx.arc(p.x - cameraX, p.y - cameraY, 2, 0, Math.PI*2);
+        ctx.fill();
+    });
+    ctx.globalAlpha = 1;
+}
+
+// Utilities
+function distance(a, b) {
+    return Math.sqrt((a.x - b.x)**2 + (a.y - b.y)**2);
+}
+
+// Input handling
+let targetX = null, targetY = null;
+canvas.addEventListener('click', e => {
+    targetX = e.clientX;
+    targetY = e.clientY;
+});
+canvas.addEventListener('touchstart', e => {
+    e.preventDefault();
+    targetX = e.touches[0].clientX;
+    targetY = e.touches[0].clientY;
+});
+
+// Evolution
+function evolve(type) {
+    const upgrades = {
+        speed: { cost: 10, effect: p => p.speed += 0.5 },
+        health: { cost: 15, effect: p => p.health += 20 },
+        vision: { cost: 20, effect: p => p.vision += 50 }
+    };
+    const upgrade = upgrades[type];
+    if(player.dna >= upgrade.cost) {
+        upgrade.effect(player);
+        player.dna -= upgrade.cost;
+    }
+}
+
+// Init
+generateWorld();
+update();
+window.Telegram.WebApp.ready();
+
+// Auto-save
+setInterval(() => {
+    localStorage.setItem('gameState', JSON.stringify({
+        player,
+        world
+    }));
+}, 5000);
+</script>
 </body>
 </html>
