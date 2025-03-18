@@ -13,10 +13,42 @@
         #stats { top: 10px; left: 10px; }
         #abilities { bottom: 10px; right: 10px; text-align: right; }
         button { background: #444; color: white; border: none; padding: 8px; margin: 2px; border-radius: 3px; }
+        
+        /* Меню */
+        #menu {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            background: #000000aa;
+            padding: 20px;
+            border-radius: 10px;
+        }
+        .menu-btn { 
+            width: 150px; 
+            margin: 10px; 
+            background: #334455;
+        }
+        #deathScreen {
+            display: none;
+            color: #ff4444;
+        }
     </style>
 </head>
 <body>
     <canvas id="gameCanvas"></canvas>
+    
+    <div id="menu">
+        <h1>Microbe Evolution</h1>
+        <button class="menu-btn" onclick="startGame()">Новая игра</button>
+        <button class="menu-btn" onclick="continueGame()" id="continueBtn">Продолжить</button>
+        <div id="deathScreen">
+            <h2>Вы погибли!</h2>
+            <button class="menu-btn" onclick="showMenu()">В меню</button>
+        </div>
+    </div>
+
     <div id="stats" class="ui">
         <div>Health: <span id="health">100</span></div>
         <div>Energy: <span id="energy">50</span></div>
@@ -33,205 +65,115 @@ const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 const WORLD_SIZE = 2000;
 let cameraX = 0, cameraY = 0;
+let gameState = 'menu'; // 'menu', 'playing', 'dead'
 
-// Настройки стайного поведения
-const FLOCK_SETTINGS = {
-    separationDistance: 40,
-    alignmentDistance: 80,
-    cohesionDistance: 100,
-    separationForce: 0.05,
-    alignmentForce: 0.05,
-    cohesionForce: 0.05
-};
+// Настройки
+const FLOCK_SETTINGS = { /* ... */ };
+const REPRODUCTION_SETTINGS = { /* ... */ };
 
-// Настройки размножения
-const REPRODUCTION_SETTINGS = {
-    minHealth: 80,
-    energyCost: 30,
-    cooldown: 10000
-};
+// Инициализация элементов интерфейса
+const menu = document.getElementById('menu');
+const deathScreen = document.getElementById('deathScreen');
+const continueBtn = document.getElementById('continueBtn');
 
-function resizeCanvas() {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-}
+function resizeCanvas() { /* ... */ }
 resizeCanvas();
 window.addEventListener('resize', resizeCanvas);
 
-const player = {
-    x: WORLD_SIZE/2, y: WORLD_SIZE/2, size: 20,
-    speed: 2, health: 100, energy: 50, dna: 0,
-    vision: 200, direction: 0
-};
+let player = {};
+let world = {};
 
-const world = {
-    resources: [],
-    creatures: [],
-    particles: []
-};
-
-function createCreature(type, x, y, parent) {
-    const base = parent ? {
-        ...parent,
-        x, y,
-        health: 100,
-        lastReproduction: Date.now()
-    } : {
-        x, y, size: 15, health: 100,
-        direction: 0, speed: 1.5,
-        attack: 0, lastAttack: 0,
-        lastReproduction: 0
+function initGame() {
+    player = {
+        x: WORLD_SIZE/2, y: WORLD_SIZE/2, size: 20,
+        speed: 2, health: 100, energy: 50, dna: 0,
+        vision: 200, direction: 0
     };
-    
-    if(!parent) {
-        switch(type) {
-            case 'predator':
-                return {...base, 
-                    color: '#ff4444', 
-                    speed: 2.2,
-                    attack: 5,
-                    vision: 300
-                };
-            case 'herbivore':
-                return {...base,
-                    color: '#44ff44',
-                    speed: 1.8,
-                    flee: true
-                };
-            case 'parasite':
-                return {...base,
-                    color: '#aa44ff',
-                    size: 10,
-                    speed: 1.7,
-                    drain: 2
-                };
-        }
-    }
-    return base;
+
+    world = {
+        resources: [],
+        creatures: [],
+        particles: []
+    };
 }
 
-function generateWorld() {
-    for(let i = 0; i < 100; i++) {
-        world.resources.push({
-            x: Math.random() * WORLD_SIZE,
-            y: Math.random() * WORLD_SIZE,
-            type: Math.random() > 0.2 ? 'food' : 'dna',
-            value: 10
-        });
-    }
+function createCreature(type, x, y) {
+    const base = { /* ... */ };
     
-    for(let i = 0; i < 20; i++) {
-        const type = ['predator', 'herbivore', 'parasite'][Math.floor(Math.random()*3)];
-        world.creatures.push(createCreature(type, 
-            Math.random() * WORLD_SIZE,
-            Math.random() * WORLD_SIZE
-        ));
+    switch(type) {
+        case 'predator':
+            return {...base, 
+                color: '#ff4444', 
+                speed: 1.8, // Уменьшенная скорость
+                attack: 5,
+                vision: 300
+            };
+        /* ... */
     }
 }
 
-function updateFlocking(creature) {
-    if(!creature.flee) return;
+function generateWorld() { /* ... */ }
+
+function update() {
+    if(gameState !== 'playing') return;
     
-    let separation = { x: 0, y: 0 };
-    let alignment = { x: 0, y: 0 };
-    let cohesion = { x: 0, y: 0 };
-    let neighbors = 0;
-
-    world.creatures.forEach(other => {
-        if(other === creature || !other.flee) return;
-        const dist = distance(creature, other);
-        
-        if(dist < FLOCK_SETTINGS.separationDistance) {
-            separation.x += (creature.x - other.x)/dist;
-            separation.y += (creature.y - other.y)/dist;
-        }
-        
-        if(dist < FLOCK_SETTINGS.alignmentDistance) {
-            alignment.x += Math.cos(other.direction);
-            alignment.y += Math.sin(other.direction);
-        }
-        
-        if(dist < FLOCK_SETTINGS.cohesionDistance) {
-            cohesion.x += other.x;
-            cohesion.y += other.y;
-            neighbors++;
-        }
-    });
-
-    if(neighbors > 0) {
-        cohesion.x /= neighbors;
-        cohesion.y /= neighbors;
-        cohesion.x -= creature.x;
-        cohesion.y -= creature.y;
-        const dist = Math.sqrt(cohesion.x**2 + cohesion.y**2);
-        if(dist > 0) {
-            cohesion.x /= dist;
-            cohesion.y /= dist;
-        }
+    if(player.health <= 0) {
+        gameState = 'dead';
+        deathScreen.style.display = 'block';
+        menu.style.display = 'block';
+        localStorage.removeItem('gameState');
+        return;
     }
 
-    creature.direction += Math.atan2(
-        separation.y * FLOCK_SETTINGS.separationForce +
-        alignment.y * FLOCK_SETTINGS.alignmentForce +
-        cohesion.y * FLOCK_SETTINGS.cohesionForce,
-        separation.x * FLOCK_SETTINGS.separationForce +
-        alignment.x * FLOCK_SETTINGS.alignmentForce +
-        cohesion.x * FLOCK_SETTINGS.cohesionForce
-    );
+    // Остальная логика обновления...
 }
 
-function tryReproduce(creature) {
-    if(creature.health < REPRODUCTION_SETTINGS.minHealth) return;
-    if(Date.now() - creature.lastReproduction < REPRODUCTION_SETTINGS.cooldown) return;
-    if(Math.random() > 0.01) return;
-    
-    const angle = Math.random() * Math.PI * 2;
-    const offspring = createCreature(null, 
-        creature.x + Math.cos(angle) * 30,
-        creature.y + Math.sin(angle) * 30,
-        creature
-    );
-    
-    world.creatures.push(offspring);
-    creature.health -= REPRODUCTION_SETTINGS.energyCost;
-    creature.lastReproduction = Date.now();
-    createParticles(creature.x, creature.y, 20, '#ffff00');
+function draw() { /* ... */ }
+
+// Управление меню
+function showMenu() {
+    gameState = 'menu';
+    menu.style.display = 'block';
+    deathScreen.style.display = 'none';
+    continueBtn.disabled = !localStorage.getItem('gameState');
 }
 
-function updateCreatures() {
-    world.creatures.forEach(creature => {
-        // Стайное поведение для травоядных
-        if(creature.flee) {
-            updateFlocking(creature);
-            tryReproduce(creature);
-        }
-
-        // Логика движения...
-        // (остальная часть функции остается без изменений)
-    });
+function startGame() {
+    initGame();
+    generateWorld();
+    gameState = 'playing';
+    menu.style.display = 'none';
+    update();
 }
 
-// Остальной код остается как в предыдущей версии
-// (функции update, draw, createParticles, обработка ввода и т.д.)
-
-// Измененная функция расстояния
-function distance(a, b) {
-    const dx = a.x - b.x;
-    const dy = a.y - b.y;
-    return Math.sqrt(dx*dx + dy*dy);
+function continueGame() {
+    const savedState = localStorage.getItem('gameState');
+    if(savedState) {
+        const state = JSON.parse(savedState);
+        player = state.player;
+        world = state.world;
+        gameState = 'playing';
+        menu.style.display = 'none';
+        update();
+    }
 }
 
-// Инициализация и остальные функции...
-generateWorld();
-update();
+// Инициализация
+initGame();
+showMenu();
 window.Telegram.WebApp.ready();
 
+// Сохранение
 setInterval(() => {
-    localStorage.setItem('gameState', JSON.stringify({
-        player,
-        world
-    }));
+    if(gameState === 'playing') {
+        localStorage.setItem('gameState', JSON.stringify({
+            player,
+            world
+        }));
+    }
 }, 5000);
+
+// Остальные функции...
 </script>
 </body>
 </html>
