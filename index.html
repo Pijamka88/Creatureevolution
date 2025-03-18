@@ -8,71 +8,66 @@
         #gameCanvas { position: absolute; }
         .ui {
             position: fixed; padding: 10px; background: #00000055; border-radius: 5px; 
-            color: white; font-family: Arial; backdrop-filter: blur(3px);
+            color: white; font-family: Arial;
         }
         #stats { top: 10px; left: 10px; }
         #abilities { bottom: 10px; right: 10px; text-align: right; }
-        button { background: #444; color: white; border: none; padding: 8px; margin: 2px; border-radius: 3px; }
+        button { background: #444; color: white; border: none; padding: 12px; margin: 4px; border-radius: 5px; }
         
-        #menu { 
-            position: fixed; 
-            top: 50%; 
-            left: 50%; 
-            transform: translate(-50%, -50%); 
+        #menu {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
             text-align: center;
+            background: #000000aa;
+            padding: 20px;
+            border-radius: 10px;
         }
+        
         .joystick {
             position: fixed;
             bottom: 100px;
             left: 50px;
             width: 100px;
             height: 100px;
-            border-radius: 50%;
             background: #ffffff22;
+            border-radius: 50%;
             display: none;
         }
-        #joystickHandle {
+        
+        .joystick-handle {
             position: absolute;
             width: 40px;
             height: 40px;
-            background: #ffffff55;
+            background: #ffffff66;
             border-radius: 50%;
-            top: 30px;
-            left: 30px;
-        }
-        #deathScreen {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: #000000cc;
-            justify-content: center;
-            align-items: center;
-            color: white;
-            font-size: 24px;
+            transform: translate(-50%, -50%);
         }
     </style>
 </head>
 <body>
+    <canvas id="gameCanvas"></canvas>
     <div id="menu">
         <h1>Microbe Evolution</h1>
-        <button onclick="startGame()">Новая игра</button>
-        <button onclick="loadGame()">Продолжить</button>
+        <button id="startButton">Start Game</button>
+        <button id="restartButton" style="display:none;">Restart</button>
     </div>
-    <div id="deathScreen">Вы погибли!<br><button onclick="location.reload()">Заново</button></div>
-    <canvas id="gameCanvas"></canvas>
-    <div class="joystick" id="joystick"><div id="joystickHandle"></div></div>
-    <div id="stats" class="ui" style="display: none;">
-        <div>Здоровье: <span id="health">100</span></div>
-        <div>Энергия: <span id="energy">50</span></div>
-        <div>ДНК: <span id="dna">0</span></div>
+    
+    <div id="stats" class="ui" style="display:none;">
+        <div>Health: <span id="health">100</span></div>
+        <div>Energy: <span id="energy">50</span></div>
+        <div>DNA: <span id="dna">0</span></div>
     </div>
-    <div id="abilities" class="ui" style="display: none;">
-        <button onclick="evolve('speed')">Скорость+ (10 ДНК)</button>
-        <button onclick="evolve('health')">Здоровье+ (15 ДНК)</button>
-        <button onclick="evolve('vision')">Обзор+ (20 ДНК)</button>
+    
+    <div id="abilities" class="ui" style="display:none;">
+        <button onclick="evolve('speed')">Speed+ (10 DNA)</button>
+        <button onclick="evolve('health')">Health+ (15 DNA)</button>
+        <button onclick="evolve('vision')">Vision+ (20 DNA)</button>
+    </div>
+    
+    <div id="joystick" class="joystick">
+        <div class="joystick-handle"></div>
     </div>
 
 <script>
@@ -80,14 +75,24 @@ const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 const WORLD_SIZE = 2000;
 let cameraX = 0, cameraY = 0;
-let gameRunning = false;
+let isPlaying = false;
+let joystickActive = false;
 
 // Настройки управления
-let moveDirection = { x: 0, y: 0 };
-let joystickActive = false;
 const JOYSTICK_RADIUS = 50;
+let joystickVector = { x: 0, y: 0 };
 
-// Инициализация игры
+// Настройки игры
+const FLOCK_SETTINGS = { separationDistance: 40, alignmentDistance: 80, cohesionDistance: 100 };
+const REPRODUCTION_SETTINGS = { minHealth: 80, energyCost: 30, cooldown: 10000 };
+
+function resizeCanvas() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+}
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
+
 const player = {
     x: WORLD_SIZE/2, y: WORLD_SIZE/2, size: 20,
     speed: 2, health: 100, energy: 50, dna: 0,
@@ -100,17 +105,44 @@ const world = {
     particles: []
 };
 
-function initGame() {
-    player.health = 100;
-    player.energy = 50;
-    player.dna = 0;
-    world.resources = [];
-    world.creatures = [];
-    generateWorld();
+function createCreature(type, x, y, parent) {
+    const base = {
+        x, y, size: 15, health: 100,
+        direction: 0, speed: 1.5,
+        attack: 0, lastAttack: 0,
+        lastReproduction: 0,
+        retreatTimer: 0
+    };
+    
+    switch(type) {
+        case 'predator':
+            return {...base, 
+                color: '#ff4444', 
+                speed: 1.8,
+                attack: 3,
+                vision: 250
+            };
+        case 'herbivore':
+            return {...base,
+                color: '#44ff44',
+                speed: 1.8,
+                flee: true
+            };
+        case 'parasite':
+            return {...base,
+                color: '#aa44ff',
+                size: 10,
+                speed: 1.7,
+                drain: 2
+            };
+    }
+    return base;
 }
 
 function generateWorld() {
-    // Ресурсы
+    world.resources = [];
+    world.creatures = [];
+    
     for(let i = 0; i < 100; i++) {
         world.resources.push({
             x: Math.random() * WORLD_SIZE,
@@ -120,83 +152,51 @@ function generateWorld() {
         });
     }
     
-    // Существа
     for(let i = 0; i < 20; i++) {
         const type = ['predator', 'herbivore', 'parasite'][Math.floor(Math.random()*3)];
-        world.creatures.push(createCreature(type));
-    }
-}
-
-function createCreature(type) {
-    const base = {
-        x: Math.random() * WORLD_SIZE,
-        y: Math.random() * WORLD_SIZE,
-        size: 15,
-        health: 100,
-        direction: Math.random() * Math.PI * 2,
-        speed: 1.5,
-        lastAttack: 0,
-        attackCooldown: 2000
-    };
-    
-    switch(type) {
-        case 'predator':
-            return {
-                ...base,
-                color: '#ff4444',
-                speed: 1.8,
-                attack: 3,
-                vision: 250
-            };
-        case 'herbivore':
-            return {
-                ...base,
-                color: '#44ff44',
-                speed: 1.6,
-                flee: true
-            };
-        case 'parasite':
-            return {
-                ...base,
-                color: '#aa44ff',
-                size: 10,
-                speed: 1.4,
-                drain: 1
-            };
+        world.creatures.push(createCreature(type, 
+            player.x + (Math.random()-0.5)*400,
+            player.y + (Math.random()-0.5)*400
+        ));
     }
 }
 
 function updateCreatures() {
     world.creatures.forEach(creature => {
+        if(creature.retreatTimer > 0) {
+            creature.retreatTimer--;
+            creature.direction += 0.1;
+            creature.x += Math.cos(creature.direction) * creature.speed;
+            creature.y += Math.sin(creature.direction) * creature.speed;
+            return;
+        }
+
         if(creature.attack) {
-            // Поведение хищника
             const dx = player.x - creature.x;
             const dy = player.y - creature.y;
-            const dist = Math.sqrt(dx*dx + dy*dy);
-            
-            if(dist < creature.vision) {
+            if(Math.sqrt(dx*dx + dy*dy) < creature.vision) {
                 const angle = Math.atan2(dy, dx);
                 creature.direction = angle;
+                creature.x += Math.cos(angle) * creature.speed;
+                creature.y += Math.sin(angle) * creature.speed;
                 
-                if(dist > creature.size + player.size + 20) {
-                    creature.x += Math.cos(angle) * creature.speed;
-                    creature.y += Math.sin(angle) * creature.speed;
-                } else if(Date.now() - creature.lastAttack > creature.attackCooldown) {
-                    player.health -= creature.attack;
-                    creature.lastAttack = Date.now();
-                    createParticles(player.x, player.y, 10, '#ff0000');
+                if(distance(creature, player) < creature.size + player.size) {
+                    if(Date.now() - creature.lastAttack > 2000) {
+                        player.health -= creature.attack;
+                        creature.lastAttack = Date.now();
+                        creature.retreatTimer = 60;
+                        createParticles(player.x, player.y, 10, '#ff0000');
+                    }
                 }
             }
         }
     });
 }
 
-// Отрисовка
 function draw() {
     ctx.fillStyle = '#1a1a1a';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Ресурсы
     world.resources.forEach(resource => {
         ctx.fillStyle = resource.type === 'food' ? '#00ff00' : '#00ffff';
         ctx.beginPath();
@@ -204,151 +204,137 @@ function draw() {
         ctx.fill();
     });
 
-    // Существа
     world.creatures.concat([player]).forEach(creature => {
         const screenX = creature.x - cameraX;
         const screenY = creature.y - cameraY;
         
-        // Тело
         ctx.fillStyle = creature.color || '#ffffff';
         ctx.beginPath();
         ctx.arc(screenX, screenY, creature.size, 0, Math.PI*2);
         ctx.fill();
 
-        // Глаза
         const eyeDist = creature.size * 0.4;
-        [Math.PI/4, -Math.PI/4].forEach(angle => {
+        [Math.PI/6, -Math.PI/6].forEach(offset => {
             ctx.fillStyle = '#ffffff';
             ctx.beginPath();
             ctx.arc(
-                screenX + Math.cos(creature.direction + angle) * eyeDist,
-                screenY + Math.sin(creature.direction + angle) * eyeDist,
-                creature.size * 0.15, 0, Math.PI*2
+                screenX + Math.cos(creature.direction + offset) * eyeDist,
+                screenY + Math.sin(creature.direction + offset) * eyeDist,
+                creature.size * 0.2, 0, Math.PI*2
             );
             ctx.fill();
         });
     });
-
-    // Частицы
-    world.particles.forEach(p => {
-        ctx.fillStyle = p.color;
-        ctx.globalAlpha = p.life;
-        ctx.beginPath();
-        ctx.arc(p.x - cameraX, p.y - cameraY, 2, 0, Math.PI*2);
-        ctx.fill();
-    });
-    ctx.globalAlpha = 1;
 }
 
-// Игровой цикл
 function gameLoop() {
-    if(!gameRunning) return;
-    
-    // Движение игрока
-    if(moveDirection.x !== 0 || moveDirection.y !== 0) {
-        const speed = player.speed * (player.energy > 0 ? 1 : 0.5);
-        player.x += moveDirection.x * speed;
-        player.y += moveDirection.y * speed;
-        player.direction = Math.atan2(moveDirection.y, moveDirection.x);
-        player.energy = Math.max(0, player.energy - 0.1);
+    if(!isPlaying) return;
+
+    if(player.health <= 0) {
+        endGame();
+        return;
     }
-    
-    // Позиция камеры
+
+    const speed = player.speed;
+    if(joystickActive) {
+        player.x += joystickVector.x * speed;
+        player.y += joystickVector.y * speed;
+    }
+
     cameraX = player.x - canvas.width/2;
     cameraY = player.y - canvas.height/2;
 
     updateCreatures();
     draw();
-    
-    // Проверка смерти
-    if(player.health <= 0) {
-        gameRunning = false;
-        document.getElementById('deathScreen').style.display = 'flex';
-        return;
-    }
-    
     requestAnimationFrame(gameLoop);
 }
 
-// Управление
-function setupJoystick() {
-    const joystick = document.getElementById('joystick');
-    const handle = document.getElementById('joystickHandle');
-    
-    let touchId = null;
-    let baseX = 0, baseY = 0;
-
-    joystick.style.display = 'block';
-
-    joystick.addEventListener('touchstart', e => {
-        if(touchId !== null) return;
-        const rect = joystick.getBoundingClientRect();
-        baseX = rect.left + 50;
-        baseY = rect.top + 50;
-        touchId = e.changedTouches[0].identifier;
-        joystickActive = true;
-    });
-
-    document.addEventListener('touchmove', e => {
-        if(!joystickActive) return;
-        for(let touch of e.changedTouches) {
-            if(touch.identifier === touchId) {
-                const dx = touch.clientX - baseX;
-                const dy = touch.clientY - baseY;
-                const dist = Math.sqrt(dx*dx + dy*dy);
-                const angle = Math.atan2(dy, dx);
-                
-                if(dist > JOYSTICK_RADIUS) {
-                    moveDirection.x = Math.cos(angle);
-                    moveDirection.y = Math.sin(angle);
-                } else {
-                    moveDirection.x = dx / JOYSTICK_RADIUS;
-                    moveDirection.y = dy / JOYSTICK_RADIUS;
-                }
-                
-                handle.style.transform = `translate(${dx}px, ${dy}px)`;
-            }
-        }
-    });
-
-    document.addEventListener('touchend', e => {
-        if(touchId === null) return;
-        for(let touch of e.changedTouches) {
-            if(touch.identifier === touchId) {
-                joystickActive = false;
-                moveDirection.x = 0;
-                moveDirection.y = 0;
-                handle.style.transform = 'translate(30px, 30px)';
-                touchId = null;
-            }
-        }
-    });
-}
-
-// Меню
-function startGame() {
-    document.getElementById('menu').style.display = 'none';
+function initGame() {
+    isPlaying = true;
+    player.health = 100;
+    player.energy = 50;
+    player.dna = 0;
+    generateWorld();
     document.getElementById('stats').style.display = 'block';
     document.getElementById('abilities').style.display = 'block';
-    initGame();
-    gameRunning = true;
-    setupJoystick();
+    document.getElementById('menu').style.display = 'none';
+    document.getElementById('joystick').style.display = 'block';
     gameLoop();
 }
 
-function loadGame() {
-    const saved = localStorage.getItem('gameState');
-    if(saved) {
-        const state = JSON.parse(saved);
-        Object.assign(player, state.player);
-        Object.assign(world, state.world);
-    }
-    startGame();
+function endGame() {
+    isPlaying = false;
+    document.getElementById('menu').style.display = 'block';
+    document.getElementById('restartButton').style.display = 'inline';
+    document.getElementById('stats').style.display = 'none';
+    document.getElementById('abilities').style.display = 'none';
+    document.getElementById('joystick').style.display = 'none';
 }
 
+// Управление
+const joystick = document.getElementById('joystick');
+const joystickHandle = joystick.querySelector('.joystick-handle');
+let touchId = null;
+
+joystick.addEventListener('touchstart', e => {
+    if(!touchId) {
+        touchId = e.touches[0].identifier;
+        joystickActive = true;
+        updateJoystick(e.touches[0]);
+    }
+});
+
+document.addEventListener('touchmove', e => {
+    if(joystickActive) {
+        Array.from(e.touches).forEach(touch => {
+            if(touch.identifier === touchId) {
+                updateJoystick(touch);
+                e.preventDefault();
+            }
+        });
+    }
+});
+
+document.addEventListener('touchend', e => {
+    Array.from(e.changedTouches).forEach(touch => {
+        if(touch.identifier === touchId) {
+            joystickActive = false;
+            touchId = null;
+            joystickHandle.style.left = '50%';
+            joystickHandle.style.top = '50%';
+            joystickVector = { x: 0, y: 0 };
+        }
+    });
+});
+
+function updateJoystick(touch) {
+    const rect = joystick.getBoundingClientRect();
+    const centerX = rect.left + rect.width/2;
+    const centerY = rect.top + rect.height/2;
+    const deltaX = touch.clientX - centerX;
+    const deltaY = touch.clientY - centerY;
+    const distance = Math.sqrt(deltaX**2 + deltaY**2);
+    const angle = Math.atan2(deltaY, deltaX);
+    
+    if(distance > JOYSTICK_RADIUS) {
+        joystickHandle.style.left = `${Math.cos(angle) * JOYSTICK_RADIUS + rect.width/2}px`;
+        joystickHandle.style.top = `${Math.sin(angle) * JOYSTICK_RADIUS + rect.height/2}px`;
+    } else {
+        joystickHandle.style.left = `${deltaX + rect.width/2}px`;
+        joystickHandle.style.top = `${deltaY + rect.height/2}px`;
+    }
+    
+    const normDistance = Math.min(distance, JOYSTICK_RADIUS) / JOYSTICK_RADIUS;
+    joystickVector = {
+        x: Math.cos(angle) * normDistance,
+        y: Math.sin(angle) * normDistance
+    };
+}
+
+document.getElementById('startButton').addEventListener('click', initGame);
+document.getElementById('restartButton').addEventListener('click', initGame);
+
 // Инициализация
-resizeCanvas();
-window.addEventListener('resize', resizeCanvas);
 window.Telegram.WebApp.ready();
 </script>
 </body>
