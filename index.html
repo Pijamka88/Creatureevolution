@@ -5,30 +5,30 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <style>
         body { margin: 0; overflow: hidden; touch-action: none; background: #1a1a1a; }
-        #gameCanvas { position: absolute; }
+        #gameCanvas { position: absolute; z-index: 0; }
         .ui {
-            position: fixed; padding: 10px; background: #00000055; 
-            border-radius: 5px; color: white; font-family: Arial; 
-            backdrop-filter: blur(3px);
+            position: fixed; padding: 10px; background: #00000055; border-radius: 5px; 
+            color: white; font-family: Arial; backdrop-filter: blur(3px); z-index: 2;
         }
         #stats { top: 10px; left: 10px; }
         #abilities { bottom: 10px; right: 10px; text-align: right; }
         button { 
-            background: #444; color: white; border: none; padding: 12px; 
-            margin: 4px; border-radius: 5px; touch-action: manipulation; 
-            pointer-events: auto !important; /* Fix for clickable buttons */
+            background: #444; color: white; border: none; padding: 12px; margin: 4px; 
+            border-radius: 5px; touch-action: manipulation; cursor: pointer; 
+            font-size: 14px; transition: opacity 0.2s;
         }
+        button:active { opacity: 0.7; }
         #menu { 
-            position: fixed; top: 50%; left: 50%; 
-            transform: translate(-50%, -50%); text-align: center; 
-            background: #000000aa; padding: 20px; border-radius: 10px; 
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); 
+            text-align: center; background: #000000aa; padding: 20px; border-radius: 10px; 
+            z-index: 3;
         }
         #gameOver { display: none; }
         .joystick {
-            position: fixed; bottom: 30px; left: 30px; 
-            width: 100px; height: 100px; touch-action: none;
-            background: #ffffff22; border-radius: 50%; 
+            position: fixed; bottom: 30px; left: 30px; width: 100px; height: 100px;
+            background: #ffffff22; border-radius: 50%; touch-action: none; z-index: 1;
         }
+        .disabled { pointer-events: none; opacity: 0.5; }
     </style>
 </head>
 <body>
@@ -40,9 +40,9 @@
         <div>DNA: <span id="dna">0</span> (Lvl <span id="level">1</span>)</div>
     </div>
     <div id="abilities" class="ui" style="display: none;">
-        <button onclick="evolve('speed')">🚀 Speed (10 DNA)</button>
-        <button onclick="evolve('health')">❤️ Health (15 DNA)</button>
-        <button onclick="evolve('vision')">👁️ Vision (20 DNA)</button>
+        <button onclick="evolve('speed')" id="speedBtn">🚀 Speed (10 DNA)</button>
+        <button onclick="evolve('health')" id="healthBtn">❤️ Health (15 DNA)</button>
+        <button onclick="evolve('vision')" id="visionBtn">👁️ Vision (20 DNA)</button>
     </div>
 
     <div id="menu" class="ui">
@@ -66,7 +66,7 @@ let animationFrameId;
 let touchId = null;
 
 function noise(x, y) {
-    return Math.abs(Math.sin(x * 12.9898 + y * 78.233) * 43758.5453 % 1;
+    return Math.abs(Math.sin(x * 12.9898 + y * 78.233) * 43758.5453) % 1;
 }
 
 function generateBiome(x, y) {
@@ -293,6 +293,8 @@ function update() {
     document.getElementById('dna').textContent = player.dna;
     document.getElementById('level').textContent = player.level;
 
+    updateButtons();
+
     if(player.health <= 0) {
         gameOver();
         return;
@@ -356,6 +358,16 @@ function draw() {
     ctx.globalAlpha = 1;
 }
 
+function updateButtons() {
+    const speedBtn = document.getElementById('speedBtn');
+    const healthBtn = document.getElementById('healthBtn');
+    const visionBtn = document.getElementById('visionBtn');
+    
+    speedBtn.classList.toggle('disabled', player.dna < 10);
+    healthBtn.classList.toggle('disabled', player.dna < 15);
+    visionBtn.classList.toggle('disabled', player.dna < 20);
+}
+
 const joystick = document.getElementById('joystick');
 let targetX = null, targetY = null;
 let touchStartX = 0, touchStartY = 0;
@@ -396,7 +408,7 @@ joystick.addEventListener('touchend', e => {
 function evolve(type) {
     const upgrades = {
         speed: { cost: 10, effect: p => p.speed += 0.5 },
-        health: { cost: 15, effect: p => p.health += 30 },
+        health: { cost: 15, effect: p => { p.health += 30; p.health = Math.min(200, p.health) }},
         vision: { cost: 20, effect: p => p.vision += 50 }
     };
     const upgrade = upgrades[type];
@@ -404,6 +416,7 @@ function evolve(type) {
         upgrade.effect(player);
         player.dna -= upgrade.cost;
         createParticles(player.x, player.y, 10, '#ffff00');
+        updateButtons();
     }
 }
 
@@ -434,6 +447,7 @@ function continueGame() {
         document.getElementById('menu').style.display = 'none';
         document.getElementById('stats').style.display = 'block';
         document.getElementById('abilities').style.display = 'block';
+        document.getElementById('gameOver').style.display = 'none';
         update();
     }
 }
