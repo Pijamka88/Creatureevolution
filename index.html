@@ -5,44 +5,44 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <style>
         body { margin: 0; overflow: hidden; touch-action: none; background: #1a1a1a; }
-        #gameCanvas { position: absolute; z-index: 0; }
+        #gameCanvas { position: absolute; }
         .ui {
-            position: fixed; padding: 10px; background: #00000055; border-radius: 5px; 
-            color: white; font-family: Arial; backdrop-filter: blur(3px); z-index: 2;
+            position: fixed; padding: 10px; background: #00000055; 
+            border-radius: 5px; color: white; font-family: Arial; 
+            backdrop-filter: blur(3px);
         }
         #stats { top: 10px; left: 10px; }
         #abilities { bottom: 10px; right: 10px; text-align: right; }
         button { 
-            background: #444; color: white; border: none; padding: 12px; margin: 4px; 
-            border-radius: 5px; touch-action: manipulation; cursor: pointer; 
-            font-size: 14px; transition: opacity 0.2s;
+            background: #444; color: white; border: none; padding: 12px; 
+            margin: 4px; border-radius: 5px; touch-action: manipulation; 
+            font-size: 14px; 
         }
-        button:active { opacity: 0.7; }
         #menu { 
-            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); 
-            text-align: center; background: #000000aa; padding: 20px; border-radius: 10px; 
-            z-index: 3;
+            position: fixed; top: 50%; left: 50%; 
+            transform: translate(-50%, -50%); text-align: center; 
+            background: #000000aa; padding: 20px; border-radius: 10px; 
         }
         #gameOver { display: none; }
         .joystick {
-            position: fixed; bottom: 30px; left: 30px; width: 100px; height: 100px;
-            background: #ffffff22; border-radius: 50%; touch-action: none; z-index: 1;
+            position: fixed; bottom: 30px; left: 30px; 
+            width: 100px; height: 100px; background: #ffffff22; 
+            border-radius: 50%; touch-action: none; display: none;
         }
-        .disabled { pointer-events: none; opacity: 0.5; }
     </style>
 </head>
 <body>
     <canvas id="gameCanvas"></canvas>
     <div class="joystick" id="joystick"></div>
-    <div id="stats" class="ui" style="display: none;">
+    <div id="stats" class="ui">
         <div>Health: <span id="health">100</span></div>
         <div>Energy: <span id="energy">50</span></div>
         <div>DNA: <span id="dna">0</span> (Lvl <span id="level">1</span>)</div>
     </div>
-    <div id="abilities" class="ui" style="display: none;">
-        <button onclick="evolve('speed')" id="speedBtn">🚀 Speed (10 DNA)</button>
-        <button onclick="evolve('health')" id="healthBtn">❤️ Health (15 DNA)</button>
-        <button onclick="evolve('vision')" id="visionBtn">👁️ Vision (20 DNA)</button>
+    <div id="abilities" class="ui">
+        <button onclick="evolve('speed')">🚀 Speed (10 DNA)</button>
+        <button onclick="evolve('health')">❤️ Health (15 DNA)</button>
+        <button onclick="evolve('vision')">👁️ Vision (20 DNA)</button>
     </div>
 
     <div id="menu" class="ui">
@@ -107,33 +107,31 @@ function createCreature(type, x, y, level=1) {
         x, y, size: 15, health: 100 * mutations.health,
         direction: 0, speed: 1.5 * mutations.speed,
         attack: 0, lastAttack: 0, cooldown: false,
-        level, mutations
+        level, mutations, color: '#ffffff'
     };
     
     switch(type) {
         case 'predator':
-            return {...base, 
-                color: '#ff4444', 
-                speed: 1.6 * mutations.speed,
-                attack: 5 * mutations.attack,
-                vision: 300,
-                attackCooldown: 3000
-            };
+            base.color = '#ff4444';
+            base.speed = 1.6 * mutations.speed;
+            base.attack = 5 * mutations.attack;
+            base.vision = 300;
+            base.attackCooldown = 3000;
+            break;
         case 'herbivore':
-            return {...base,
-                color: '#44ff44',
-                speed: 1.7 * mutations.speed,
-                flee: true,
-                herd: []
-            };
+            base.color = '#44ff44';
+            base.speed = 1.7 * mutations.speed;
+            base.flee = true;
+            base.herd = [];
+            break;
         case 'parasite':
-            return {...base,
-                color: '#aa44ff',
-                size: 10,
-                speed: 1.5 * mutations.speed,
-                drain: 2 * mutations.attack
-            };
+            base.color = '#aa44ff';
+            base.size = 10;
+            base.speed = 1.5 * mutations.speed;
+            base.drain = 2 * mutations.attack;
+            break;
     }
+    return base;
 }
 
 function generateWorld() {
@@ -162,21 +160,16 @@ function generateWorld() {
         const type = ['predator', 'herbivore', 'parasite'][Math.floor(Math.random()*3)];
         const level = Math.random() > 0.9 ? 2 : 1;
         world.creatures.push(createCreature(type, 
-            Math.random() * WORLD_SIZE,
-            Math.random() * WORLD_SIZE,
+            WORLD_SIZE/2 + Math.random()*400 - 200,
+            WORLD_SIZE/2 + Math.random()*400 - 200,
             level
         ));
     }
 }
 
 function updateCreatures() {
-    world.creatures.forEach((creature, index) => {
-        if(creature.herd) {
-            creature.herd = world.creatures
-                .filter(c => c !== creature && c.herd)
-                .filter(c => distance(c, creature) < 100)
-                .slice(0, 3);
-        }
+    world.creatures.forEach((creature) => {
+        if(creature.health <= 0) return;
 
         let target = null;
         if(creature.attack) {
@@ -185,7 +178,7 @@ function updateCreatures() {
             }
         } else if(creature.flee) {
             const predator = world.creatures.find(c => c.attack && distance(c, creature) < 200);
-            target = predator || (creature.herd.length ? creature.herd[0] : null);
+            target = predator;
         }
 
         const angle = target ? 
@@ -293,8 +286,6 @@ function update() {
     document.getElementById('dna').textContent = player.dna;
     document.getElementById('level').textContent = player.level;
 
-    updateButtons();
-
     if(player.health <= 0) {
         gameOver();
         return;
@@ -319,10 +310,12 @@ function draw() {
     });
 
     world.creatures.concat([player]).forEach(creature => {
+        if(creature.health <= 0) return;
+        
         const screenX = creature.x - cameraX;
         const screenY = creature.y - cameraY;
         
-        ctx.fillStyle = creature.color || '#ffffff';
+        ctx.fillStyle = creature.color;
         ctx.beginPath();
         ctx.arc(screenX, screenY, creature.size, 0, Math.PI*2);
         ctx.fill();
@@ -358,14 +351,8 @@ function draw() {
     ctx.globalAlpha = 1;
 }
 
-function updateButtons() {
-    const speedBtn = document.getElementById('speedBtn');
-    const healthBtn = document.getElementById('healthBtn');
-    const visionBtn = document.getElementById('visionBtn');
-    
-    speedBtn.classList.toggle('disabled', player.dna < 10);
-    healthBtn.classList.toggle('disabled', player.dna < 15);
-    visionBtn.classList.toggle('disabled', player.dna < 20);
+function distance(a, b) {
+    return Math.sqrt((a.x - b.x)**2 + (a.y - b.y)**2);
 }
 
 const joystick = document.getElementById('joystick');
@@ -379,6 +366,7 @@ joystick.addEventListener('touchstart', e => {
     touchStartX = touch.clientX;
     touchStartY = touch.clientY;
     joystick.style.transform = `translate(${touchStartX - 50}px, ${touchStartY - 50}px)`;
+    joystick.style.display = 'block';
 });
 
 joystick.addEventListener('touchmove', e => {
@@ -403,12 +391,13 @@ joystick.addEventListener('touchmove', e => {
 joystick.addEventListener('touchend', e => {
     targetX = null;
     targetY = null;
+    joystick.style.display = 'none';
 });
 
 function evolve(type) {
     const upgrades = {
         speed: { cost: 10, effect: p => p.speed += 0.5 },
-        health: { cost: 15, effect: p => { p.health += 30; p.health = Math.min(200, p.health) }},
+        health: { cost: 15, effect: p => p.health += 30 },
         vision: { cost: 20, effect: p => p.vision += 50 }
     };
     const upgrade = upgrades[type];
@@ -416,7 +405,6 @@ function evolve(type) {
         upgrade.effect(player);
         player.dna -= upgrade.cost;
         createParticles(player.x, player.y, 10, '#ffff00');
-        updateButtons();
     }
 }
 
@@ -426,6 +414,7 @@ function startNewGame() {
     document.getElementById('stats').style.display = 'block';
     document.getElementById('abilities').style.display = 'block';
     document.getElementById('gameOver').style.display = 'none';
+    joystick.style.display = 'block';
     
     player = {
         x: WORLD_SIZE/2, y: WORLD_SIZE/2, size: 20,
@@ -447,7 +436,7 @@ function continueGame() {
         document.getElementById('menu').style.display = 'none';
         document.getElementById('stats').style.display = 'block';
         document.getElementById('abilities').style.display = 'block';
-        document.getElementById('gameOver').style.display = 'none';
+        joystick.style.display = 'block';
         update();
     }
 }
@@ -458,6 +447,7 @@ function gameOver() {
     document.getElementById('stats').style.display = 'none';
     document.getElementById('abilities').style.display = 'none';
     document.getElementById('gameOver').style.display = 'block';
+    joystick.style.display = 'none';
 }
 
 function showMenu() {
@@ -466,6 +456,7 @@ function showMenu() {
     document.getElementById('gameOver').style.display = 'none';
     document.getElementById('continueBtn').style.display = 
         localStorage.getItem('gameState') ? 'inline-block' : 'none';
+    joystick.style.display = 'none';
 }
 
 setInterval(() => {
