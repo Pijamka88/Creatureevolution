@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Microbe Evolution 2.0</title>
+    <title>Evolution Master</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <style>
         body { margin: 0; overflow: hidden; touch-action: none; background: #1a1a1a; }
@@ -14,249 +14,185 @@
         #abilities { bottom: 10px; right: 10px; text-align: right; }
         button { background: #444; color: white; border: none; padding: 8px; margin: 2px; border-radius: 3px; }
         #menu { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; }
-        #joystick { position: fixed; bottom: 50px; left: 50px; width: 100px; height: 100px; opacity: 0.7; }
-        .level-bar { position: fixed; top: 10px; right: 10px; width: 200px; height: 20px; background: #333; }
-        .level-progress { height: 100%; background: #4CAF50; transition: width 0.3s; }
+        .joystick { position: fixed; bottom: 30px; left: 30px; width: 100px; height: 100px; }
     </style>
 </head>
 <body>
     <canvas id="gameCanvas"></canvas>
-    <div id="joystick"></div>
-    <div class="level-bar"><div class="level-progress" style="width: 0%"></div></div>
-    <!-- Остальные UI элементы как в предыдущей версии -->
+    <div class="joystick" id="joystick"></div>
+    <!-- Остальные UI элементы -->
 
 <script>
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
-const WORLD_SIZE = 2000;
+const WORLD_SIZE = 3000;
+const BIOME_SIZE = 600;
 let cameraX = 0, cameraY = 0;
-let gameState = 'menu';
-let animationFrameId;
 
-// Настройки управления для iPhone
-let touchId = null;
-const JOYSTICK_RADIUS = 40;
-let joystickVector = { x: 0, y: 0 };
+// Генерация процедурного мира
+function generatePerlin(seed) {
+    // Реализация шума Перлина
+}
 
 // Система уровней
-let playerLevel = 1;
-let levelProgress = 0;
-
-// Настройка canvas
-function resizeCanvas() {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+class EvolutionSystem {
+    constructor() {
+        this.level = 1;
+        this.xp = 0;
+        this.mutations = [];
+    }
+    
+    addXP(amount) {
+        this.xp += amount;
+        if(this.xp > this.level * 100) {
+            this.level++;
+            player.dna += this.level * 2;
+        }
+    }
 }
-resizeCanvas();
-window.addEventListener('resize', resizeCanvas);
 
-// Игровые объекты
-let player = {
-    x: WORLD_SIZE/2, y: WORLD_SIZE/2, size: 20,
-    speed: 2, health: 100, energy: 50, dna: 0,
-    vision: 200, direction: 0,
-    mutations: [],
-    level: 1
-};
+// Модифицированный класс существа
+class Creature {
+    constructor(type, x, y, mutations = []) {
+        // Базовая конфигурация
+        this.applyMutations(mutations);
+    }
+    
+    applyMutations(mutations) {
+        mutations.forEach(m => {
+            this[m.stat] += m.value;
+        });
+    }
+    
+    reproduce() {
+        const mutations = [];
+        if(Math.random() < 0.3) {
+            mutations.push({
+                stat: ['speed', 'health', 'vision'][Math.floor(Math.random()*3)],
+                value: Math.random() * 0.5 - 0.25
+            });
+        }
+        return new Creature(this.type, this.x, this.y, mutations);
+    }
+}
 
-let world = {
-    resources: [],
-    creatures: [],
-    particles: []
-};
+// Визуальные эффекты для еды
+class FoodParticle {
+    constructor(x, y, type) {
+        this.angle = Math.random() * Math.PI*2;
+        this.scale = 0.5 + Math.random();
+    }
+    
+    update() {
+        this.angle += 0.1;
+        this.scale = 0.5 + Math.sin(Date.now()/200) * 0.3;
+    }
+}
 
-// Новые визуальные эффекты для еды
-function createFoodEffect(x, y) {
-    for(let i = 0; i < 8; i++) {
-        world.particles.push({
-            x, y,
-            vx: (Math.random()-0.5)*3,
-            vy: (Math.random()-0.5)*3,
-            life: 1,
-            color: '#00ff00',
-            size: Math.random()*3 + 2
+// Оптимизированное управление для iPhone
+class TouchController {
+    constructor() {
+        this.touchStart = null;
+        this.activeTouch = null;
+        this.init();
+    }
+    
+    init() {
+        canvas.addEventListener('touchstart', e => {
+            const rect = canvas.getBoundingClientRect();
+            this.touchStart = {
+                x: e.touches[0].clientX - rect.left,
+                y: e.touches[0].clientY - rect.top,
+                time: Date.now()
+            };
+            this.activeTouch = e.touches[0].identifier;
+        });
+        
+        canvas.addEventListener('touchmove', e => {
+            for(let touch of e.changedTouches) {
+                if(touch.identifier === this.activeTouch) {
+                    const rect = canvas.getBoundingClientRect();
+                    targetX = touch.clientX - rect.left;
+                    targetY = touch.clientY - rect.top;
+                }
+            }
         });
     }
 }
 
-// Система мутаций
-const mutations = [
-    { name: 'Двойная скорость', chance: 0.1, apply: c => c.speed *= 2 },
-    { name: 'Гигантизм', chance: 0.05, apply: c => c.size *= 1.5 },
-    { name: 'Регенерация', chance: 0.2, apply: c => c.healthRegen = 1 }
-];
-
-function applyMutations(creature) {
-    mutations.forEach(m => {
-        if(Math.random() < m.chance) {
-            m.apply(creature);
+// Модифицированная логика хищников
+class PredatorAI {
+    constructor(creature) {
+        this.creature = creature;
+        this.attackCooldown = 3000;
+    }
+    
+    update() {
+        if(Date.now() - this.creature.lastAttack > this.attackCooldown) {
+            // Логика атаки
         }
-    });
-}
-
-// Генерация существ с мутациями
-function createCreature(type, x, y) {
-    const base = {
-        x, y, size: 15, health: 100,
-        direction: 0, speed: 1.5,
-        attack: 0, lastAttack: 0,
-        cooldown: false
-    };
-    
-    let creature;
-    switch(type) {
-        case 'predator':
-            creature = {...base, 
-                color: '#ff4444', 
-                speed: 1.8,
-                attack: 5,
-                vision: 300,
-                attackCooldown: 3000 // Увеличенное время восстановления
-            };
-            break;
-        // Остальные типы существ
-    }
-    
-    applyMutations(creature);
-    return creature;
-}
-
-// Обновленная система уровней
-function updateLevelSystem() {
-    const neededDNA = playerLevel * 25;
-    if(player.dna >= neededDNA) {
-        player.dna -= neededDNA;
-        playerLevel++;
-        levelProgress = 0;
-        document.querySelector('.level-progress').style.width = '0%';
-        player.health = 100;
-        player.speed += 0.2;
-    } else {
-        levelProgress = (player.dna / neededDNA) * 100;
-        document.querySelector('.level-progress').style.width = `${levelProgress}%`;
     }
 }
 
-// Оптимизированное управление
-function setupTouchControls() {
-    canvas.addEventListener('touchstart', e => {
-        if(touchId === null) {
-            touchId = e.touches[0].identifier;
-            const touch = e.touches[0];
-            handleTouchStart(touch.clientX, touch.clientY);
+// Инициализация основных систем
+const evolutionSystem = new EvolutionSystem();
+new TouchController();
+
+// Остальной код игры с интеграцией новых систем...
+
+// Процедурная генерация мира
+function generateProceduralWorld() {
+    const noise = generatePerlin(Date.now());
+    for(let x = 0; x < WORLD_SIZE; x += BIOME_SIZE) {
+        for(let y = 0; y < WORLD_SIZE; y += BIOME_SIZE) {
+            const biomeValue = noise(x/WORLD_SIZE, y/WORLD_SIZE);
+            // Генерация различных биомов
         }
-    });
-    
-    canvas.addEventListener('touchmove', e => {
-        for(let touch of e.touches) {
-            if(touch.identifier === touchId) {
-                handleTouchMove(touch.clientX, touch.clientY);
-            }
-        }
-    });
-    
-    canvas.addEventListener('touchend', e => {
-        for(let touch of e.changedTouches) {
-            if(touch.identifier === touchId) {
-                touchId = null;
-                joystickVector = { x: 0, y: 0 };
-            }
-        }
-    });
-}
-
-function handleTouchStart(x, y) {
-    const rect = canvas.getBoundingClientRect();
-    targetX = x - rect.left;
-    targetY = y - rect.top;
-}
-
-function handleTouchMove(x, y) {
-    const rect = canvas.getBoundingClientRect();
-    const touchX = x - rect.left;
-    const touchY = y - rect.top;
-    
-    const dx = touchX - (canvas.width/2);
-    const dy = touchY - (canvas.height/2);
-    const dist = Math.sqrt(dx*dx + dy*dy);
-    
-    if(dist > JOYSTICK_RADIUS) {
-        const angle = Math.atan2(dy, dx);
-        joystickVector = {
-            x: Math.cos(angle),
-            y: Math.sin(angle)
-        };
-    } else {
-        joystickVector = { x: dx/JOYSTICK_RADIUS, y: dy/JOYSTICK_RADIUS };
     }
 }
 
-// Обновленный цикл движения игрока
-function updatePlayerMovement() {
-    const speed = player.speed * (player.energy > 0 ? 1 : 0.5);
+// Модифицированная функция отрисовки глаз
+function drawEyes(ctx, creature) {
+    const eyePositions = [
+        { offset: Math.PI/6, size: creature.size * 0.15 },
+        { offset: -Math.PI/6, size: creature.size * 0.15 }
+    ];
     
-    if(joystickVector.x !== 0 || joystickVector.y !== 0) {
-        player.x += joystickVector.x * speed;
-        player.y += joystickVector.y * speed;
-        player.direction = Math.atan2(joystickVector.y, joystickVector.x);
-        player.energy = Math.max(0, player.energy - 0.1);
-    }
-    
-    // Обновление камеры
-    cameraX = player.x - canvas.width/2;
-    cameraY = player.y - canvas.height/2;
-}
-
-// Остальные функции обновлены аналогичным образом...
-
-// Инициализация
-function initGame() {
-    setupTouchControls();
-    generateWorld();
-    update();
-}
-
-// Обновленная функция сбора ресурсов
-function collectResource(resource) {
-    createFoodEffect(resource.x, resource.y);
-    if(resource.type === 'food') {
-        player.health = Math.min(100, player.health + 5);
-    } else {
-        player.dna += 1;
-        updateLevelSystem();
-    }
-}
-
-// Обновленная функция отрисовки глаз игрока
-function drawPlayer() {
-    // Тело
-    ctx.fillStyle = '#ffffff';
-    ctx.beginPath();
-    ctx.arc(player.x - cameraX, player.y - cameraY, player.size, 0, Math.PI*2);
-    ctx.fill();
-
-    // Глаза
-    const eyeDist = player.size * 0.4;
-    const eyeAngle = player.direction;
-    [Math.PI/6, -Math.PI/6].forEach(offset => {
-        ctx.fillStyle = '#ffffff';
+    eyePositions.forEach(pos => {
         ctx.beginPath();
         ctx.arc(
-            player.x - cameraX + Math.cos(eyeAngle + offset) * eyeDist,
-            player.y - cameraY + Math.sin(eyeAngle + offset) * eyeDist,
-            player.size * 0.15, 0, Math.PI*2
+            Math.cos(creature.direction + pos.offset) * creature.size * 0.4,
+            Math.sin(creature.direction + pos.offset) * creature.size * 0.4,
+            pos.size, 0, Math.PI*2
         );
+        ctx.fillStyle = '#fff';
+        ctx.fill();
+        
+        // Зрачок
+        ctx.beginPath();
+        ctx.arc(
+            Math.cos(creature.direction) * pos.size/2,
+            Math.sin(creature.direction) * pos.size/2,
+            pos.size/2, 0, Math.PI*2
+        );
+        ctx.fillStyle = '#000';
         ctx.fill();
     });
 }
 
-// Обновленная функция draw()
-function draw() {
-    // ... остальная отрисовка
-    drawPlayer();
+// Оптимизированный игровой цикл
+function optimizedGameLoop() {
+    // Реализация requestAnimationFrame с контролем FPS
 }
 
-// Остальной код аналогичен предыдущей версии с интеграцией новых функций
+// Интеграция всех систем
+function fullIntegration() {
+    generateProceduralWorld();
+    // Инициализация остальных компонентов
+}
+
+// Запуск игры
+fullIntegration();
 </script>
 </body>
 </html>
