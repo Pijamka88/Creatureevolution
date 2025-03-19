@@ -7,31 +7,39 @@
         body { margin: 0; overflow: hidden; touch-action: none; background: #1a1a1a; }
         #gameCanvas { position: absolute; }
         .ui {
-            position: fixed; padding: 10px; background: #00000055; border-radius: 5px; 
-            color: white; font-family: Arial; backdrop-filter: blur(3px); pointer-events: none;
+            position: fixed; padding: 10px; background: #00000055; 
+            border-radius: 5px; color: white; font-family: Arial; 
+            backdrop-filter: blur(3px);
         }
         #stats { top: 10px; left: 10px; }
         #abilities { bottom: 10px; right: 10px; text-align: right; }
-        button { background: #444; color: white; border: none; padding: 12px; margin: 4px; 
-                border-radius: 5px; pointer-events: auto; touch-action: manipulation; }
-        #menu { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); 
-               text-align: center; background: #000000aa; padding: 20px; border-radius: 10px; }
+        button { 
+            background: #444; color: white; border: none; padding: 12px; 
+            margin: 4px; border-radius: 5px; touch-action: manipulation; 
+            pointer-events: auto !important; /* Fix for clickable buttons */
+        }
+        #menu { 
+            position: fixed; top: 50%; left: 50%; 
+            transform: translate(-50%, -50%); text-align: center; 
+            background: #000000aa; padding: 20px; border-radius: 10px; 
+        }
         #gameOver { display: none; }
         .joystick {
-            position: fixed; bottom: 30px; left: 30px; width: 100px; height: 100px;
-            background: #ffffff22; border-radius: 50%; touch-action: none;
+            position: fixed; bottom: 30px; left: 30px; 
+            width: 100px; height: 100px; touch-action: none;
+            background: #ffffff22; border-radius: 50%; 
         }
     </style>
 </head>
 <body>
     <canvas id="gameCanvas"></canvas>
     <div class="joystick" id="joystick"></div>
-    <div id="stats" class="ui">
+    <div id="stats" class="ui" style="display: none;">
         <div>Health: <span id="health">100</span></div>
         <div>Energy: <span id="energy">50</span></div>
         <div>DNA: <span id="dna">0</span> (Lvl <span id="level">1</span>)</div>
     </div>
-    <div id="abilities" class="ui">
+    <div id="abilities" class="ui" style="display: none;">
         <button onclick="evolve('speed')">🚀 Speed (10 DNA)</button>
         <button onclick="evolve('health')">❤️ Health (15 DNA)</button>
         <button onclick="evolve('vision')">👁️ Vision (20 DNA)</button>
@@ -57,9 +65,8 @@ let gameState = 'menu';
 let animationFrameId;
 let touchId = null;
 
-// Процедурная генерация мира
 function noise(x, y) {
-    return Math.abs(Math.sin(x * 12.9898 + y * 78.233) * 43758.5453) % 1;
+    return Math.abs(Math.sin(x * 12.9898 + y * 78.233) * 43758.5453 % 1;
 }
 
 function generateBiome(x, y) {
@@ -70,7 +77,6 @@ function generateBiome(x, y) {
     return 'water';
 }
 
-// Настройка холста
 function resizeCanvas() {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
@@ -134,7 +140,6 @@ function generateWorld() {
     world.resources = [];
     world.creatures = [];
     
-    // Ресурсы с процедурной генерацией
     for(let x = 0; x < WORLD_SIZE; x += 100) {
         for(let y = 0; y < WORLD_SIZE; y += 100) {
             const biome = generateBiome(x, y);
@@ -153,7 +158,6 @@ function generateWorld() {
         }
     }
     
-    // Существа
     for(let i = 0; i < 30; i++) {
         const type = ['predator', 'herbivore', 'parasite'][Math.floor(Math.random()*3)];
         const level = Math.random() > 0.9 ? 2 : 1;
@@ -167,7 +171,6 @@ function generateWorld() {
 
 function updateCreatures() {
     world.creatures.forEach((creature, index) => {
-        // Стайное поведение
         if(creature.herd) {
             creature.herd = world.creatures
                 .filter(c => c !== creature && c.herd)
@@ -175,7 +178,6 @@ function updateCreatures() {
                 .slice(0, 3);
         }
 
-        // Логика движения
         let target = null;
         if(creature.attack) {
             if(!creature.cooldown && distance(creature, player) < creature.vision) {
@@ -186,7 +188,6 @@ function updateCreatures() {
             target = predator || (creature.herd.length ? creature.herd[0] : null);
         }
 
-        // Движение
         const angle = target ? 
             Math.atan2(target.y - creature.y, target.x - creature.x) : 
             creature.direction + (Math.random()-0.5)*0.3;
@@ -195,11 +196,9 @@ function updateCreatures() {
         creature.x += Math.cos(angle) * creature.speed;
         creature.y += Math.sin(angle) * creature.speed;
 
-        // Границы мира
         creature.x = Math.max(0, Math.min(WORLD_SIZE, creature.x));
         creature.y = Math.max(0, Math.min(WORLD_SIZE, creature.y));
 
-        // Атака
         if(creature.attack && Date.now() - creature.lastAttack > creature.attackCooldown) {
             if(distance(creature, player) < creature.size + player.size) {
                 player.health -= creature.attack;
@@ -210,7 +209,6 @@ function updateCreatures() {
             }
         }
 
-        // Размножение с мутациями
         if(creature.health > 120 + creature.level*20 && Math.random() < 0.001) {
             creature.health -= 50;
             const newLevel = creature.level + (Math.random() < 0.2 ? 1 : 0);
@@ -240,7 +238,6 @@ function createParticles(x, y, count, color) {
 function update() {
     if(gameState !== 'playing') return;
     
-    // Движение игрока
     const speed = player.speed * (player.energy > 0 ? 1 : 0.8);
     if(targetX !== null && targetY !== null) {
         const dx = targetX - player.x;
@@ -258,7 +255,6 @@ function update() {
     cameraX = player.x - canvas.width/2;
     cameraY = player.y - canvas.height/2;
 
-    // Сбор ресурсов
     world.resources = world.resources.filter(resource => {
         resource.anim += 0.05;
         if(distance(resource, player) < player.size) {
@@ -284,7 +280,6 @@ function update() {
 
     updateCreatures();
     
-    // Обновление частиц
     world.particles.forEach(p => {
         p.x += p.vx;
         p.y += p.vy;
@@ -293,13 +288,11 @@ function update() {
     });
     world.particles = world.particles.filter(p => p.life > 0);
 
-    // Обновление UI
     document.getElementById('health').textContent = Math.round(player.health);
     document.getElementById('energy').textContent = Math.round(player.energy);
     document.getElementById('dna').textContent = player.dna;
     document.getElementById('level').textContent = player.level;
 
-    // Проверка смерти
     if(player.health <= 0) {
         gameOver();
         return;
@@ -313,7 +306,6 @@ function draw() {
     ctx.fillStyle = '#1a1a1a';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Ресурсы с анимацией
     world.resources.forEach(resource => {
         ctx.save();
         ctx.translate(resource.x - cameraX, resource.y - cameraY);
@@ -324,18 +316,15 @@ function draw() {
         ctx.restore();
     });
 
-    // Существа и игрок
     world.creatures.concat([player]).forEach(creature => {
         const screenX = creature.x - cameraX;
         const screenY = creature.y - cameraY;
         
-        // Тело
         ctx.fillStyle = creature.color || '#ffffff';
         ctx.beginPath();
         ctx.arc(screenX, screenY, creature.size, 0, Math.PI*2);
         ctx.fill();
 
-        // Глаза
         const eyeDist = creature.size * 0.4;
         const eyeAngle = creature.direction;
         [Math.PI/6, -Math.PI/6].forEach(offset => {
@@ -349,7 +338,6 @@ function draw() {
             ctx.fill();
         });
 
-        // Уровень существ
         if(creature !== player && creature.level > 1) {
             ctx.fillStyle = '#fff';
             ctx.font = '12px Arial';
@@ -358,7 +346,6 @@ function draw() {
         }
     });
 
-    // Частицы
     world.particles.forEach(p => {
         ctx.fillStyle = p.color;
         ctx.globalAlpha = p.life;
@@ -369,7 +356,6 @@ function draw() {
     ctx.globalAlpha = 1;
 }
 
-// Управление для iPhone
 const joystick = document.getElementById('joystick');
 let targetX = null, targetY = null;
 let touchStartX = 0, touchStartY = 0;
@@ -407,7 +393,6 @@ joystick.addEventListener('touchend', e => {
     targetY = null;
 });
 
-// Система эволюции
 function evolve(type) {
     const upgrades = {
         speed: { cost: 10, effect: p => p.speed += 0.5 },
@@ -422,10 +407,53 @@ function evolve(type) {
     }
 }
 
-// Остальные функции управления состоянием игры...
-// (startNewGame, continueGame, gameOver, showMenu остаются аналогичными предыдущей версии)
+function startNewGame() {
+    gameState = 'playing';
+    document.getElementById('menu').style.display = 'none';
+    document.getElementById('stats').style.display = 'block';
+    document.getElementById('abilities').style.display = 'block';
+    document.getElementById('gameOver').style.display = 'none';
+    
+    player = {
+        x: WORLD_SIZE/2, y: WORLD_SIZE/2, size: 20,
+        speed: 2, health: 100, energy: 50, dna: 0,
+        vision: 200, direction: 0, level: 1, xp: 0
+    };
+    
+    generateWorld();
+    update();
+}
 
-// Автосохранение
+function continueGame() {
+    const saved = localStorage.getItem('gameState');
+    if(saved) {
+        const state = JSON.parse(saved);
+        Object.assign(player, state.player);
+        Object.assign(world, state.world);
+        gameState = 'playing';
+        document.getElementById('menu').style.display = 'none';
+        document.getElementById('stats').style.display = 'block';
+        document.getElementById('abilities').style.display = 'block';
+        update();
+    }
+}
+
+function gameOver() {
+    gameState = 'gameOver';
+    cancelAnimationFrame(animationFrameId);
+    document.getElementById('stats').style.display = 'none';
+    document.getElementById('abilities').style.display = 'none';
+    document.getElementById('gameOver').style.display = 'block';
+}
+
+function showMenu() {
+    gameState = 'menu';
+    document.getElementById('menu').style.display = 'block';
+    document.getElementById('gameOver').style.display = 'none';
+    document.getElementById('continueBtn').style.display = 
+        localStorage.getItem('gameState') ? 'inline-block' : 'none';
+}
+
 setInterval(() => {
     if(gameState === 'playing') {
         localStorage.setItem('gameState', JSON.stringify({
@@ -435,7 +463,6 @@ setInterval(() => {
     }
 }, 3000);
 
-// Инициализация
 showMenu();
 window.Telegram.WebApp.ready();
 </script>
