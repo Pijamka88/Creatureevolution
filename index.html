@@ -1,198 +1,443 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Evolution Master</title>
+    <title>Micro Evolution</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <style>
         body { margin: 0; overflow: hidden; touch-action: none; background: #1a1a1a; }
         #gameCanvas { position: absolute; }
         .ui {
             position: fixed; padding: 10px; background: #00000055; border-radius: 5px; 
-            color: white; font-family: Arial; backdrop-filter: blur(3px);
+            color: white; font-family: Arial; backdrop-filter: blur(3px); pointer-events: none;
         }
         #stats { top: 10px; left: 10px; }
         #abilities { bottom: 10px; right: 10px; text-align: right; }
-        button { background: #444; color: white; border: none; padding: 8px; margin: 2px; border-radius: 3px; }
-        #menu { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; }
-        .joystick { position: fixed; bottom: 30px; left: 30px; width: 100px; height: 100px; }
+        button { background: #444; color: white; border: none; padding: 12px; margin: 4px; 
+                border-radius: 5px; pointer-events: auto; touch-action: manipulation; }
+        #menu { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); 
+               text-align: center; background: #000000aa; padding: 20px; border-radius: 10px; }
+        #gameOver { display: none; }
+        .joystick {
+            position: fixed; bottom: 30px; left: 30px; width: 100px; height: 100px;
+            background: #ffffff22; border-radius: 50%; touch-action: none;
+        }
     </style>
 </head>
 <body>
     <canvas id="gameCanvas"></canvas>
     <div class="joystick" id="joystick"></div>
-    <!-- Остальные UI элементы -->
+    <div id="stats" class="ui">
+        <div>Health: <span id="health">100</span></div>
+        <div>Energy: <span id="energy">50</span></div>
+        <div>DNA: <span id="dna">0</span> (Lvl <span id="level">1</span>)</div>
+    </div>
+    <div id="abilities" class="ui">
+        <button onclick="evolve('speed')">🚀 Speed (10 DNA)</button>
+        <button onclick="evolve('health')">❤️ Health (15 DNA)</button>
+        <button onclick="evolve('vision')">👁️ Vision (20 DNA)</button>
+    </div>
+
+    <div id="menu" class="ui">
+        <h1>Micro Evolution</h1>
+        <button onclick="startNewGame()">New Game</button>
+        <button onclick="continueGame()" id="continueBtn">Continue</button>
+    </div>
+
+    <div id="gameOver" class="ui">
+        <h2>Game Over!</h2>
+        <button onclick="showMenu()">Back to Menu</button>
+    </div>
 
 <script>
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 const WORLD_SIZE = 3000;
-const BIOME_SIZE = 600;
 let cameraX = 0, cameraY = 0;
-
-// Генерация процедурного мира
-function generatePerlin(seed) {
-    // Реализация шума Перлина
-}
-
-// Система уровней
-class EvolutionSystem {
-    constructor() {
-        this.level = 1;
-        this.xp = 0;
-        this.mutations = [];
-    }
-    
-    addXP(amount) {
-        this.xp += amount;
-        if(this.xp > this.level * 100) {
-            this.level++;
-            player.dna += this.level * 2;
-        }
-    }
-}
-
-// Модифицированный класс существа
-class Creature {
-    constructor(type, x, y, mutations = []) {
-        // Базовая конфигурация
-        this.applyMutations(mutations);
-    }
-    
-    applyMutations(mutations) {
-        mutations.forEach(m => {
-            this[m.stat] += m.value;
-        });
-    }
-    
-    reproduce() {
-        const mutations = [];
-        if(Math.random() < 0.3) {
-            mutations.push({
-                stat: ['speed', 'health', 'vision'][Math.floor(Math.random()*3)],
-                value: Math.random() * 0.5 - 0.25
-            });
-        }
-        return new Creature(this.type, this.x, this.y, mutations);
-    }
-}
-
-// Визуальные эффекты для еды
-class FoodParticle {
-    constructor(x, y, type) {
-        this.angle = Math.random() * Math.PI*2;
-        this.scale = 0.5 + Math.random();
-    }
-    
-    update() {
-        this.angle += 0.1;
-        this.scale = 0.5 + Math.sin(Date.now()/200) * 0.3;
-    }
-}
-
-// Оптимизированное управление для iPhone
-class TouchController {
-    constructor() {
-        this.touchStart = null;
-        this.activeTouch = null;
-        this.init();
-    }
-    
-    init() {
-        canvas.addEventListener('touchstart', e => {
-            const rect = canvas.getBoundingClientRect();
-            this.touchStart = {
-                x: e.touches[0].clientX - rect.left,
-                y: e.touches[0].clientY - rect.top,
-                time: Date.now()
-            };
-            this.activeTouch = e.touches[0].identifier;
-        });
-        
-        canvas.addEventListener('touchmove', e => {
-            for(let touch of e.changedTouches) {
-                if(touch.identifier === this.activeTouch) {
-                    const rect = canvas.getBoundingClientRect();
-                    targetX = touch.clientX - rect.left;
-                    targetY = touch.clientY - rect.top;
-                }
-            }
-        });
-    }
-}
-
-// Модифицированная логика хищников
-class PredatorAI {
-    constructor(creature) {
-        this.creature = creature;
-        this.attackCooldown = 3000;
-    }
-    
-    update() {
-        if(Date.now() - this.creature.lastAttack > this.attackCooldown) {
-            // Логика атаки
-        }
-    }
-}
-
-// Инициализация основных систем
-const evolutionSystem = new EvolutionSystem();
-new TouchController();
-
-// Остальной код игры с интеграцией новых систем...
+let gameState = 'menu';
+let animationFrameId;
+let touchId = null;
 
 // Процедурная генерация мира
-function generateProceduralWorld() {
-    const noise = generatePerlin(Date.now());
-    for(let x = 0; x < WORLD_SIZE; x += BIOME_SIZE) {
-        for(let y = 0; y < WORLD_SIZE; y += BIOME_SIZE) {
-            const biomeValue = noise(x/WORLD_SIZE, y/WORLD_SIZE);
-            // Генерация различных биомов
-        }
+function noise(x, y) {
+    return Math.abs(Math.sin(x * 12.9898 + y * 78.233) * 43758.5453) % 1;
+}
+
+function generateBiome(x, y) {
+    const value = noise(x/500, y/500);
+    if(value > 0.9) return 'toxic';
+    if(value > 0.7) return 'rocky';
+    if(value > 0.4) return 'grassland';
+    return 'water';
+}
+
+// Настройка холста
+function resizeCanvas() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+}
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
+
+let player = {
+    x: WORLD_SIZE/2, y: WORLD_SIZE/2, size: 20,
+    speed: 2, health: 100, energy: 50, dna: 0,
+    vision: 200, direction: 0, level: 1, xp: 0
+};
+
+let world = {
+    resources: [],
+    creatures: [],
+    particles: []
+};
+
+function createCreature(type, x, y, level=1) {
+    const mutations = {
+        speed: 1 + (level-1)*0.1,
+        health: 1 + (level-1)*0.2,
+        attack: 1 + (level-1)*0.15
+    };
+    
+    const base = {
+        x, y, size: 15, health: 100 * mutations.health,
+        direction: 0, speed: 1.5 * mutations.speed,
+        attack: 0, lastAttack: 0, cooldown: false,
+        level, mutations
+    };
+    
+    switch(type) {
+        case 'predator':
+            return {...base, 
+                color: '#ff4444', 
+                speed: 1.6 * mutations.speed,
+                attack: 5 * mutations.attack,
+                vision: 300,
+                attackCooldown: 3000
+            };
+        case 'herbivore':
+            return {...base,
+                color: '#44ff44',
+                speed: 1.7 * mutations.speed,
+                flee: true,
+                herd: []
+            };
+        case 'parasite':
+            return {...base,
+                color: '#aa44ff',
+                size: 10,
+                speed: 1.5 * mutations.speed,
+                drain: 2 * mutations.attack
+            };
     }
 }
 
-// Модифицированная функция отрисовки глаз
-function drawEyes(ctx, creature) {
-    const eyePositions = [
-        { offset: Math.PI/6, size: creature.size * 0.15 },
-        { offset: -Math.PI/6, size: creature.size * 0.15 }
-    ];
+function generateWorld() {
+    world.resources = [];
+    world.creatures = [];
     
-    eyePositions.forEach(pos => {
-        ctx.beginPath();
-        ctx.arc(
-            Math.cos(creature.direction + pos.offset) * creature.size * 0.4,
-            Math.sin(creature.direction + pos.offset) * creature.size * 0.4,
-            pos.size, 0, Math.PI*2
-        );
-        ctx.fillStyle = '#fff';
-        ctx.fill();
+    // Ресурсы с процедурной генерацией
+    for(let x = 0; x < WORLD_SIZE; x += 100) {
+        for(let y = 0; y < WORLD_SIZE; y += 100) {
+            const biome = generateBiome(x, y);
+            const count = biome === 'grassland' ? 5 : 2;
+            
+            for(let i = 0; i < count; i++) {
+                world.resources.push({
+                    x: x + Math.random()*100,
+                    y: y + Math.random()*100,
+                    type: biome === 'toxic' ? 'dna' : 
+                         biome === 'rocky' ? 'mineral' : 'food',
+                    value: 10,
+                    anim: Math.random() * Math.PI * 2
+                });
+            }
+        }
+    }
+    
+    // Существа
+    for(let i = 0; i < 30; i++) {
+        const type = ['predator', 'herbivore', 'parasite'][Math.floor(Math.random()*3)];
+        const level = Math.random() > 0.9 ? 2 : 1;
+        world.creatures.push(createCreature(type, 
+            Math.random() * WORLD_SIZE,
+            Math.random() * WORLD_SIZE,
+            level
+        ));
+    }
+}
+
+function updateCreatures() {
+    world.creatures.forEach((creature, index) => {
+        // Стайное поведение
+        if(creature.herd) {
+            creature.herd = world.creatures
+                .filter(c => c !== creature && c.herd)
+                .filter(c => distance(c, creature) < 100)
+                .slice(0, 3);
+        }
+
+        // Логика движения
+        let target = null;
+        if(creature.attack) {
+            if(!creature.cooldown && distance(creature, player) < creature.vision) {
+                target = player;
+            }
+        } else if(creature.flee) {
+            const predator = world.creatures.find(c => c.attack && distance(c, creature) < 200);
+            target = predator || (creature.herd.length ? creature.herd[0] : null);
+        }
+
+        // Движение
+        const angle = target ? 
+            Math.atan2(target.y - creature.y, target.x - creature.x) : 
+            creature.direction + (Math.random()-0.5)*0.3;
         
-        // Зрачок
-        ctx.beginPath();
-        ctx.arc(
-            Math.cos(creature.direction) * pos.size/2,
-            Math.sin(creature.direction) * pos.size/2,
-            pos.size/2, 0, Math.PI*2
-        );
-        ctx.fillStyle = '#000';
-        ctx.fill();
+        creature.direction = angle;
+        creature.x += Math.cos(angle) * creature.speed;
+        creature.y += Math.sin(angle) * creature.speed;
+
+        // Границы мира
+        creature.x = Math.max(0, Math.min(WORLD_SIZE, creature.x));
+        creature.y = Math.max(0, Math.min(WORLD_SIZE, creature.y));
+
+        // Атака
+        if(creature.attack && Date.now() - creature.lastAttack > creature.attackCooldown) {
+            if(distance(creature, player) < creature.size + player.size) {
+                player.health -= creature.attack;
+                creature.lastAttack = Date.now();
+                creature.cooldown = true;
+                setTimeout(() => creature.cooldown = false, 1500);
+                createParticles(player.x, player.y, 10, '#ff0000');
+            }
+        }
+
+        // Размножение с мутациями
+        if(creature.health > 120 + creature.level*20 && Math.random() < 0.001) {
+            creature.health -= 50;
+            const newLevel = creature.level + (Math.random() < 0.2 ? 1 : 0);
+            world.creatures.push(createCreature(
+                creature.attack ? 'predator' : creature.flee ? 'herbivore' : 'parasite',
+                creature.x + Math.random()*40 -20,
+                creature.y + Math.random()*40 -20,
+                newLevel
+            ));
+        }
     });
 }
 
-// Оптимизированный игровой цикл
-function optimizedGameLoop() {
-    // Реализация requestAnimationFrame с контролем FPS
+function createParticles(x, y, count, color) {
+    for(let i = 0; i < count; i++) {
+        world.particles.push({
+            x, y,
+            vx: (Math.random()-0.5)*4,
+            vy: (Math.random()-0.5)*4,
+            life: 1,
+            color,
+            size: Math.random()*3 + 2
+        });
+    }
 }
 
-// Интеграция всех систем
-function fullIntegration() {
-    generateProceduralWorld();
-    // Инициализация остальных компонентов
+function update() {
+    if(gameState !== 'playing') return;
+    
+    // Движение игрока
+    const speed = player.speed * (player.energy > 0 ? 1 : 0.8);
+    if(targetX !== null && targetY !== null) {
+        const dx = targetX - player.x;
+        const dy = targetY - player.y;
+        const dist = Math.sqrt(dx*dx + dy*dy);
+        
+        if(dist > speed) {
+            player.x += (dx/dist)*speed;
+            player.y += (dy/dist)*speed;
+            player.direction = Math.atan2(dy, dx);
+            player.energy = Math.max(0, player.energy - 0.05);
+        }
+    }
+    
+    cameraX = player.x - canvas.width/2;
+    cameraY = player.y - canvas.height/2;
+
+    // Сбор ресурсов
+    world.resources = world.resources.filter(resource => {
+        resource.anim += 0.05;
+        if(distance(resource, player) < player.size) {
+            createParticles(resource.x, resource.y, 8, 
+                resource.type === 'food' ? '#88ff88' :
+                resource.type === 'mineral' ? '#8888ff' : '#ff88ff');
+            
+            player[resource.type === 'food' ? 'health' : 'dna'] += 
+                resource.type === 'food' ? 5 : 1;
+            
+            player.xp += 1;
+            if(player.xp > player.level * 10) {
+                player.level++;
+                player.xp = 0;
+                player.health += 20;
+                createParticles(player.x, player.y, 20, '#ffffff');
+            }
+            
+            return false;
+        }
+        return true;
+    });
+
+    updateCreatures();
+    
+    // Обновление частиц
+    world.particles.forEach(p => {
+        p.x += p.vx;
+        p.y += p.vy;
+        p.life -= 0.015;
+        p.vy += 0.1;
+    });
+    world.particles = world.particles.filter(p => p.life > 0);
+
+    // Обновление UI
+    document.getElementById('health').textContent = Math.round(player.health);
+    document.getElementById('energy').textContent = Math.round(player.energy);
+    document.getElementById('dna').textContent = player.dna;
+    document.getElementById('level').textContent = player.level;
+
+    // Проверка смерти
+    if(player.health <= 0) {
+        gameOver();
+        return;
+    }
+
+    animationFrameId = requestAnimationFrame(update);
+    draw();
 }
 
-// Запуск игры
-fullIntegration();
+function draw() {
+    ctx.fillStyle = '#1a1a1a';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Ресурсы с анимацией
+    world.resources.forEach(resource => {
+        ctx.save();
+        ctx.translate(resource.x - cameraX, resource.y - cameraY);
+        ctx.rotate(resource.anim);
+        ctx.fillStyle = resource.type === 'food' ? '#88ff8855' :
+                        resource.type === 'mineral' ? '#8888ff55' : '#ff88ff55';
+        ctx.fillRect(-6, -6, 12, 12);
+        ctx.restore();
+    });
+
+    // Существа и игрок
+    world.creatures.concat([player]).forEach(creature => {
+        const screenX = creature.x - cameraX;
+        const screenY = creature.y - cameraY;
+        
+        // Тело
+        ctx.fillStyle = creature.color || '#ffffff';
+        ctx.beginPath();
+        ctx.arc(screenX, screenY, creature.size, 0, Math.PI*2);
+        ctx.fill();
+
+        // Глаза
+        const eyeDist = creature.size * 0.4;
+        const eyeAngle = creature.direction;
+        [Math.PI/6, -Math.PI/6].forEach(offset => {
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.arc(
+                screenX + Math.cos(eyeAngle + offset) * eyeDist,
+                screenY + Math.sin(eyeAngle + offset) * eyeDist,
+                creature.size * 0.15, 0, Math.PI*2
+            );
+            ctx.fill();
+        });
+
+        // Уровень существ
+        if(creature !== player && creature.level > 1) {
+            ctx.fillStyle = '#fff';
+            ctx.font = '12px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('Lv'+creature.level, screenX, screenY - creature.size - 5);
+        }
+    });
+
+    // Частицы
+    world.particles.forEach(p => {
+        ctx.fillStyle = p.color;
+        ctx.globalAlpha = p.life;
+        ctx.beginPath();
+        ctx.arc(p.x - cameraX, p.y - cameraY, p.size * p.life, 0, Math.PI*2);
+        ctx.fill();
+    });
+    ctx.globalAlpha = 1;
+}
+
+// Управление для iPhone
+const joystick = document.getElementById('joystick');
+let targetX = null, targetY = null;
+let touchStartX = 0, touchStartY = 0;
+
+joystick.addEventListener('touchstart', e => {
+    e.preventDefault();
+    touchId = e.changedTouches[0].identifier;
+    const touch = e.changedTouches[0];
+    touchStartX = touch.clientX;
+    touchStartY = touch.clientY;
+    joystick.style.transform = `translate(${touchStartX - 50}px, ${touchStartY - 50}px)`;
+});
+
+joystick.addEventListener('touchmove', e => {
+    e.preventDefault();
+    const touch = Array.from(e.touches).find(t => t.identifier === touchId);
+    if(!touch) return;
+    
+    const dx = touch.clientX - touchStartX;
+    const dy = touch.clientY - touchStartY;
+    const dist = Math.sqrt(dx*dx + dy*dy);
+    const angle = Math.atan2(dy, dx);
+    
+    if(dist > 40) {
+        targetX = player.x + Math.cos(angle) * 1000;
+        targetY = player.y + Math.sin(angle) * 1000;
+    } else {
+        targetX = player.x + dx * 25;
+        targetY = player.y + dy * 25;
+    }
+});
+
+joystick.addEventListener('touchend', e => {
+    targetX = null;
+    targetY = null;
+});
+
+// Система эволюции
+function evolve(type) {
+    const upgrades = {
+        speed: { cost: 10, effect: p => p.speed += 0.5 },
+        health: { cost: 15, effect: p => p.health += 30 },
+        vision: { cost: 20, effect: p => p.vision += 50 }
+    };
+    const upgrade = upgrades[type];
+    if(player.dna >= upgrade.cost) {
+        upgrade.effect(player);
+        player.dna -= upgrade.cost;
+        createParticles(player.x, player.y, 10, '#ffff00');
+    }
+}
+
+// Остальные функции управления состоянием игры...
+// (startNewGame, continueGame, gameOver, showMenu остаются аналогичными предыдущей версии)
+
+// Автосохранение
+setInterval(() => {
+    if(gameState === 'playing') {
+        localStorage.setItem('gameState', JSON.stringify({
+            player,
+            world
+        }));
+    }
+}, 3000);
+
+// Инициализация
+showMenu();
+window.Telegram.WebApp.ready();
 </script>
 </body>
 </html>
