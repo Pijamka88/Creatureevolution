@@ -4,36 +4,35 @@
     <title>Microbe Evolution</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <style>
-        body { margin: 0; overflow: hidden; touch-action: none; background: #0a0a1a; }
+        body { margin: 0; overflow: hidden; touch-action: none; background: #0d1b2a; }
         #gameCanvas { position: absolute; }
         .ui {
-            position: fixed; padding: 15px; background: #00000066; border-radius: 10px; 
+            position: fixed; padding: 15px; background: #1b263bcc; border-radius: 10px; 
             color: white; font-family: 'Arial', sans-serif; backdrop-filter: blur(5px);
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
         }
         #stats { top: 20px; left: 20px; }
         #abilities { bottom: 20px; right: 20px; text-align: right; }
-        button { 
-            background: #2a2a4a; color: white; border: none; padding: 10px 15px; 
-            margin: 5px; border-radius: 5px; cursor: pointer; transition: background 0.2s;
+        button {
+            background: #415a77; color: white; border: none; padding: 10px 15px;
+            margin: 5px; border-radius: 5px; cursor: pointer; transition: 0.2s;
         }
-        button:hover { background: #3a3a5a; }
+        button:hover { background: #778da9; }
         #menu {
             position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            text-align: center; background: #000000cc; padding: 30px; border-radius: 15px;
-            backdrop-filter: blur(10px);
+            text-align: center; padding: 30px; background: #1b263b; border-radius: 15px;
         }
-        .title { font-size: 2.5em; margin-bottom: 20px; }
-        .menu-button { width: 200px; font-size: 1.2em; }
+        #menu h1 { margin: 0 0 20px; color: #e0e1dd; }
         .hidden { display: none; }
     </style>
 </head>
 <body>
     <div id="menu">
-        <div class="title">Microbe Evolution</div>
-        <button class="menu-button" onclick="startGame()">Start Game</button>
-        <button class="menu-button" onclick="showInstructions()">How to Play</button>
+        <h1>Microbe Evolution</h1>
+        <button onclick="startGame()">Start Game</button>
+        <button onclick="showInstructions()">How to Play</button>
     </div>
-    <canvas id="gameCanvas"></canvas>
+    <canvas id="gameCanvas" class="hidden"></canvas>
     <div id="stats" class="ui hidden">
         <div>Health: <span id="health">100</span></div>
         <div>Energy: <span id="energy">50</span></div>
@@ -70,15 +69,15 @@ const world = {
     resources: [],
     creatures: [],
     particles: [],
-    groups: {}
+    herds: new Map()
 };
 
 function createCreature(type, x, y) {
     const base = {
         x, y, size: 15, health: 100,
-        direction: 0, speed: 1.5,
+        direction: 0, speed: 1.2,
         attack: 0, lastAttack: 0,
-        group: null
+        cooldown: false
     };
     
     switch(type) {
@@ -88,29 +87,32 @@ function createCreature(type, x, y) {
                 speed: 1.8,
                 attack: 5,
                 vision: 300,
-                cooldown: 2000
+                attackCooldown: 2000
             };
         case 'herbivore':
-            const group = Math.floor(Math.random() * 3);
             return {...base,
                 color: '#44ff44',
-                speed: 1.8,
+                speed: 1.5,
                 flee: true,
-                group
+                herd: null
             };
         case 'parasite':
             return {...base,
                 color: '#aa44ff',
                 size: 10,
-                speed: 1.7,
+                speed: 1.4,
                 drain: 2
             };
     }
 }
 
 function generateWorld() {
+    world.resources = [];
+    world.creatures = [];
+    world.herds.clear();
+    
     // Resources
-    for(let i = 0; i < 200; i++) {
+    for(let i = 0; i < 150; i++) {
         world.resources.push({
             x: Math.random() * WORLD_SIZE,
             y: Math.random() * WORLD_SIZE,
@@ -119,41 +121,66 @@ function generateWorld() {
         });
     }
     
-    // Creatures
-    for(let i = 0; i < 50; i++) {
-        const type = ['predator', 'herbivore', 'parasite'][Math.floor(Math.random()*3)];
-        const creature = createCreature(type, 
+    // Create herds
+    for(let i = 0; i < 5; i++) {
+        const herd = {
+            centerX: Math.random() * WORLD_SIZE,
+            centerY: Math.random() * WORLD_SIZE,
+            members: []
+        };
+        world.herds.set(i, herd);
+        
+        // Add herbivores to herd
+        for(let j = 0; j < 5; j++) {
+            const herbivore = createCreature('herbivore', 
+                herd.centerX + (Math.random()-0.5)*200,
+                herd.centerY + (Math.random()-0.5)*200
+            );
+            herbivore.herd = i;
+            herd.members.push(herbivore);
+            world.creatures.push(herbivore);
+        }
+    }
+    
+    // Add predators and parasites
+    for(let i = 0; i < 10; i++) {
+        world.creatures.push(createCreature('predator', 
             Math.random() * WORLD_SIZE,
             Math.random() * WORLD_SIZE
-        );
-        world.creatures.push(creature);
-        if(creature.group !== null) {
-            if(!world.groups[creature.group]) {
-                world.groups[creature.group] = [];
-            }
-            world.groups[creature.group].push(creature);
-        }
+        ));
+    }
+    for(let i = 0; i < 5; i++) {
+        world.creatures.push(createCreature('parasite', 
+            Math.random() * WORLD_SIZE,
+            Math.random() * WORLD_SIZE
+        ));
     }
 }
 
-function updateGroups() {
-    Object.values(world.groups).forEach(group => {
-        if(group.length > 0) {
-            // Calculate center
-            const center = group.reduce((acc, curr) => {
-                return {x: acc.x + curr.x, y: acc.y + curr.y};
-            }, {x: 0, y: 0});
-            center.x /= group.length;
-            center.y /= group.length;
-
-            // Move towards center
-            group.forEach(creature => {
-                const angle = Math.atan2(center.y - creature.y, center.x - creature.x);
-                creature.direction = angle;
-                creature.x += Math.cos(angle) * creature.speed * 0.3;
-                creature.y += Math.sin(angle) * creature.speed * 0.3;
-            });
-        }
+function updateHerds() {
+    world.herds.forEach(herd => {
+        // Update herd center
+        let totalX = 0, totalY = 0;
+        herd.members.forEach(m => {
+            totalX += m.x;
+            totalY += m.y;
+        });
+        herd.centerX = totalX / herd.members.length;
+        herd.centerY = totalY / herd.members.length;
+        
+        // Move herd members
+        herd.members.forEach(member => {
+            if(!member.flee) return;
+            
+            // Stay near herd center
+            const dx = herd.centerX - member.x;
+            const dy = herd.centerY - member.y;
+            const dist = Math.sqrt(dx*dx + dy*dy);
+            if(dist > 100) {
+                member.x += (dx/dist) * member.speed;
+                member.y += (dy/dist) * member.speed;
+            }
+        });
     });
 }
 
@@ -161,19 +188,19 @@ function updateCreatures() {
     world.creatures.forEach(creature => {
         // Movement logic
         let target = null;
-        if(creature.attack) { // Predator
+        if(creature.attack && !creature.cooldown) {
             const dx = player.x - creature.x;
             const dy = player.y - creature.y;
             if(Math.sqrt(dx*dx + dy*dy) < creature.vision) {
                 target = player;
             }
-        } else if(creature.flee) { // Herbivore
+        } else if(creature.flee) {
             world.creatures.forEach(c => {
                 if(c.attack && distance(c, creature) < 200) {
                     target = c;
                 }
             });
-        } else if(creature.drain) { // Parasite
+        } else if(creature.drain) {
             const closest = world.creatures.concat([player])
                 .reduce((closest, curr) => 
                     distance(curr, creature) < distance(closest, creature) ? curr : closest);
@@ -188,71 +215,64 @@ function updateCreatures() {
                 creature.x -= Math.cos(angle) * creature.speed;
                 creature.y -= Math.sin(angle) * creature.speed;
             } else {
-                if(creature.attack && distance(creature, target) < creature.size + target.size + 10) {
-                    if(Date.now() - creature.lastAttack > creature.cooldown) {
-                        target.health -= creature.attack;
-                        creature.lastAttack = Date.now();
-                        createParticles(target.x, target.y, 10, '#ff0000');
-                        // Move away after attack
-                        creature.x -= Math.cos(angle) * 30;
-                        creature.y -= Math.sin(angle) * 30;
-                    }
-                } else {
-                    creature.x += Math.cos(angle) * creature.speed;
-                    creature.y += Math.sin(angle) * creature.speed;
-                }
+                creature.x += Math.cos(angle) * creature.speed;
+                creature.y += Math.sin(angle) * creature.speed;
             }
         }
 
         // Boundaries
         creature.x = Math.max(0, Math.min(WORLD_SIZE, creature.x));
         creature.y = Math.max(0, Math.min(WORLD_SIZE, creature.y));
+
+        // Combat
+        if(creature.attack && !creature.cooldown && 
+           distance(creature, player) < creature.size + player.size) {
+            player.health -= creature.attack;
+            creature.cooldown = true;
+            setTimeout(() => creature.cooldown = false, creature.attackCooldown);
+            createParticles(player.x, player.y, 10, '#ff0000');
+        }
+        
+        if(creature.drain && distance(creature, player) < 20) {
+            player.energy -= 0.5;
+            creature.health += 1;
+        }
     });
 }
 
-// [Rest of the code remains the same...]
-
-function gameOver() {
-    gameActive = false;
-    document.getElementById('menu').classList.remove('hidden');
-    document.getElementById('stats').classList.add('hidden');
-    document.getElementById('abilities').classList.add('hidden');
-    document.querySelector('#menu .title').textContent = 'Game Over';
-}
+// ... (остальной код остается таким же, как в предыдущей версии)
 
 function startGame() {
-    gameActive = true;
     document.getElementById('menu').classList.add('hidden');
+    document.getElementById('gameCanvas').classList.remove('hidden');
     document.getElementById('stats').classList.remove('hidden');
     document.getElementById('abilities').classList.remove('hidden');
     
-    // Reset game state
-    player.x = WORLD_SIZE/2;
-    player.y = WORLD_SIZE/2;
     player.health = 100;
     player.energy = 50;
     player.dna = 0;
-    
-    world.resources = [];
-    world.creatures = [];
-    world.particles = [];
-    world.groups = {};
+    player.x = WORLD_SIZE/2;
+    player.y = WORLD_SIZE/2;
     
     generateWorld();
+    gameActive = true;
     update();
 }
 
 function showInstructions() {
-    alert(`How to play:
+    alert(`How to Play:
 - Move by clicking/tapping
-- Collect green dots for health
-- Collect blue dots for DNA
+- Collect green food for health
+- Collect blue DNA for upgrades
 - Avoid red predators
-- Use DNA to evolve
+- Use DNA to evolve in the bottom right menu
 - Survive as long as possible!`);
 }
 
-// [Rest of the initialization code...]
+// ... (остальной код остается таким же, как в предыдущей версии)
+
+// Init
+window.Telegram.WebApp.ready();
 </script>
 </body>
 </html>
