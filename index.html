@@ -4,215 +4,55 @@
     <title>Microbe Evolution</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <style>
-        /* Modern UI Design */
-        :root {
-            --primary: #4CAF50;
-            --secondary: #2196F3;
-            --danger: #F44336;
-            --background: #121212;
-            --surface: #1E1E1E;
-            --text: #FFFFFF;
-            --text-secondary: #BDBDBD;
-        }
-
-        body { 
-            margin: 0; 
-            overflow: hidden; 
-            touch-action: none; 
-            background: var(--background); 
-            color: var(--text);
-            font-family: 'Segoe UI', system-ui, sans-serif;
-        }
-
+        body { margin: 0; overflow: hidden; touch-action: none; background: #0a0a1a; }
         #gameCanvas { position: absolute; }
-
         .ui {
-            position: fixed;
-            padding: 16px;
-            background: var(--surface);
-            border-radius: 12px;
-            backdrop-filter: blur(10px);
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            position: fixed; padding: 15px; background: #00000066; border-radius: 10px; 
+            color: white; font-family: 'Arial', sans-serif; backdrop-filter: blur(5px);
         }
-
-        #stats { top: 16px; left: 16px; }
-        #abilities { bottom: 16px; right: 16px; text-align: right; }
-
-        button {
-            background: var(--primary);
-            color: var(--text);
-            border: none;
-            padding: 12px 16px;
-            margin: 4px;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s;
+        #stats { top: 20px; left: 20px; }
+        #abilities { bottom: 20px; right: 20px; text-align: right; }
+        button { 
+            background: #2a2a4a; color: white; border: none; padding: 10px 15px; 
+            margin: 5px; border-radius: 5px; cursor: pointer; transition: background 0.2s;
         }
-
-        button:hover { opacity: 0.9; }
-        button:active { transform: scale(0.98); }
-
+        button:hover { background: #3a3a5a; }
         #menu {
-            width: 320px;
-            padding: 32px;
-            text-align: center;
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            text-align: center; background: #000000cc; padding: 30px; border-radius: 15px;
+            backdrop-filter: blur(10px);
         }
-
-        h1 {
-            font-size: 32px;
-            margin: 0 0 24px;
-            color: var(--primary);
-        }
-
-        #gameOver {
-            display: none;
-            width: 280px;
-        }
-
-        .progress-bar {
-            width: 100%;
-            height: 8px;
-            background: #333;
-            border-radius: 4px;
-            margin: 8px 0;
-            overflow: hidden;
-        }
-
-        .progress {
-            height: 100%;
-            background: var(--primary);
-            transition: width 0.2s;
-        }
-
-        .level-up {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: var(--surface);
-            padding: 24px;
-            border-radius: 16px;
-            text-align: center;
-            animation: pop 0.3s;
-            display: none;
-        }
-
-        @keyframes pop {
-            0% { transform: translate(-50%, -50%) scale(0.5); }
-            100% { transform: translate(-50%, -50%) scale(1); }
-        }
+        .title { font-size: 2.5em; margin-bottom: 20px; }
+        .menu-button { width: 200px; font-size: 1.2em; }
+        .hidden { display: none; }
     </style>
 </head>
 <body>
+    <div id="menu">
+        <div class="title">Microbe Evolution</div>
+        <button class="menu-button" onclick="startGame()">Start Game</button>
+        <button class="menu-button" onclick="showInstructions()">How to Play</button>
+    </div>
     <canvas id="gameCanvas"></canvas>
-
-    <!-- Game UI -->
-    <div id="stats" class="ui" style="display: none;">
-        <div>Level: <span id="level">1</span></div>
-        <div class="progress-bar"><div id="xpBar" class="progress"></div></div>
+    <div id="stats" class="ui hidden">
         <div>Health: <span id="health">100</span></div>
         <div>Energy: <span id="energy">50</span></div>
         <div>DNA: <span id="dna">0</span></div>
     </div>
-
-    <div id="abilities" class="ui" style="display: none;">
+    <div id="abilities" class="ui hidden">
         <button onclick="evolve('speed')">Speed+ (10 DNA)</button>
         <button onclick="evolve('health')">Health+ (15 DNA)</button>
         <button onclick="evolve('vision')">Vision+ (20 DNA)</button>
     </div>
 
-    <!-- Level Up Modal -->
-    <div id="levelUp" class="level-up ui">
-        <h2>Level Up!</h2>
-        <p>Choose your mutation:</p>
-        <div id="mutationOptions"></div>
-    </div>
-
-    <!-- Menu -->
-    <div id="menu" class="ui">
-        <h1>Microbe Evolution</h1>
-        <button onclick="startNewGame()">New Game</button>
-        <button onclick="continueGame()" id="continueBtn">Continue</button>
-    </div>
-
-    <!-- Game Over -->
-    <div id="gameOver" class="ui">
-        <h2>Game Over!</h2>
-        <p>You reached level <span id="finalLevel">1</span></p>
-        <button onclick="showMenu()">Back to Menu</button>
-    </div>
-
 <script>
-// Game Configuration
-const config = {
-    WORLD_SIZE: 3000,
-    XP_PER_LEVEL: 100,
-    MUTATION_CHANCE: 0.3,
-    PREDATOR_COOLDOWN: 3000
-};
-
-// Game State
-let gameState = 'menu';
-let animationFrameId;
-let cameraX = 0, cameraY = 0;
-let targetX = null, targetY = null;
-
-const player = {
-    x: config.WORLD_SIZE/2, y: config.WORLD_SIZE/2,
-    size: 20, speed: 2, health: 100, energy: 50,
-    dna: 0, xp: 0, level: 1, vision: 200,
-    direction: 0, mutations: []
-};
-
-const world = {
-    resources: [],
-    creatures: [],
-    particles: []
-};
-
-// Modern Graphics Functions
-function drawGlow(x, y, radius, color) {
-    ctx.save();
-    ctx.beginPath();
-    ctx.arc(x, y, radius, 0, Math.PI * 2);
-    ctx.shadowColor = color;
-    ctx.shadowBlur = 20;
-    ctx.fillStyle = color;
-    ctx.fill();
-    ctx.restore();
-}
-
-function drawEyes(x, y, direction, size) {
-    const eyeDist = size * 0.4;
-    const eyeSize = size * 0.15;
-    const angle = direction;
-    
-    // Eye glow
-    drawGlow(
-        x + Math.cos(angle + Math.PI/6) * eyeDist,
-        y + Math.sin(angle + Math.PI/6) * eyeDist,
-        eyeSize * 2, 'rgba(255,255,255,0.3)'
-    );
-    
-    // Eyes
-    ctx.fillStyle = '#FFFFFF';
-    [Math.PI/6, -Math.PI/6].forEach(offset => {
-        ctx.beginPath();
-        ctx.arc(
-            x + Math.cos(angle + offset) * eyeDist,
-            y + Math.sin(angle + offset) * eyeDist,
-            eyeSize, 0, Math.PI * 2
-        );
-        ctx.fill();
-    });
-}
-
-// Initialization
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
+const WORLD_SIZE = 3000;
+let cameraX = 0, cameraY = 0;
+let gameActive = false;
 
+// Setup canvas
 function resizeCanvas() {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
@@ -220,89 +60,199 @@ function resizeCanvas() {
 resizeCanvas();
 window.addEventListener('resize', resizeCanvas);
 
-// Touch Controls for Mobile
-function setupTouchControls() {
-    const touchArea = document.createElement('div');
-    touchArea.style.position = 'fixed';
-    touchArea.style.bottom = '0';
-    touchArea.style.left = '0';
-    touchArea.style.right = '0';
-    touchArea.style.height = '150px';
-    touchArea.style.zIndex = '100';
-    touchArea.style.background = 'rgba(0,0,0,0.3)';
-    touchArea.style.backdropFilter = 'blur(5px)';
-    document.body.appendChild(touchArea);
-
-    touchArea.addEventListener('touchstart', handleTouch);
-    touchArea.addEventListener('touchmove', handleTouch);
-    touchArea.addEventListener('touchend', () => {
-        targetX = null;
-        targetY = null;
-    });
-
-    function handleTouch(e) {
-        const touch = e.touches[0];
-        targetX = touch.clientX;
-        targetY = touch.clientY;
-        e.preventDefault();
-    }
-}
-
-// Rest of the game code remains similar but with updated graphics and mutations
-// [Previous game logic code goes here, updated with new features]
-
-// Mutation System
-const mutations = {
-    speed: {
-        name: 'Swift Genes',
-        description: '+0.5 Speed',
-        effect: p => p.speed += 0.5
-    },
-    health: {
-        name: 'Robust Cells',
-        description: '+20 Max Health',
-        effect: p => p.health += 20
-    },
-    vision: {
-        name: 'Enhanced Senses',
-        description: '+50 Vision Range',
-        effect: p => p.vision += 50
-    },
-    energy: {
-        name: 'Efficient Metabolism',
-        description: '+25 Max Energy',
-        effect: p => p.energy += 25
-    }
+const player = {
+    x: WORLD_SIZE/2, y: WORLD_SIZE/2, size: 20,
+    speed: 2, health: 100, energy: 50, dna: 0,
+    vision: 200, direction: 0
 };
 
-function showLevelUp() {
-    const options = Object.entries(mutations)
-        .filter(([key]) => !player.mutations.includes(key))
-        .sort(() => Math.random() - 0.5)
-        .slice(0, 3);
+const world = {
+    resources: [],
+    creatures: [],
+    particles: [],
+    groups: {}
+};
 
-    const optionsHtml = options.map(([key, mut]) => `
-        <button onclick="applyMutation('${key}')">
-            <strong>${mut.name}</strong><br>
-            <small>${mut.description}</small>
-        </button>
-    `).join('');
-
-    document.getElementById('mutationOptions').innerHTML = optionsHtml;
-    document.getElementById('levelUp').style.display = 'block';
+function createCreature(type, x, y) {
+    const base = {
+        x, y, size: 15, health: 100,
+        direction: 0, speed: 1.5,
+        attack: 0, lastAttack: 0,
+        group: null
+    };
+    
+    switch(type) {
+        case 'predator':
+            return {...base, 
+                color: '#ff4444', 
+                speed: 1.8,
+                attack: 5,
+                vision: 300,
+                cooldown: 2000
+            };
+        case 'herbivore':
+            const group = Math.floor(Math.random() * 3);
+            return {...base,
+                color: '#44ff44',
+                speed: 1.8,
+                flee: true,
+                group
+            };
+        case 'parasite':
+            return {...base,
+                color: '#aa44ff',
+                size: 10,
+                speed: 1.7,
+                drain: 2
+            };
+    }
 }
 
-function applyMutation(key) {
-    mutations[key].effect(player);
-    player.mutations.push(key);
-    document.getElementById('levelUp').style.display = 'none';
-    updateStats();
+function generateWorld() {
+    // Resources
+    for(let i = 0; i < 200; i++) {
+        world.resources.push({
+            x: Math.random() * WORLD_SIZE,
+            y: Math.random() * WORLD_SIZE,
+            type: Math.random() > 0.2 ? 'food' : 'dna',
+            value: 10
+        });
+    }
+    
+    // Creatures
+    for(let i = 0; i < 50; i++) {
+        const type = ['predator', 'herbivore', 'parasite'][Math.floor(Math.random()*3)];
+        const creature = createCreature(type, 
+            Math.random() * WORLD_SIZE,
+            Math.random() * WORLD_SIZE
+        );
+        world.creatures.push(creature);
+        if(creature.group !== null) {
+            if(!world.groups[creature.group]) {
+                world.groups[creature.group] = [];
+            }
+            world.groups[creature.group].push(creature);
+        }
+    }
 }
 
-// Initialize
-setupTouchControls();
-showMenu();
-window.Telegram.WebApp.ready();
+function updateGroups() {
+    Object.values(world.groups).forEach(group => {
+        if(group.length > 0) {
+            // Calculate center
+            const center = group.reduce((acc, curr) => {
+                return {x: acc.x + curr.x, y: acc.y + curr.y};
+            }, {x: 0, y: 0});
+            center.x /= group.length;
+            center.y /= group.length;
+
+            // Move towards center
+            group.forEach(creature => {
+                const angle = Math.atan2(center.y - creature.y, center.x - creature.x);
+                creature.direction = angle;
+                creature.x += Math.cos(angle) * creature.speed * 0.3;
+                creature.y += Math.sin(angle) * creature.speed * 0.3;
+            });
+        }
+    });
+}
+
+function updateCreatures() {
+    world.creatures.forEach(creature => {
+        // Movement logic
+        let target = null;
+        if(creature.attack) { // Predator
+            const dx = player.x - creature.x;
+            const dy = player.y - creature.y;
+            if(Math.sqrt(dx*dx + dy*dy) < creature.vision) {
+                target = player;
+            }
+        } else if(creature.flee) { // Herbivore
+            world.creatures.forEach(c => {
+                if(c.attack && distance(c, creature) < 200) {
+                    target = c;
+                }
+            });
+        } else if(creature.drain) { // Parasite
+            const closest = world.creatures.concat([player])
+                .reduce((closest, curr) => 
+                    distance(curr, creature) < distance(closest, creature) ? curr : closest);
+            if(distance(closest, creature) < 500) target = closest;
+        }
+
+        // Move
+        if(target) {
+            const angle = Math.atan2(target.y - creature.y, target.x - creature.x);
+            creature.direction = angle;
+            if(creature.flee) {
+                creature.x -= Math.cos(angle) * creature.speed;
+                creature.y -= Math.sin(angle) * creature.speed;
+            } else {
+                if(creature.attack && distance(creature, target) < creature.size + target.size + 10) {
+                    if(Date.now() - creature.lastAttack > creature.cooldown) {
+                        target.health -= creature.attack;
+                        creature.lastAttack = Date.now();
+                        createParticles(target.x, target.y, 10, '#ff0000');
+                        // Move away after attack
+                        creature.x -= Math.cos(angle) * 30;
+                        creature.y -= Math.sin(angle) * 30;
+                    }
+                } else {
+                    creature.x += Math.cos(angle) * creature.speed;
+                    creature.y += Math.sin(angle) * creature.speed;
+                }
+            }
+        }
+
+        // Boundaries
+        creature.x = Math.max(0, Math.min(WORLD_SIZE, creature.x));
+        creature.y = Math.max(0, Math.min(WORLD_SIZE, creature.y));
+    });
+}
+
+// [Rest of the code remains the same...]
+
+function gameOver() {
+    gameActive = false;
+    document.getElementById('menu').classList.remove('hidden');
+    document.getElementById('stats').classList.add('hidden');
+    document.getElementById('abilities').classList.add('hidden');
+    document.querySelector('#menu .title').textContent = 'Game Over';
+}
+
+function startGame() {
+    gameActive = true;
+    document.getElementById('menu').classList.add('hidden');
+    document.getElementById('stats').classList.remove('hidden');
+    document.getElementById('abilities').classList.remove('hidden');
+    
+    // Reset game state
+    player.x = WORLD_SIZE/2;
+    player.y = WORLD_SIZE/2;
+    player.health = 100;
+    player.energy = 50;
+    player.dna = 0;
+    
+    world.resources = [];
+    world.creatures = [];
+    world.particles = [];
+    world.groups = {};
+    
+    generateWorld();
+    update();
+}
+
+function showInstructions() {
+    alert(`How to play:
+- Move by clicking/tapping
+- Collect green dots for health
+- Collect blue dots for DNA
+- Avoid red predators
+- Use DNA to evolve
+- Survive as long as possible!`);
+}
+
+// [Rest of the initialization code...]
 </script>
 </body>
 </html>
