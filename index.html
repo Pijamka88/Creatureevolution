@@ -144,6 +144,14 @@ const EVOLUTION_STAGES = [
     { size: 30, speed: 2.0, vision: 350 }
 ];
 
+function isInsideEllipse(x, y) {
+    const a = WORLD_SIZE / 2 - BORDER_SIZE;
+    const b = WORLD_SIZE / 3 - BORDER_SIZE;
+    const centerX = WORLD_SIZE / 2;
+    const centerY = WORLD_SIZE / 2;
+    return ((x - centerX)**2 / a**2 + (y - centerY)**2 / b**2) <= 1;
+}
+
 function createCreature(type, x, y) {
     const base = {
         x, y, 
@@ -185,9 +193,14 @@ function generateWorld() {
     
     // Resources
     for(let i = 0; i < 150; i++) {
+        let x, y;
+        do {
+            x = Math.random() * WORLD_SIZE;
+            y = Math.random() * WORLD_SIZE;
+        } while (!isInsideEllipse(x, y));
+        
         world.resources.push({
-            x: Math.random() * WORLD_SIZE,
-            y: Math.random() * WORLD_SIZE,
+            x, y,
             type: Math.random() > 0.2 ? 'food' : 'dna',
             value: 10
         });
@@ -195,19 +208,27 @@ function generateWorld() {
     
     // Create herds
     for(let i = 0; i < 5; i++) {
+        let centerX, centerY;
+        do {
+            centerX = Math.random() * WORLD_SIZE;
+            centerY = Math.random() * WORLD_SIZE;
+        } while (!isInsideEllipse(centerX, centerY));
+        
         const herd = {
-            centerX: Math.random() * WORLD_SIZE,
-            centerY: Math.random() * WORLD_SIZE,
+            centerX, centerY,
             members: []
         };
         world.herds.set(i, herd);
         
         // Add herbivores to herd
         for(let j = 0; j < 5; j++) {
-            const herbivore = createCreature('herbivore', 
-                herd.centerX + (Math.random()-0.5)*200,
-                herd.centerY + (Math.random()-0.5)*200
-            );
+            let x, y;
+            do {
+                x = centerX + (Math.random()-0.5)*200;
+                y = centerY + (Math.random()-0.5)*200;
+            } while (!isInsideEllipse(x, y));
+            
+            const herbivore = createCreature('herbivore', x, y);
             herbivore.herd = i;
             herd.members.push(herbivore);
             world.creatures.push(herbivore);
@@ -216,16 +237,22 @@ function generateWorld() {
     
     // Add predators and parasites
     for(let i = 0; i < 10; i++) {
-        world.creatures.push(createCreature('predator', 
-            Math.random() * WORLD_SIZE,
-            Math.random() * WORLD_SIZE
-        ));
+        let x, y;
+        do {
+            x = Math.random() * WORLD_SIZE;
+            y = Math.random() * WORLD_SIZE;
+        } while (!isInsideEllipse(x, y));
+        
+        world.creatures.push(createCreature('predator', x, y));
     }
     for(let i = 0; i < 5; i++) {
-        world.creatures.push(createCreature('parasite', 
-            Math.random() * WORLD_SIZE,
-            Math.random() * WORLD_SIZE
-        ));
+        let x, y;
+        do {
+            x = Math.random() * WORLD_SIZE;
+            y = Math.random() * WORLD_SIZE;
+        } while (!isInsideEllipse(x, y));
+        
+        world.creatures.push(createCreature('parasite', x, y));
     }
 }
 
@@ -251,6 +278,15 @@ function updateHerds() {
             if(dist > 100) {
                 member.x += (dx/dist) * member.speed;
                 member.y += (dy/dist) * member.speed;
+                
+                // Keep inside ellipse
+                if(!isInsideEllipse(member.x, member.y)) {
+                    const angle = Math.atan2(member.y - WORLD_SIZE/2, member.x - WORLD_SIZE/2);
+                    const a = WORLD_SIZE / 2 - BORDER_SIZE;
+                    const b = WORLD_SIZE / 3 - BORDER_SIZE;
+                    member.x = WORLD_SIZE/2 + Math.cos(angle) * a * 0.9;
+                    member.y = WORLD_SIZE/2 + Math.sin(angle) * b * 0.9;
+                }
             }
         });
     });
@@ -312,9 +348,14 @@ function updateCreatures(deltaTime) {
             }
         }
 
-        // Boundaries
-        creature.x = Math.max(BORDER_SIZE, Math.min(WORLD_SIZE - BORDER_SIZE, creature.x));
-        creature.y = Math.max(BORDER_SIZE, Math.min(WORLD_SIZE - BORDER_SIZE, creature.y));
+        // Keep inside ellipse
+        if(!isInsideEllipse(creature.x, creature.y)) {
+            const angle = Math.atan2(creature.y - WORLD_SIZE/2, creature.x - WORLD_SIZE/2);
+            const a = WORLD_SIZE / 2 - BORDER_SIZE;
+            const b = WORLD_SIZE / 3 - BORDER_SIZE;
+            creature.x = WORLD_SIZE/2 + Math.cos(angle) * a * 0.9;
+            creature.y = WORLD_SIZE/2 + Math.sin(angle) * b * 0.9;
+        }
 
         // Combat
         if(creature.attack && !creature.cooldown && 
@@ -364,12 +405,20 @@ function update(deltaTime) {
     if (!gameActive) return;
 
     // Player movement
-    const speed = player.speed * (player.energy > 0 ? 1 : 0.5);
+    const speed = player.speed;
     if(joystickVector.x !== 0 || joystickVector.y !== 0) {
         player.x += joystickVector.x * speed;
         player.y += joystickVector.y * speed;
         player.direction = Math.atan2(joystickVector.y, joystickVector.x);
-        player.energy = Math.max(0, player.energy - 0.1);
+        
+        // Keep player inside ellipse
+        if(!isInsideEllipse(player.x, player.y)) {
+            const angle = Math.atan2(player.y - WORLD_SIZE/2, player.x - WORLD_SIZE/2);
+            const a = WORLD_SIZE / 2 - BORDER_SIZE;
+            const b = WORLD_SIZE / 3 - BORDER_SIZE;
+            player.x = WORLD_SIZE/2 + Math.cos(angle) * a * 0.9;
+            player.y = WORLD_SIZE/2 + Math.sin(angle) * b * 0.9;
+        }
     }
     
     cameraX = player.x - canvas.width/2;
@@ -470,15 +519,18 @@ function draw() {
     ctx.fillStyle = '#0d1b2a';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Draw borders
+    // Draw ellipse border
     ctx.strokeStyle = '#ffffff44';
     ctx.lineWidth = 5;
-    ctx.strokeRect(
-        BORDER_SIZE - cameraX,
-        BORDER_SIZE - cameraY,
-        WORLD_SIZE - BORDER_SIZE*2,
-        WORLD_SIZE - BORDER_SIZE*2
+    ctx.beginPath();
+    ctx.ellipse(
+        WORLD_SIZE/2 - cameraX,
+        WORLD_SIZE/2 - cameraY,
+        WORLD_SIZE/2 - BORDER_SIZE,
+        WORLD_SIZE/3 - BORDER_SIZE,
+        0, 0, Math.PI*2
     );
+    ctx.stroke();
 
     // Draw resources
     world.resources.forEach(resource => {
