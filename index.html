@@ -107,13 +107,12 @@
 <script>
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
-const WORLD_SIZE = 1500;
-const BORDER_SIZE = 50;
+const WORLD_SIZE = 3000;
+const BORDER_SIZE = 100;
 let cameraX = 0, cameraY = 0;
 let gameActive = false;
 let joystickVector = { x: 0, y: 0 };
 
-// Setup canvas
 function resizeCanvas() {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
@@ -144,12 +143,12 @@ const EVOLUTION_STAGES = [
     { size: 30, speed: 2.0, vision: 350 }
 ];
 
-function isInsideEllipse(x, y) {
-    const a = WORLD_SIZE / 2 - BORDER_SIZE;
-    const b = WORLD_SIZE / 3 - BORDER_SIZE;
+function isInsideOval(x, y) {
     const centerX = WORLD_SIZE / 2;
     const centerY = WORLD_SIZE / 2;
-    return ((x - centerX)**2 / a**2 + (y - centerY)**2 / b**2) <= 1;
+    const radiusX = (WORLD_SIZE - BORDER_SIZE*2) / 2;
+    const radiusY = (WORLD_SIZE - BORDER_SIZE*2) / 3;
+    return ((x - centerX)**2)/(radiusX**2) + ((y - centerY)**2)/(radiusY**2) <= 1;
 }
 
 function createCreature(type, x, y) {
@@ -174,6 +173,7 @@ function createCreature(type, x, y) {
         case 'herbivore':
             return {...base,
                 color: '#44ff44',
+                speed: 1.5,
                 flee: true,
                 herd: null
             };
@@ -191,14 +191,12 @@ function generateWorld() {
     world.creatures = [];
     world.herds.clear();
     
-    // Resources
-    for(let i = 0; i < 150; i++) {
+    for(let i = 0; i < 300; i++) {
         let x, y;
         do {
             x = Math.random() * WORLD_SIZE;
             y = Math.random() * WORLD_SIZE;
-        } while (!isInsideEllipse(x, y));
-        
+        } while (!isInsideOval(x, y));
         world.resources.push({
             x, y,
             type: Math.random() > 0.2 ? 'food' : 'dna',
@@ -206,59 +204,48 @@ function generateWorld() {
         });
     }
     
-    // Create herds
-    for(let i = 0; i < 5; i++) {
+    for(let i = 0; i < 10; i++) {
         let centerX, centerY;
         do {
             centerX = Math.random() * WORLD_SIZE;
             centerY = Math.random() * WORLD_SIZE;
-        } while (!isInsideEllipse(centerX, centerY));
+        } while (!isInsideOval(centerX, centerY));
         
-        const herd = {
-            centerX, centerY,
-            members: []
-        };
+        const herd = { centerX, centerY, members: [] };
         world.herds.set(i, herd);
         
-        // Add herbivores to herd
         for(let j = 0; j < 5; j++) {
-            let x, y;
-            do {
-                x = centerX + (Math.random()-0.5)*200;
-                y = centerY + (Math.random()-0.5)*200;
-            } while (!isInsideEllipse(x, y));
-            
-            const herbivore = createCreature('herbivore', x, y);
+            const herbivore = createCreature('herbivore', 
+                centerX + (Math.random()-0.5)*200,
+                centerY + (Math.random()-0.5)*200
+            );
             herbivore.herd = i;
             herd.members.push(herbivore);
             world.creatures.push(herbivore);
         }
     }
     
-    // Add predators and parasites
+    for(let i = 0; i < 20; i++) {
+        let x, y;
+        do {
+            x = Math.random() * WORLD_SIZE;
+            y = Math.random() * WORLD_SIZE;
+        } while (!isInsideOval(x, y));
+        world.creatures.push(createCreature('predator', x, y));
+    }
+    
     for(let i = 0; i < 10; i++) {
         let x, y;
         do {
             x = Math.random() * WORLD_SIZE;
             y = Math.random() * WORLD_SIZE;
-        } while (!isInsideEllipse(x, y));
-        
-        world.creatures.push(createCreature('predator', x, y));
-    }
-    for(let i = 0; i < 5; i++) {
-        let x, y;
-        do {
-            x = Math.random() * WORLD_SIZE;
-            y = Math.random() * WORLD_SIZE;
-        } while (!isInsideEllipse(x, y));
-        
+        } while (!isInsideOval(x, y));
         world.creatures.push(createCreature('parasite', x, y));
     }
 }
 
 function updateHerds() {
     world.herds.forEach(herd => {
-        // Update herd center
         let totalX = 0, totalY = 0;
         herd.members.forEach(m => {
             totalX += m.x;
@@ -267,11 +254,9 @@ function updateHerds() {
         herd.centerX = totalX / herd.members.length;
         herd.centerY = totalY / herd.members.length;
         
-        // Move herd members
         herd.members.forEach(member => {
             if(!member.flee) return;
             
-            // Stay near herd center
             const dx = herd.centerX - member.x;
             const dy = herd.centerY - member.y;
             const dist = Math.sqrt(dx*dx + dy*dy);
@@ -279,13 +264,10 @@ function updateHerds() {
                 member.x += (dx/dist) * member.speed;
                 member.y += (dy/dist) * member.speed;
                 
-                // Keep inside ellipse
-                if(!isInsideEllipse(member.x, member.y)) {
+                if (!isInsideOval(member.x, member.y)) {
                     const angle = Math.atan2(member.y - WORLD_SIZE/2, member.x - WORLD_SIZE/2);
-                    const a = WORLD_SIZE / 2 - BORDER_SIZE;
-                    const b = WORLD_SIZE / 3 - BORDER_SIZE;
-                    member.x = WORLD_SIZE/2 + Math.cos(angle) * a * 0.9;
-                    member.y = WORLD_SIZE/2 + Math.sin(angle) * b * 0.9;
+                    member.x = WORLD_SIZE/2 + Math.cos(angle) * (WORLD_SIZE/2 - BORDER_SIZE);
+                    member.y = WORLD_SIZE/2 + Math.sin(angle) * (WORLD_SIZE/3 - BORDER_SIZE);
                 }
             }
         });
@@ -294,13 +276,9 @@ function updateHerds() {
 
 function updateCreatures(deltaTime) {
     world.creatures.forEach(creature => {
-        // Animation
         creature.animationPhase += creature.animationSpeed;
-        if(creature.animationPhase >= Math.PI*2) {
-            creature.animationPhase -= Math.PI*2;
-        }
+        if(creature.animationPhase >= Math.PI*2) creature.animationPhase -= Math.PI*2;
 
-        // Evolution
         if(creature.consumedFood >= 10 && creature.evolutionStage < EVOLUTION_STAGES.length - 1) {
             creature.evolutionProgress++;
             if(creature.evolutionProgress >= 100) {
@@ -314,19 +292,14 @@ function updateCreatures(deltaTime) {
             }
         }
 
-        // Movement logic
         let target = null;
         if(creature.attack && !creature.cooldown) {
             const dx = player.x - creature.x;
             const dy = player.y - creature.y;
-            if(Math.sqrt(dx*dx + dy*dy) < creature.vision) {
-                target = player;
-            }
+            if(Math.sqrt(dx*dx + dy*dy) < creature.vision) target = player;
         } else if(creature.flee) {
             world.creatures.forEach(c => {
-                if(c.attack && distance(c, creature) < 200) {
-                    target = c;
-                }
+                if(c.attack && distance(c, creature) < 200) target = c;
             });
         } else if(creature.drain) {
             const closest = world.creatures.concat([player])
@@ -335,7 +308,6 @@ function updateCreatures(deltaTime) {
             if(distance(closest, creature) < 500) target = closest;
         }
 
-        // Move
         if(target) {
             const angle = Math.atan2(target.y - creature.y, target.x - creature.x);
             creature.direction = angle;
@@ -348,18 +320,10 @@ function updateCreatures(deltaTime) {
             }
         }
 
-        // Keep inside ellipse
-        if(!isInsideEllipse(creature.x, creature.y)) {
-            const angle = Math.atan2(creature.y - WORLD_SIZE/2, creature.x - WORLD_SIZE/2);
-            const a = WORLD_SIZE / 2 - BORDER_SIZE;
-            const b = WORLD_SIZE / 3 - BORDER_SIZE;
-            creature.x = WORLD_SIZE/2 + Math.cos(angle) * a * 0.9;
-            creature.y = WORLD_SIZE/2 + Math.sin(angle) * b * 0.9;
-        }
+        creature.x = Math.max(BORDER_SIZE, Math.min(WORLD_SIZE - BORDER_SIZE, creature.x));
+        creature.y = Math.max(BORDER_SIZE, Math.min(WORLD_SIZE - BORDER_SIZE, creature.y));
 
-        // Combat
-        if(creature.attack && !creature.cooldown && 
-           distance(creature, player) < creature.size + player.size) {
+        if(creature.attack && !creature.cooldown && distance(creature, player) < creature.size + player.size) {
             player.health -= creature.attack;
             creature.cooldown = true;
             setTimeout(() => creature.cooldown = false, creature.attackCooldown);
@@ -371,7 +335,6 @@ function updateCreatures(deltaTime) {
             creature.health += 1;
         }
 
-        // Eating food
         world.resources = world.resources.filter(resource => {
             if(distance(resource, creature) < creature.size) {
                 if(resource.type === 'food') {
@@ -384,7 +347,6 @@ function updateCreatures(deltaTime) {
             return true;
         });
 
-        // Gradual glow decrease
         creature.glow = Math.max(0, creature.glow - 0.01);
     });
 }
@@ -404,27 +366,22 @@ function createParticles(x, y, count, color) {
 function update(deltaTime) {
     if (!gameActive) return;
 
-    // Player movement
     const speed = player.speed;
     if(joystickVector.x !== 0 || joystickVector.y !== 0) {
         player.x += joystickVector.x * speed;
         player.y += joystickVector.y * speed;
         player.direction = Math.atan2(joystickVector.y, joystickVector.x);
         
-        // Keep player inside ellipse
-        if(!isInsideEllipse(player.x, player.y)) {
+        if (!isInsideOval(player.x, player.y)) {
             const angle = Math.atan2(player.y - WORLD_SIZE/2, player.x - WORLD_SIZE/2);
-            const a = WORLD_SIZE / 2 - BORDER_SIZE;
-            const b = WORLD_SIZE / 3 - BORDER_SIZE;
-            player.x = WORLD_SIZE/2 + Math.cos(angle) * a * 0.9;
-            player.y = WORLD_SIZE/2 + Math.sin(angle) * b * 0.9;
+            player.x = WORLD_SIZE/2 + Math.cos(angle) * (WORLD_SIZE/2 - BORDER_SIZE);
+            player.y = WORLD_SIZE/2 + Math.sin(angle) * (WORLD_SIZE/3 - BORDER_SIZE);
         }
     }
     
     cameraX = player.x - canvas.width/2;
     cameraY = player.y - canvas.height/2;
 
-    // Resource collection
     world.resources = world.resources.filter(resource => {
         if(distance(resource, player) < player.size) {
             createParticles(resource.x, resource.y, 5, resource.type === 'food' ? '#00ff00' : '#00ffff');
@@ -443,7 +400,6 @@ function update(deltaTime) {
     updateHerds();
     updateCreatures(deltaTime);
     
-    // Update particles
     world.particles.forEach(p => {
         p.x += p.vx;
         p.y += p.vy;
@@ -451,14 +407,12 @@ function update(deltaTime) {
     });
     world.particles = world.particles.filter(p => p.life > 0);
 
-    // Update UI
     document.getElementById('health').textContent = Math.round(player.health);
     document.getElementById('energy').textContent = Math.round(player.energy);
     document.getElementById('dna').textContent = player.dna;
 }
 
 function drawCreature(ctx, creature, x, y) {
-    // Animation
     const wave = Math.sin(creature.animationPhase) * 0.2;
     
     ctx.save();
@@ -469,7 +423,6 @@ function drawCreature(ctx, creature, x, y) {
     ctx.translate(x, y);
     ctx.rotate(creature.direction);
     
-    // Body shape
     const sizeMod = Math.min(1 + creature.consumedFood * 0.1, 2);
     ctx.beginPath();
     ctx.ellipse(0, 0, 
@@ -479,7 +432,6 @@ function drawCreature(ctx, creature, x, y) {
     ctx.fillStyle = creature.color;
     ctx.fill();
     
-    // Stripes
     ctx.strokeStyle = '#ffffff22';
     ctx.lineWidth = 2;
     for(let i = -1; i <= 1; i += 0.5) {
@@ -491,7 +443,6 @@ function drawCreature(ctx, creature, x, y) {
         ctx.stroke();
     }
     
-    // Eyes
     const eyeDist = creature.size * 0.6 * sizeMod;
     [Math.PI/6, -Math.PI/6].forEach(offset => {
         ctx.beginPath();
@@ -507,7 +458,6 @@ function drawCreature(ctx, creature, x, y) {
     ctx.restore();
     ctx.restore();
 
-    // Evolution level
     if(creature.evolutionStage > 0) {
         ctx.fillStyle = '#ffffff';
         ctx.font = '12px Arial';
@@ -519,7 +469,6 @@ function draw() {
     ctx.fillStyle = '#0d1b2a';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Draw ellipse border
     ctx.strokeStyle = '#ffffff44';
     ctx.lineWidth = 5;
     ctx.beginPath();
@@ -532,7 +481,6 @@ function draw() {
     );
     ctx.stroke();
 
-    // Draw resources
     world.resources.forEach(resource => {
         ctx.fillStyle = resource.type === 'food' ? '#00ff00' : '#00ffff';
         ctx.beginPath();
@@ -540,14 +488,12 @@ function draw() {
         ctx.fill();
     });
 
-    // Draw creatures
     world.creatures.concat([player]).forEach(creature => {
         const screenX = creature.x - cameraX;
         const screenY = creature.y - cameraY;
         drawCreature(ctx, creature, screenX, screenY);
     });
 
-    // Draw particles
     world.particles.forEach(p => {
         ctx.fillStyle = p.color;
         ctx.globalAlpha = p.life;
@@ -562,7 +508,6 @@ function distance(a, b) {
     return Math.sqrt((a.x - b.x)**2 + (a.y - b.y)**2);
 }
 
-// Joystick controls
 const joystick = document.getElementById('joystick');
 const joystickKnob = document.getElementById('joystickKnob');
 let joystickActive = false;
@@ -594,16 +539,10 @@ function updateJoystick(touch) {
     const maxDist = rect.width/2;
     
     if(dist > maxDist) {
-        joystickVector = {
-            x: dx/dist,
-            y: dy/dist
-        };
+        joystickVector = { x: dx/dist, y: dy/dist };
         joystickKnob.style.transform = `translate(${dx/maxDist*20 - 50}%, ${dy/maxDist*20 - 50}%)`;
     } else {
-        joystickVector = {
-            x: dx/maxDist,
-            y: dy/maxDist
-        };
+        joystickVector = { x: dx/maxDist, y: dy/maxDist };
         joystickKnob.style.transform = `translate(${dx/maxDist*50 - 50}%, ${dy/maxDist*50 - 50}%)`;
     }
 }
@@ -676,7 +615,6 @@ function endGame() {
     document.getElementById('abilities').classList.add('hidden');
 }
 
-// Инициализация
 window.addEventListener('load', () => {
     resizeCanvas();
     document.getElementById('menu').classList.remove('hidden');
