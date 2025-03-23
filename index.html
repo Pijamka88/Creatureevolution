@@ -109,7 +109,6 @@ const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 const WORLD_SIZE = 3000;
 const BORDER_SIZE = 100;
-const MIN_DISTANCE = 25;
 let cameraX = 0, cameraY = 0;
 let gameActive = false;
 let joystickVector = { x: 0, y: 0 };
@@ -167,10 +166,9 @@ function createCreature(type, x, y) {
         case 'predator':
             return {...base, 
                 color: '#ff4444', 
-                speed: 1.3,
-                attack: 3,
-                attackCooldown: 2000,
-                targetType: ['herbivore', 'parasite']
+                speed: 1.5,
+                attack: 5,
+                attackCooldown: 2000
             };
         case 'herbivore':
             return {...base,
@@ -183,8 +181,7 @@ function createCreature(type, x, y) {
             return {...base,
                 color: '#aa44ff',
                 size: 10,
-                drain: 1,
-                targetType: ['herbivore', 'predator']
+                drain: 2
             };
     }
 }
@@ -202,12 +199,12 @@ function generateWorld() {
         } while (!isInsideOval(x, y));
         world.resources.push({
             x, y,
-            type: Math.random() > 0.2 ? 'food' : 'dna',
+            type: Math.random() > 0.5 ? 'food' : 'dna',
             value: 10
         });
     }
     
-    for(let i = 0; i < 10; i++) {
+    for(let i = 0; i < 5; i++) {
         let centerX, centerY;
         do {
             centerX = Math.random() * WORLD_SIZE;
@@ -228,7 +225,7 @@ function generateWorld() {
         }
     }
     
-    for(let i = 0; i < 15; i++) {
+    for(let i = 0; i < 10; i++) {
         let x, y;
         do {
             x = Math.random() * WORLD_SIZE;
@@ -237,7 +234,7 @@ function generateWorld() {
         world.creatures.push(createCreature('predator', x, y));
     }
     
-    for(let i = 0; i < 8; i++) {
+    for(let i = 0; i < 5; i++) {
         let x, y;
         do {
             x = Math.random() * WORLD_SIZE;
@@ -245,34 +242,6 @@ function generateWorld() {
         } while (!isInsideOval(x, y));
         world.creatures.push(createCreature('parasite', x, y));
     }
-}
-
-function handleBorders(creature) {
-    const angle = Math.atan2(creature.y - WORLD_SIZE/2, creature.x - WORLD_SIZE/2);
-    const pushForce = 0.1;
-    
-    if(!isInsideOval(creature.x, creature.y)) {
-        creature.x -= Math.cos(angle) * pushForce;
-        creature.y -= Math.sin(angle) * pushForce;
-    }
-}
-
-function handleCollisions() {
-    world.creatures.forEach((a, i) => {
-        world.creatures.forEach((b, j) => {
-            if(i !== j && distance(a, b) < MIN_DISTANCE) {
-                const dx = a.x - b.x;
-                const dy = a.y - b.y;
-                const dist = Math.sqrt(dx*dx + dy*dy);
-                const push = (MIN_DISTANCE - dist) / 2;
-                
-                a.x += (dx/dist) * push;
-                a.y += (dy/dist) * push;
-                b.x -= (dx/dist) * push;
-                b.y -= (dy/dist) * push;
-            }
-        });
-    });
 }
 
 function updateHerds() {
@@ -286,17 +255,30 @@ function updateHerds() {
         herd.centerY = totalY / herd.members.length;
         
         herd.members.forEach(member => {
+            if(!member.flee) return;
+            
             const dx = herd.centerX - member.x;
             const dy = herd.centerY - member.y;
             const dist = Math.sqrt(dx*dx + dy*dy);
-            
-            if(dist > 50) {
-                member.direction = Math.atan2(dy, dx);
-                member.x += Math.cos(member.direction) * member.speed;
-                member.y += Math.sin(member.direction) * member.speed;
+            if(dist > 100) {
+                member.x += (dx/dist) * member.speed;
+                member.y += (dy/dist) * member.speed;
+                
+                if (!isInsideOval(member.x, member.y)) {
+                    const angle = Math.atan2(member.y - WORLD_SIZE/2, member.x - WORLD_SIZE/2);
+                    member.x = WORLD_SIZE/2 + Math.cos(angle) * (WORLD_SIZE/2 - BORDER_SIZE - 10);
+                    member.y = WORLD_SIZE/2 + Math.sin(angle) * (WORLD_SIZE/3 - BORDER_SIZE - 10);
+                }
             }
             
-            handleBorders(member);
+            // Коллизии между существами
+            world.creatures.forEach(other => {
+                if(other !== member && distance(member, other) < member.size + other.size) {
+                    const angle = Math.atan2(member.y - other.y, member.x - other.x);
+                    member.x += Math.cos(angle) * 0.5;
+                    member.y += Math.sin(angle) * 0.5;
+                }
+            });
         });
     });
 }
@@ -319,45 +301,63 @@ function updateCreatures(deltaTime) {
             }
         }
 
-        let targets = [];
-        if(creature.attack || creature.drain) {
-            targets = world.creatures.filter(c => {
-                const type = c === player ? 'player' : 
-                           c.flee ? 'herbivore' :
-                           c.attack ? 'predator' : 'parasite';
-                return creature.targetType.includes(type) && distance(c, creature) < creature.vision;
-            });
+        let target = null;
+        if(creature.attack) {
+            target = world.creatures
+                .filter(c => c !== creature)
+                .sort((a,b) => distance(creature, a) - distance(creature, b))[0];
+        } 
+        else if(creature.flee) {
+            target = world.creatures.find(c => c.attack && distance(c, creature) < 200);
         }
-
-        const target = targets.reduce((closest, curr) => 
-            distance(curr, creature) < distance(closest, creature) ? curr : null, null);
+        else if(creature.drain) {
+            target = world.creatures
+                .filter(c => c !== creature)
+                .sort((a,b) => distance(creature, a) - distance(creature, b))[0];
+        }
 
         if(target) {
             const angle = Math.atan2(target.y - creature.y, target.x - creature.x);
             creature.direction = angle;
-            creature.x += Math.cos(angle) * creature.speed;
-            creature.y += Math.sin(angle) * creature.speed;
+            
+            if(creature.flee) {
+                creature.x -= Math.cos(angle) * creature.speed * 0.8;
+                creature.y -= Math.sin(angle) * creature.speed * 0.8;
+            } else {
+                creature.x += Math.cos(angle) * creature.speed;
+                creature.y += Math.sin(angle) * creature.speed;
+            }
         }
 
-        handleBorders(creature);
-        handleCollisions();
-        
-        if(target && distance(creature, target) < creature.size + target.size) {
-            if(creature.attack && !creature.cooldown) {
+        // Границы без отталкивания
+        if(!isInsideOval(creature.x, creature.y)) {
+            const angle = Math.atan2(creature.y - WORLD_SIZE/2, creature.x - WORLD_SIZE/2);
+            creature.x = WORLD_SIZE/2 + Math.cos(angle) * (WORLD_SIZE/2 - BORDER_SIZE - 10);
+            creature.y = WORLD_SIZE/2 + Math.sin(angle) * (WORLD_SIZE/3 - BORDER_SIZE - 10);
+        }
+
+        // Атака ближайшей цели
+        if(creature.attack && !creature.cooldown) {
+            const target = world.creatures
+                .filter(c => c !== creature && distance(c, creature) < creature.size + c.size)
+                [0];
+            if(target) {
                 target.health -= creature.attack;
                 creature.cooldown = true;
                 setTimeout(() => creature.cooldown = false, creature.attackCooldown);
+                createParticles(target.x, target.y, 10, '#ff0000');
             }
-            if(creature.drain) {
-                target.energy -= 0.5;
-                creature.health += 0.5;
-            }
+        }
+        
+        if(creature.drain && distance(creature, player) < 20) {
+            player.energy -= 0.5;
+            creature.health += 1;
         }
 
         world.resources = world.resources.filter(resource => {
             if(distance(resource, creature) < creature.size) {
                 if(resource.type === 'food') {
-                    creature.health = Math.min(100, creature.health + 3);
+                    creature.health = Math.min(100, creature.health + 5);
                     creature.consumedFood++;
                 }
                 return false;
@@ -390,8 +390,8 @@ function update(deltaTime) {
         
         if (!isInsideOval(player.x, player.y)) {
             const angle = Math.atan2(player.y - WORLD_SIZE/2, player.x - WORLD_SIZE/2);
-            player.x = WORLD_SIZE/2 + Math.cos(angle) * (WORLD_SIZE/2 - BORDER_SIZE);
-            player.y = WORLD_SIZE/2 + Math.sin(angle) * (WORLD_SIZE/3 - BORDER_SIZE);
+            player.x = WORLD_SIZE/2 + Math.cos(angle) * (WORLD_SIZE/2 - BORDER_SIZE - 10);
+            player.y = WORLD_SIZE/2 + Math.sin(angle) * (WORLD_SIZE/3 - BORDER_SIZE - 10);
         }
     }
     
@@ -434,19 +434,35 @@ function drawCreature(ctx, creature, x, y) {
     ctx.translate(x, y);
     ctx.rotate(creature.direction);
     
+    const sizeMod = Math.min(1 + creature.consumedFood * 0.1, 2);
     ctx.beginPath();
     ctx.ellipse(0, 0, 
-        creature.size * (1 + wave), 
-        creature.size * 0.8 * (1 - wave), 
+        creature.size * sizeMod * (1 + wave), 
+        creature.size * 0.8 * sizeMod * (1 - wave), 
         0, 0, Math.PI*2);
     ctx.fillStyle = creature.color;
     ctx.fill();
     
-    const eyeDist = creature.size * 0.6;
+    ctx.strokeStyle = '#ffffff22';
+    ctx.lineWidth = 2;
+    for(let i = -1; i <= 1; i += 0.5) {
+        ctx.beginPath();
+        ctx.ellipse(0, 0, 
+            creature.size * 0.9 * sizeMod * (1 + wave), 
+            creature.size * 0.7 * sizeMod * (1 - wave), 
+            i, 0, Math.PI);
+        ctx.stroke();
+    }
+    
+    const eyeDist = creature.size * 0.6 * sizeMod;
     [Math.PI/6, -Math.PI/6].forEach(offset => {
         ctx.beginPath();
         ctx.arc(eyeDist, 0, creature.size*0.2, 0, Math.PI*2);
         ctx.fillStyle = '#ffffff';
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(eyeDist + 2, -2, creature.size*0.1, 0, Math.PI*2);
+        ctx.fillStyle = '#000000';
         ctx.fill();
     });
     
