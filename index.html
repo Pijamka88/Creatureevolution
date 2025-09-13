@@ -1,651 +1,630 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Microbe Evolution</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>CreatureEvolution</title>
     <style>
-        body { 
-            margin: 0; 
-            overflow: hidden; 
-            touch-action: none; 
-            background: #0d1b2a; 
-            -webkit-tap-highlight-color: transparent;
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
-        #gameCanvas { 
-            position: absolute; 
-            image-rendering: pixelated;
-        }
-        .ui {
-            position: fixed; 
-            padding: 15px; 
-            background: #1b263bcc; 
-            border-radius: 10px; 
-            color: white; 
-            font-family: 'Arial', sans-serif; 
-            backdrop-filter: blur(5px);
-            box-shadow: 0 0 10px rgba(0,0,0,0.5);
-            user-select: none;
-        }
-        #stats { top: 20px; left: 20px; }
-        #abilities { bottom: 20px; right: 20px; text-align: right; }
-        button {
-            background: #415a77; 
-            color: white; 
-            border: none; 
-            padding: 10px 15px;
-            margin: 5px; 
-            border-radius: 5px; 
-            cursor: pointer; 
-            transition: 0.2s;
-            font-size: 14px;
-        }
-        button:hover { background: #778da9; }
-        #menu {
-            position: fixed; 
-            top: 50%; 
-            left: 50%; 
-            transform: translate(-50%, -50%);
-            text-align: center; 
-            padding: 30px; 
-            background: #1b263b; 
-            border-radius: 15px;
-        }
-        #menu h1 { 
-            margin: 0 0 20px; 
-            color: #e0e1dd; 
-            font-size: 2rem;
-        }
-        .hidden { display: none; }
-        #joystick {
-            position: fixed;
-            left: 30px;
-            bottom: 30px;
-            width: 100px;
-            height: 100px;
-            background: #ffffff22;
-            border-radius: 50%;
-            display: none;
-        }
-        #joystickKnob {
-            position: absolute;
-            width: 40px;
-            height: 40px;
-            background: #ffffff88;
-            border-radius: 50%;
-            left: 30px;
-            top: 30px;
-            transform: translate(-50%, -50%);
+        
+        body {
+            background: #000;
+            color: #fff;
+            font-family: Arial, sans-serif;
+            overflow: hidden;
             touch-action: none;
         }
-        @media (max-width: 600px) {
-            #joystick { display: block; }
-            #abilities button { padding: 8px 12px; font-size: 12px; }
+        
+        #gameCanvas {
+            display: block;
+            background: #000;
+            border: 2px solid #333;
+        }
+        
+        #ui {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 10;
+            font-size: 14px;
+        }
+        
+        #upgradePanel {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
+            border: 2px solid #fff;
+            padding: 20px;
+            display: none;
+            z-index: 20;
+        }
+        
+        .upgrade-btn {
+            display: block;
+            margin: 10px 0;
+            padding: 10px 20px;
+            background: #333;
+            color: #fff;
+            border: 1px solid #666;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .upgrade-btn:hover {
+            background: #555;
+        }
+        
+        #controls {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 10px;
+        }
+        
+        .control-btn {
+            width: 50px;
+            height: 50px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            color: #fff;
+            font-size: 18px;
+            cursor: pointer;
+            touch-action: manipulation;
+        }
+        
+        .control-btn:active {
+            background: rgba(255, 255, 255, 0.3);
         }
     </style>
 </head>
 <body>
-    <div id="menu">
-        <h1>Microbe Evolution</h1>
-        <button onclick="startGame()">Start Game</button>
-        <button onclick="showInstructions()">How to Play</button>
-    </div>
-    <canvas id="gameCanvas" class="hidden"></canvas>
-    <div id="stats" class="ui hidden">
-        <div>Health: <span id="health">100</span></div>
-        <div>Energy: <span id="energy">50</span></div>
-        <div>DNA: <span id="dna">0</span></div>
-    </div>
-    <div id="abilities" class="ui hidden">
-        <button onclick="evolve('speed')">Speed+ (10 DNA)</button>
-        <button onclick="evolve('health')">Health+ (15 DNA)</button>
-        <button onclick="evolve('vision')">Vision+ (20 DNA)</button>
-    </div>
-    <div id="joystick">
-        <div id="joystickKnob"></div>
-    </div>
-
-<script>
-const canvas = document.getElementById('gameCanvas');
-const ctx = canvas.getContext('2d');
-const WORLD_SIZE = 3000;
-const BORDER_SIZE = 100;
-let cameraX = 0, cameraY = 0;
-let gameActive = false;
-let joystickVector = { x: 0, y: 0 };
-let lastFoodSpawn = Date.now();
-
-function resizeCanvas() {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-}
-resizeCanvas();
-window.addEventListener('resize', resizeCanvas);
-
-const player = {
-    x: WORLD_SIZE/2, y: WORLD_SIZE/2, size: 20,
-    speed: 2, health: 100, energy: 50, dna: 0,
-    vision: 200, direction: 0,
-    consumedFood: 0,
-    evolutionStage: 0, evolutionProgress: 0,
-    animationPhase: 0, animationSpeed: 0.1
-};
-
-const world = {
-    resources: [],
-    creatures: [],
-    particles: [],
-    herds: new Map()
-};
-
-const EVOLUTION_STAGES = [
-    { size: 15, speed: 1.0, vision: 200 },
-    { size: 20, speed: 1.3, vision: 250 },
-    { size: 25, speed: 1.5, vision: 300 },
-    { size: 30, speed: 1.7, vision: 350 }
-];
-
-function isInsideOval(x, y) {
-    const centerX = WORLD_SIZE / 2;
-    const centerY = WORLD_SIZE / 2;
-    const radiusX = (WORLD_SIZE - BORDER_SIZE*2) / 2;
-    const radiusY = (WORLD_SIZE - BORDER_SIZE*2) / 3;
-    return ((x - centerX)**2)/(radiusX**2) + ((y - centerY)**2)/(radiusY**2) <= 1;
-}
-
-function createCreature(type, x, y) {
-    const base = {
-        x, y, 
-        size: 15, speed: 1.0, vision: 200,
-        health: 100, direction: 0,
-        attack: 0, lastAttack: 0, cooldown: false,
-        consumedFood: 0,
-        evolutionStage: 0, evolutionProgress: 0,
-        animationPhase: 0, 
-        animationSpeed: type === 'herbivore' ? 0.08 : 0.1
-    };
+    <canvas id="gameCanvas"></canvas>
     
-    switch(type) {
-        case 'predator':
-            return {...base, 
-                color: '#ff4444', 
-                speed: 1.2,
-                attack: 5,
-                attackCooldown: 2000
-            };
-        case 'herbivore':
-            return {...base,
-                color: '#44ff44',
-                speed: 1.0,
-                flee: true,
-                herd: null,
-                wanderDirection: Math.random() * Math.PI * 2
-            };
-        case 'parasite':
-            return {...base,
-                color: '#aa44ff',
-                size: 10,
-                speed: 0.8,
-                drain: 2
-            };
-    }
-}
+    <div id="ui">
+        <div>Level: <span id="level">1</span></div>
+        <div>XP: <span id="xp">0</span>/<span id="xpToNext">10</span></div>
+        <div>Size: <span id="size">10</span></div>
+        <div>Speed: <span id="speed">2</span></div>
+    </div>
+    
+    <div id="upgradePanel">
+        <h3>Level Up! Choose an upgrade:</h3>
+        <button class="upgrade-btn" onclick="selectUpgrade('size')">Increase Size (+20%)</button>
+        <button class="upgrade-btn" onclick="selectUpgrade('speed')">Increase Speed (+15%)</button>
+        <button class="upgrade-btn" onclick="selectUpgrade('vision')">Increase Vision (+30%)</button>
+        <button class="upgrade-btn" onclick="selectUpgrade('efficiency')">Better Digestion (+25%)</button>
+    </div>
+    
+    <div id="controls">
+        <button class="control-btn" id="upBtn">↑</button>
+        <button class="control-btn" id="downBtn">↓</button>
+        <button class="control-btn" id="leftBtn">←</button>
+        <button class="control-btn" id="rightBtn">→</button>
+    </div>
 
-function generateWorld() {
-    world.resources = [];
-    world.creatures = [];
-    world.herds.clear();
-    
-    for(let i = 0; i < 50; i++) {
-        let x, y;
-        do {
-            x = Math.random() * WORLD_SIZE;
-            y = Math.random() * WORLD_SIZE;
-        } while (!isInsideOval(x, y));
-        world.resources.push({
-            x, y,
-            type: 'food',
-            value: 10
-        });
-    }
-    
-    for(let i = 0; i < 5; i++) {
-        let centerX, centerY;
-        do {
-            centerX = Math.random() * WORLD_SIZE;
-            centerY = Math.random() * WORLD_SIZE;
-        } while (!isInsideOval(centerX, centerY));
-        
-        const herd = { centerX, centerY, members: [] };
-        world.herds.set(i, herd);
-        
-        for(let j = 0; j < 5; j++) {
-            const herbivore = createCreature('herbivore', 
-                centerX + (Math.random()-0.5)*200,
-                centerY + (Math.random()-0.5)*200
-            );
-            herbivore.herd = i;
-            herd.members.push(herbivore);
-            world.creatures.push(herbivore);
+    <script>
+        // Game configuration
+        const CONFIG = {
+            WORLD_WIDTH: 2000,
+            WORLD_HEIGHT: 2000,
+            VIEWPORT_WIDTH: window.innerWidth,
+            VIEWPORT_HEIGHT: window.innerHeight,
+            FOOD_COUNT: 200,
+            CREATURE_COUNT: 15,
+            FOOD_SPAWN_RATE: 0.3,
+            CREATURE_SPAWN_RATE: 0.05
+        };
+
+        // Game variables
+        let canvas, ctx;
+        let camera = { x: 0, y: 0 };
+        let player;
+        let creatures = [];
+        let food = [];
+        let gameRunning = true;
+        let keys = {};
+
+        // Creature types
+        const CREATURE_TYPES = {
+            PLAYER: { color: '#00ff00', ai: false },
+            PREDATOR: { color: '#ff0000', ai: 'aggressive' },
+            HERBIVORE: { color: '#ffff00', ai: 'passive' },
+            PARASITE: { color: '#ff00ff', ai: 'sneaky' }
+        };
+
+        // Food types
+        const FOOD_TYPES = [
+            { color: '#00aa00', value: 1, size: 3 },
+            { color: '#0066aa', value: 2, size: 4 },
+            { color: '#aa6600', value: 3, size: 5 }
+        ];
+
+        class Creature {
+            constructor(x, y, type = 'PLAYER') {
+                this.x = x;
+                this.y = y;
+                this.type = type;
+                this.color = CREATURE_TYPES[type].color;
+                this.size = 10;
+                this.level = 1;
+                this.xp = 0;
+                this.xpToNext = 10;
+                this.speed = 2;
+                this.vision = 100;
+                this.efficiency = 1;
+                this.vx = 0;
+                this.vy = 0;
+                this.target = null;
+                this.aiTimer = 0;
+                this.health = 100;
+                this.maxHealth = 100;
+            }
+
+            update() {
+                if (this.type !== 'PLAYER') {
+                    this.updateAI();
+                }
+
+                // Apply movement
+                this.x += this.vx;
+                this.y += this.vy;
+
+                // World boundaries
+                this.x = Math.max(this.size, Math.min(CONFIG.WORLD_WIDTH - this.size, this.x));
+                this.y = Math.max(this.size, Math.min(CONFIG.WORLD_HEIGHT - this.size, this.y));
+
+                // Friction
+                this.vx *= 0.95;
+                this.vy *= 0.95;
+            }
+
+            updateAI() {
+                this.aiTimer++;
+                
+                if (this.aiTimer % 30 === 0) { // Update AI every 30 frames
+                    this.findTarget();
+                }
+
+                if (this.target) {
+                    this.moveTowardsTarget();
+                }
+            }
+
+            findTarget() {
+                let bestTarget = null;
+                let bestDistance = Infinity;
+
+                if (this.type === 'PREDATOR') {
+                    // Hunt smaller creatures
+                    creatures.forEach(creature => {
+                        if (creature !== this && creature.size < this.size * 0.8) {
+                            const dist = this.distanceTo(creature);
+                            if (dist < this.vision && dist < bestDistance) {
+                                bestTarget = creature;
+                                bestDistance = dist;
+                            }
+                        }
+                    });
+                } else if (this.type === 'HERBIVORE') {
+                    // Find food, avoid predators
+                    food.forEach(f => {
+                        const dist = this.distanceTo(f);
+                        if (dist < this.vision && dist < bestDistance) {
+                            bestTarget = f;
+                            bestDistance = dist;
+                        }
+                    });
+
+                    // Check for nearby predators
+                    creatures.forEach(creature => {
+                        if (creature.type === 'PREDATOR' && creature.size > this.size * 0.8) {
+                            const dist = this.distanceTo(creature);
+                            if (dist < this.vision * 0.7) {
+                                // Run away from predator
+                                const angle = Math.atan2(this.y - creature.y, this.x - creature.x);
+                                this.vx += Math.cos(angle) * this.speed * 0.5;
+                                this.vy += Math.sin(angle) * this.speed * 0.5;
+                                return;
+                            }
+                        }
+                    });
+                } else if (this.type === 'PARASITE') {
+                    // Follow larger creatures to steal their food
+                    creatures.forEach(creature => {
+                        if (creature !== this && creature.size > this.size) {
+                            const dist = this.distanceTo(creature);
+                            if (dist < this.vision && dist < bestDistance) {
+                                bestTarget = creature;
+                                bestDistance = dist;
+                            }
+                        }
+                    });
+                }
+
+                this.target = bestTarget;
+            }
+
+            moveTowardsTarget() {
+                if (!this.target) return;
+
+                const dx = this.target.x - this.x;
+                const dy = this.target.y - this.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+
+                if (distance > 0) {
+                    const moveSpeed = this.type === 'PARASITE' ? this.speed * 0.7 : this.speed;
+                    this.vx += (dx / distance) * moveSpeed * 0.1;
+                    this.vy += (dy / distance) * moveSpeed * 0.1;
+                }
+            }
+
+            distanceTo(other) {
+                const dx = this.x - other.x;
+                const dy = this.y - other.y;
+                return Math.sqrt(dx * dx + dy * dy);
+            }
+
+            move(dx, dy) {
+                this.vx += dx * this.speed * 0.2;
+                this.vy += dy * this.speed * 0.2;
+            }
+
+            eat(foodItem) {
+                const xpGain = Math.floor(foodItem.value * this.efficiency);
+                this.xp += xpGain;
+                
+                if (this.xp >= this.xpToNext) {
+                    this.levelUp();
+                }
+                
+                // Grow slightly
+                this.size += 0.5;
+                this.updateUI();
+            }
+
+            levelUp() {
+                this.level++;
+                this.xp = 0;
+                this.xpToNext = Math.floor(this.xpToNext * 1.5);
+                
+                if (this.type === 'PLAYER') {
+                    this.showUpgradePanel();
+                } else {
+                    // AI auto-upgrade
+                    this.autoUpgrade();
+                }
+            }
+
+            autoUpgrade() {
+                const upgrades = ['size', 'speed', 'vision', 'efficiency'];
+                const randomUpgrade = upgrades[Math.floor(Math.random() * upgrades.length)];
+                this.applyUpgrade(randomUpgrade);
+            }
+
+            applyUpgrade(type) {
+                switch(type) {
+                    case 'size':
+                        this.size *= 1.2;
+                        this.maxHealth *= 1.1;
+                        this.health = this.maxHealth;
+                        break;
+                    case 'speed':
+                        this.speed *= 1.15;
+                        break;
+                    case 'vision':
+                        this.vision *= 1.3;
+                        break;
+                    case 'efficiency':
+                        this.efficiency *= 1.25;
+                        break;
+                }
+                this.updateUI();
+            }
+
+            showUpgradePanel() {
+                document.getElementById('upgradePanel').style.display = 'block';
+                gameRunning = false;
+            }
+
+            updateUI() {
+                if (this.type === 'PLAYER') {
+                    document.getElementById('level').textContent = this.level;
+                    document.getElementById('xp').textContent = this.xp;
+                    document.getElementById('xpToNext').textContent = this.xpToNext;
+                    document.getElementById('size').textContent = Math.floor(this.size);
+                    document.getElementById('speed').textContent = this.speed.toFixed(1);
+                }
+            }
+
+            draw() {
+                const screenX = this.x - camera.x;
+                const screenY = this.y - camera.y;
+                
+                // Draw creature
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(screenX, screenY, this.size, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Draw outline
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+                
+                // Draw level for player
+                if (this.type === 'PLAYER') {
+                    ctx.fillStyle = '#fff';
+                    ctx.font = '12px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(this.level, screenX, screenY + 4);
+                }
+            }
         }
-    }
-    
-    for(let i = 0; i < 10; i++) {
-        let x, y;
-        do {
-            x = Math.random() * WORLD_SIZE;
-            y = Math.random() * WORLD_SIZE;
-        } while (!isInsideOval(x, y));
-        world.creatures.push(createCreature('predator', x, y));
-    }
-    
-    for(let i = 0; i < 5; i++) {
-        let x, y;
-        do {
-            x = Math.random() * WORLD_SIZE;
-            y = Math.random() * WORLD_SIZE;
-        } while (!isInsideOval(x, y));
-        world.creatures.push(createCreature('parasite', x, y));
-    }
-}
 
-function updateHerds() {
-    world.herds.forEach(herd => {
-        let totalX = 0, totalY = 0;
-        herd.members.forEach(m => {
-            totalX += m.x;
-            totalY += m.y;
-        });
-        herd.centerX = totalX / herd.members.length;
-        herd.centerY = totalY / herd.members.length;
-        
-        herd.members.forEach(member => {
-            if(!member.flee) return;
+        class Food {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                const type = FOOD_TYPES[Math.floor(Math.random() * FOOD_TYPES.length)];
+                this.color = type.color;
+                this.value = type.value;
+                this.size = type.size;
+            }
+
+            draw() {
+                const screenX = this.x - camera.x;
+                const screenY = this.y - camera.y;
+                
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(screenX, screenY, this.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        function init() {
+            canvas = document.getElementById('gameCanvas');
+            ctx = canvas.getContext('2d');
             
-            member.wanderDirection += (Math.random() - 0.5) * 0.5;
-            member.x += Math.cos(member.wanderDirection) * member.speed * 0.5;
-            member.y += Math.sin(member.wanderDirection) * member.speed * 0.5;
-
-            const dx = herd.centerX - member.x;
-            const dy = herd.centerY - member.y;
-            const dist = Math.sqrt(dx*dx + dy*dy);
-            if(dist > 100) {
-                member.x += (dx/dist) * member.speed * 0.3;
-                member.y += (dy/dist) * member.speed * 0.3;
+            // Set canvas size
+            canvas.width = CONFIG.VIEWPORT_WIDTH;
+            canvas.height = CONFIG.VIEWPORT_HEIGHT;
+            
+            // Create player
+            player = new Creature(CONFIG.WORLD_WIDTH / 2, CONFIG.WORLD_HEIGHT / 2, 'PLAYER');
+            creatures.push(player);
+            
+            // Create other creatures
+            for (let i = 0; i < CONFIG.CREATURE_COUNT; i++) {
+                const types = ['PREDATOR', 'HERBIVORE', 'PARASITE'];
+                const type = types[Math.floor(Math.random() * types.length)];
+                const x = Math.random() * CONFIG.WORLD_WIDTH;
+                const y = Math.random() * CONFIG.WORLD_HEIGHT;
+                
+                // Ensure creatures spawn far from each other
+                let validPosition = false;
+                let attempts = 0;
+                while (!validPosition && attempts < 50) {
+                    validPosition = true;
+                    for (let creature of creatures) {
+                        if (Math.sqrt((x - creature.x) ** 2 + (y - creature.y) ** 2) < 150) {
+                            validPosition = false;
+                            break;
+                        }
+                    }
+                    attempts++;
+                }
+                
+                if (validPosition) {
+                    creatures.push(new Creature(x, y, type));
+                }
             }
-
-            if (!isInsideOval(member.x, member.y)) {
-                const angle = Math.atan2(member.y - WORLD_SIZE/2, member.x - WORLD_SIZE/2);
-                member.x = WORLD_SIZE/2 + Math.cos(angle) * (WORLD_SIZE/2 - BORDER_SIZE - 10);
-                member.y = WORLD_SIZE/2 + Math.sin(angle) * (WORLD_SIZE/3 - BORDER_SIZE - 10);
+            
+            // Create initial food
+            for (let i = 0; i < CONFIG.FOOD_COUNT; i++) {
+                spawnFood();
             }
+            
+            setupControls();
+            gameLoop();
+        }
 
-            world.creatures.forEach(other => {
-                if(other !== member && distance(member, other) < member.size + other.size) {
-                    const angle = Math.atan2(member.y - other.y, member.x - other.x);
-                    member.x += Math.cos(angle) * 0.5;
-                    member.y += Math.sin(angle) * 0.5;
+        function spawnFood() {
+            const x = Math.random() * CONFIG.WORLD_WIDTH;
+            const y = Math.random() * CONFIG.WORLD_HEIGHT;
+            food.push(new Food(x, y));
+        }
+
+        function spawnCreature() {
+            const types = ['PREDATOR', 'HERBIVORE', 'PARASITE'];
+            const type = types[Math.floor(Math.random() * types.length)];
+            const x = Math.random() * CONFIG.WORLD_WIDTH;
+            const y = Math.random() * CONFIG.WORLD_HEIGHT;
+            creatures.push(new Creature(x, y, type));
+        }
+
+        function setupControls() {
+            // Keyboard controls
+            document.addEventListener('keydown', (e) => {
+                keys[e.key] = true;
+            });
+            
+            document.addEventListener('keyup', (e) => {
+                keys[e.key] = false;
+            });
+            
+            // Touch controls
+            document.getElementById('upBtn').addEventListener('touchstart', () => keys['ArrowUp'] = true);
+            document.getElementById('upBtn').addEventListener('touchend', () => keys['ArrowUp'] = false);
+            document.getElementById('downBtn').addEventListener('touchstart', () => keys['ArrowDown'] = true);
+            document.getElementById('downBtn').addEventListener('touchend', () => keys['ArrowDown'] = false);
+            document.getElementById('leftBtn').addEventListener('touchstart', () => keys['ArrowLeft'] = true);
+            document.getElementById('leftBtn').addEventListener('touchend', () => keys['ArrowLeft'] = false);
+            document.getElementById('rightBtn').addEventListener('touchstart', () => keys['ArrowRight'] = true);
+            document.getElementById('rightBtn').addEventListener('touchend', () => keys['ArrowRight'] = false);
+            
+            // Prevent context menu on long press
+            document.addEventListener('contextmenu', (e) => e.preventDefault());
+        }
+
+        function handleInput() {
+            if (!gameRunning) return;
+            
+            if (keys['ArrowUp'] || keys['w'] || keys['W']) {
+                player.move(0, -1);
+            }
+            if (keys['ArrowDown'] || keys['s'] || keys['S']) {
+                player.move(0, 1);
+            }
+            if (keys['ArrowLeft'] || keys['a'] || keys['A']) {
+                player.move(-1, 0);
+            }
+            if (keys['ArrowRight'] || keys['d'] || keys['D']) {
+                player.move(1, 0);
+            }
+        }
+
+        function update() {
+            if (!gameRunning) return;
+            
+            handleInput();
+            
+            // Update creatures
+            creatures.forEach(creature => creature.update());
+            
+            // Check food consumption
+            food = food.filter(f => {
+                for (let creature of creatures) {
+                    if (creature.distanceTo(f) < creature.size + f.size) {
+                        creature.eat(f);
+                        return false;
+                    }
+                }
+                return true;
+            });
+            
+            // Check creature interactions
+            for (let i = 0; i < creatures.length; i++) {
+                for (let j = i + 1; j < creatures.length; j++) {
+                    const c1 = creatures[i];
+                    const c2 = creatures[j];
+                    const distance = c1.distanceTo(c2);
+                    
+                    if (distance < c1.size + c2.size) {
+                        // Collision detected
+                        if (c1.size > c2.size * 1.2) {
+                            // c1 eats c2
+                            if (c1.type === 'PREDATOR' || (c1.type === 'PLAYER' && c2.type !== 'PLAYER')) {
+                                c1.eat({ value: Math.floor(c2.size / 2), size: c2.size });
+                                creatures.splice(j, 1);
+                                j--;
+                            }
+                        } else if (c2.size > c1.size * 1.2) {
+                            // c2 eats c1
+                            if (c2.type === 'PREDATOR' || (c2.type === 'PLAYER' && c1.type !== 'PLAYER')) {
+                                c2.eat({ value: Math.floor(c1.size / 2), size: c1.size });
+                                creatures.splice(i, 1);
+                                i--;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // Spawn new food and creatures occasionally
+            if (Math.random() < CONFIG.FOOD_SPAWN_RATE / 60 && food.length < CONFIG.FOOD_COUNT * 2) {
+                spawnFood();
+            }
+            
+            if (Math.random() < CONFIG.CREATURE_SPAWN_RATE / 60 && creatures.length < CONFIG.CREATURE_COUNT * 2) {
+                spawnCreature();
+            }
+            
+            // Update camera to follow player
+            camera.x = player.x - CONFIG.VIEWPORT_WIDTH / 2;
+            camera.y = player.y - CONFIG.VIEWPORT_HEIGHT / 2;
+            
+            // Keep camera within world bounds
+            camera.x = Math.max(0, Math.min(CONFIG.WORLD_WIDTH - CONFIG.VIEWPORT_WIDTH, camera.x));
+            camera.y = Math.max(0, Math.min(CONFIG.WORLD_HEIGHT - CONFIG.VIEWPORT_HEIGHT, camera.y));
+        }
+
+        function draw() {
+            // Clear canvas
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw world border
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(-camera.x, -camera.y, CONFIG.WORLD_WIDTH, CONFIG.WORLD_HEIGHT);
+            
+            // Draw grid (Petri dish pattern)
+            ctx.strokeStyle = '#111';
+            ctx.lineWidth = 1;
+            const gridSize = 50;
+            for (let x = -camera.x % gridSize; x < canvas.width; x += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, canvas.height);
+                ctx.stroke();
+            }
+            for (let y = -camera.y % gridSize; y < canvas.height; y += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(canvas.width, y);
+                ctx.stroke();
+            }
+            
+            // Draw food
+            food.forEach(f => {
+                if (f.x > camera.x - 50 && f.x < camera.x + CONFIG.VIEWPORT_WIDTH + 50 &&
+                    f.y > camera.y - 50 && f.y < camera.y + CONFIG.VIEWPORT_HEIGHT + 50) {
+                    f.draw();
                 }
             });
-        });
-    });
-}
-
-function updateCreatures(deltaTime) {
-    if(Date.now() - lastFoodSpawn > 2000) {
-        spawnRandomFood(3);
-        lastFoodSpawn = Date.now();
-    }
-
-    world.creatures.forEach(creature => {
-        creature.animationPhase += creature.animationSpeed;
-        if(creature.animationPhase >= Math.PI*4) creature.animationPhase -= Math.PI*4;
-
-        if(creature.consumedFood >= 10 && creature.evolutionStage < EVOLUTION_STAGES.length - 1) {
-            creature.evolutionProgress++;
-            if(creature.evolutionProgress >= 100) {
-                creature.evolutionStage++;
-                const stage = EVOLUTION_STAGES[creature.evolutionStage];
-                creature.size = stage.size;
-                creature.speed = stage.speed;
-                creature.vision = stage.vision;
-                creature.evolutionProgress = 0;
-                createParticles(creature.x, creature.y, 50, '#ffffff');
-            }
-        }
-
-        let target = null;
-        if(creature.attack || creature.drain) {
-            target = world.creatures
-                .filter(c => c !== creature && (!creature.drain || c !== player))
-                .sort((a,b) => distance(creature, a) - distance(creature, b))[0];
             
-            if(target && distance(creature, target) < creature.vision) {
-                const angle = Math.atan2(target.y - creature.y, target.x - creature.x);
-                creature.direction = angle;
-                creature.x += Math.cos(angle) * creature.speed * 0.7;
-                creature.y += Math.sin(angle) * creature.speed * 0.7;
-            }
-        }
-
-        if (!isInsideOval(creature.x, creature.y)) {
-            const angle = Math.atan2(creature.y - WORLD_SIZE/2, creature.x - WORLD_SIZE/2);
-            creature.x = WORLD_SIZE/2 + Math.cos(angle) * (WORLD_SIZE/2 - BORDER_SIZE - 10);
-            creature.y = WORLD_SIZE/2 + Math.sin(angle) * (WORLD_SIZE/3 - BORDER_SIZE - 10);
-        }
-
-        if(creature.attack && !creature.cooldown) {
-            const target = world.creatures
-                .filter(c => c !== creature && distance(c, creature) < creature.size + c.size)
-                [0];
-            if(target) {
-                target.health -= creature.attack;
-                creature.cooldown = true;
-                setTimeout(() => creature.cooldown = false, creature.attackCooldown);
-                createParticles(target.x, target.y, 10, '#ff0000');
-            }
-        }
-        
-        if(creature.drain && distance(creature, player) < 20) {
-            player.energy -= 0.5;
-            creature.health += 1;
-        }
-
-        world.resources = world.resources.filter(resource => {
-            if(distance(resource, creature) < creature.size) {
-                if(resource.type === 'food') {
-                    creature.health = Math.min(100, creature.health + 5);
-                    creature.consumedFood++;
+            // Draw creatures
+            creatures.forEach(creature => {
+                if (creature.x > camera.x - 50 && creature.x < camera.x + CONFIG.VIEWPORT_WIDTH + 50 &&
+                    creature.y > camera.y - 50 && creature.y < camera.y + CONFIG.VIEWPORT_HEIGHT + 50) {
+                    creature.draw();
                 }
-                return false;
-            }
-            return true;
-        });
-    });
-}
-
-function spawnRandomFood(amount) {
-    for(let i = 0; i < amount; i++) {
-        let x, y;
-        do {
-            x = Math.random() * WORLD_SIZE;
-            y = Math.random() * WORLD_SIZE;
-        } while (!isInsideOval(x, y));
-        
-        world.resources.push({
-            x, y,
-            type: 'food',
-            value: 10
-        });
-    }
-}
-
-function createParticles(x, y, count, color) {
-    for(let i = 0; i < count; i++) {
-        world.particles.push({
-            x, y,
-            vx: (Math.random()-0.5)*4,
-            vy: (Math.random()-0.5)*4,
-            life: 1,
-            color
-        });
-    }
-}
-
-function update(deltaTime) {
-    if (!gameActive) return;
-
-    const speed = player.speed;
-    if(joystickVector.x !== 0 || joystickVector.y !== 0) {
-        player.x += joystickVector.x * speed;
-        player.y += joystickVector.y * speed;
-        player.direction = Math.atan2(joystickVector.y, joystickVector.x);
-        
-        if (!isInsideOval(player.x, player.y)) {
-            const angle = Math.atan2(player.y - WORLD_SIZE/2, player.x - WORLD_SIZE/2);
-            player.x = WORLD_SIZE/2 + Math.cos(angle) * (WORLD_SIZE/2 - BORDER_SIZE - 10);
-            player.y = WORLD_SIZE/2 + Math.sin(angle) * (WORLD_SIZE/3 - BORDER_SIZE - 10);
+            });
         }
-    }
-    
-    cameraX = player.x - canvas.width/2;
-    cameraY = player.y - canvas.height/2;
 
-    world.resources = world.resources.filter(resource => {
-        if(distance(resource, player) < player.size) {
-            createParticles(resource.x, resource.y, 5, '#00ff00');
-            if(resource.type === 'food') {
-                player.health = Math.min(100, player.health + 5);
-                player.consumedFood++;
-            } else {
-                player.dna += 1;
-            }
-            return false;
+        function gameLoop() {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
         }
-        return true;
-    });
 
-    updateHerds();
-    updateCreatures(deltaTime);
-    
-    world.particles.forEach(p => {
-        p.x += p.vx;
-        p.y += p.vy;
-        p.life -= 0.02;
-    });
-    world.particles = world.particles.filter(p => p.life > 0);
+        function selectUpgrade(type) {
+            player.applyUpgrade(type);
+            document.getElementById('upgradePanel').style.display = 'none';
+            gameRunning = true;
+        }
 
-    document.getElementById('health').textContent = Math.round(player.health);
-    document.getElementById('energy').textContent = Math.round(player.energy);
-    document.getElementById('dna').textContent = player.dna;
-}
-
-function drawCreature(ctx, creature, x, y) {
-    const wave = Math.sin(creature.animationPhase) * 0.3;
-    
-    ctx.save();
-    ctx.translate(x, y);
-    ctx.rotate(creature.direction);
-    
-    const sizeMod = Math.min(1 + creature.consumedFood * 0.1, 2);
-    ctx.beginPath();
-    ctx.ellipse(0, 0, 
-        creature.size * sizeMod * (1 + Math.abs(wave)), 
-        creature.size * 0.8 * sizeMod * (1 - Math.abs(wave/2)), 
-        0, 0, Math.PI*2);
-    ctx.fillStyle = creature.color;
-    ctx.fill();
-    
-    if(creature.color === '#44ff44') {
-        const eyeY = creature.size * 0.3;
-        [-1, 1].forEach(side => {
-            ctx.beginPath();
-            ctx.arc(creature.size * 0.4 * side, -eyeY, creature.size*0.15, 0, Math.PI*2);
-            ctx.fillStyle = '#ffffff';
-            ctx.fill();
-            ctx.beginPath();
-            ctx.arc(creature.size * 0.4 * side + 2, -eyeY - 2, creature.size*0.07, 0, Math.PI*2);
-            ctx.fillStyle = '#000000';
-            ctx.fill();
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            CONFIG.VIEWPORT_WIDTH = window.innerWidth;
+            CONFIG.VIEWPORT_HEIGHT = window.innerHeight;
+            canvas.width = CONFIG.VIEWPORT_WIDTH;
+            canvas.height = CONFIG.VIEWPORT_HEIGHT;
         });
-    } else {
-        const eyeDist = creature.size * 0.6 * sizeMod;
-        [Math.PI/6, -Math.PI/6].forEach(offset => {
-            ctx.beginPath();
-            ctx.arc(eyeDist, 0, creature.size*0.2, 0, Math.PI*2);
-            ctx.fillStyle = '#ffffff';
-            ctx.fill();
-            ctx.beginPath();
-            ctx.arc(eyeDist + 2, -2, creature.size*0.1, 0, Math.PI*2);
-            ctx.fillStyle = '#000000';
-            ctx.fill();
-        });
-    }
-    
-    ctx.restore();
 
-    if(creature.evolutionStage > 0) {
-        ctx.fillStyle = '#ffffff';
-        ctx.font = '12px Arial';
-        ctx.fillText(`Lv. ${creature.evolutionStage + 1}`, x + creature.size, y);
-    }
-}
-
-function draw() {
-    ctx.fillStyle = '#0d1b2a';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    ctx.strokeStyle = '#ffffff44';
-    ctx.lineWidth = 5;
-    ctx.beginPath();
-    ctx.ellipse(
-        WORLD_SIZE/2 - cameraX,
-        WORLD_SIZE/2 - cameraY,
-        WORLD_SIZE/2 - BORDER_SIZE,
-        WORLD_SIZE/3 - BORDER_SIZE,
-        0, 0, Math.PI*2
-    );
-    ctx.stroke();
-
-    world.resources.forEach(resource => {
-        ctx.fillStyle = '#00ff00';
-        ctx.beginPath();
-        ctx.arc(resource.x - cameraX, resource.y - cameraY, 5, 0, Math.PI*2);
-        ctx.fill();
-    });
-
-    world.creatures.concat([player]).forEach(creature => {
-        const screenX = creature.x - cameraX;
-        const screenY = creature.y - cameraY;
-        drawCreature(ctx, creature, screenX, screenY);
-    });
-
-    world.particles.forEach(p => {
-        ctx.fillStyle = p.color;
-        ctx.globalAlpha = p.life;
-        ctx.beginPath();
-        ctx.arc(p.x - cameraX, p.y - cameraY, 2, 0, Math.PI*2);
-        ctx.fill();
-    });
-    ctx.globalAlpha = 1;
-}
-
-function distance(a, b) {
-    return Math.sqrt((a.x - b.x)**2 + (a.y - b.y)**2);
-}
-
-const joystick = document.getElementById('joystick');
-const joystickKnob = document.getElementById('joystickKnob');
-let joystickActive = false;
-
-joystick.addEventListener('touchstart', (e) => {
-    e.preventDefault();
-    joystickActive = true;
-    updateJoystick(e.touches[0]);
-});
-
-joystick.addEventListener('touchmove', (e) => {
-    if(joystickActive) updateJoystick(e.touches[0]);
-});
-
-joystick.addEventListener('touchend', () => {
-    joystickActive = false;
-    joystickVector = { x: 0, y: 0 };
-    joystickKnob.style.transform = 'translate(-50%, -50%)';
-});
-
-function updateJoystick(touch) {
-    const rect = joystick.getBoundingClientRect();
-    const centerX = rect.left + rect.width/2;
-    const centerY = rect.top + rect.height/2;
-    
-    const dx = touch.clientX - centerX;
-    const dy = touch.clientY - centerY;
-    const dist = Math.sqrt(dx*dx + dy*dy);
-    const maxDist = rect.width/2;
-    
-    if(dist > maxDist) {
-        joystickVector = { x: dx/dist, y: dy/dist };
-        joystickKnob.style.transform = `translate(${dx/maxDist*20 - 50}%, ${dy/maxDist*20 - 50}%)`;
-    } else {
-        joystickVector = { x: dx/maxDist, y: dy/maxDist };
-        joystickKnob.style.transform = `translate(${dx/maxDist*50 - 50}%, ${dy/maxDist*50 - 50}%)`;
-    }
-}
-
-function evolve(type) {
-    const upgrades = {
-        speed: { cost: 10, effect: p => p.speed += 0.5 },
-        health: { cost: 15, effect: p => p.health += 20 },
-        vision: { cost: 20, effect: p => p.vision += 50 }
-    };
-    const upgrade = upgrades[type];
-    if(player.dna >= upgrade.cost) {
-        upgrade.effect(player);
-        player.dna -= upgrade.cost;
-    }
-}
-
-function startGame() {
-    document.getElementById('menu').classList.add('hidden');
-    document.getElementById('gameCanvas').classList.remove('hidden');
-    document.getElementById('stats').classList.remove('hidden');
-    document.getElementById('abilities').classList.remove('hidden');
-    
-    player.health = 100;
-    player.energy = 50;
-    player.dna = 0;
-    player.x = WORLD_SIZE/2;
-    player.y = WORLD_SIZE/2;
-    
-    generateWorld();
-    gameActive = true;
-    lastTime = Date.now();
-    requestAnimationFrame(gameLoop);
-}
-
-function showInstructions() {
-    alert(`How to Play:
-- Move using the joystick (mobile) or click/tap (desktop)
-- Collect green food for health
-- Collect blue DNA for upgrades
-- Avoid red predators
-- Use DNA to evolve in the bottom right menu
-- Survive as long as possible!`);
-}
-
-let lastTime = Date.now();
-function gameLoop() {
-    if (!gameActive) return;
-    
-    const currentTime = Date.now();
-    const deltaTime = currentTime - lastTime;
-    lastTime = currentTime;
-    
-    update(deltaTime);
-    draw();
-    
-    if (player.health > 0) {
-        requestAnimationFrame(gameLoop);
-    } else {
-        endGame();
-    }
-}
-
-function endGame() {
-    gameActive = false;
-    alert('Game Over! Your DNA: ' + player.dna);
-    document.getElementById('menu').classList.remove('hidden');
-    document.getElementById('gameCanvas').classList.add('hidden');
-    document.getElementById('stats').classList.add('hidden');
-    document.getElementById('abilities').classList.add('hidden');
-}
-
-window.addEventListener('load', () => {
-    resizeCanvas();
-    document.getElementById('menu').classList.remove('hidden');
-});
-
-window.Telegram.WebApp.ready();
-</script>
+        // Initialize game when page loads
+        window.addEventListener('load', init);
+    </script>
 </body>
 </html>
