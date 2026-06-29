@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Поиск товара с минимальной ценой — Ozon vs WB</title>
+    <title>Сравнение цен Ozon vs Wildberries</title>
     <style>
         :root {
             --ozon: #005bff;
@@ -22,32 +22,17 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
-            font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
             background: var(--bg);
             color: var(--text);
             min-height: 100vh;
             line-height: 1.5;
         }
 
-        .container {
-            max-width: 1100px;
-            margin: 0 auto;
-            padding: 1.5rem;
-        }
+        .container { max-width: 1100px; margin: 0 auto; padding: 1.5rem; }
 
-        /* ========== ШАПКА ========== */
-        .header {
-            text-align: center;
-            margin-bottom: 1.5rem;
-        }
-        .header h1 {
-            font-size: 2rem;
-            font-weight: 700;
-            background: linear-gradient(135deg, #6366f1, #8b5cf6);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
+        .header { text-align: center; margin-bottom: 1.5rem; }
+        .header h1 { font-size: 2rem; font-weight: 700; background: linear-gradient(135deg, #6366f1, #8b5cf6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
         .header p { color: var(--subtext); font-size: 0.95rem; margin-top: 0.25rem; }
 
         .warning-banner {
@@ -58,487 +43,138 @@
             border-radius: 12px;
             margin-bottom: 1rem;
             font-size: 0.85rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
         }
 
-        /* ========== ПОИСК ========== */
-        .search-section {
-            background: var(--card);
-            border-radius: 20px;
-            padding: 1.5rem;
-            box-shadow: 0 8px 30px rgba(0,0,0,0.05);
-            margin-bottom: 1.5rem;
-        }
+        .search-section { background: var(--card); border-radius: 20px; padding: 1.5rem; box-shadow: 0 8px 30px rgba(0,0,0,0.05); margin-bottom: 1.5rem; }
 
-        .search-row {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-            flex-wrap: wrap;
-        }
+        .search-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
 
-        .search-input {
-            flex: 1;
-            min-width: 220px;
-            padding: 0.85rem 1.2rem;
-            font-size: 1rem;
-            border: 2px solid #e2e8f0;
-            border-radius: 14px;
-            outline: none;
-            background: #f8fafc;
-            transition: all 0.2s;
-            font-family: inherit;
-        }
-        .search-input:focus {
-            border-color: #6366f1;
-            box-shadow: 0 0 0 4px rgba(99,102,241,0.08);
-            background: white;
-        }
+        .search-input { flex: 1; min-width: 220px; padding: 0.85rem 1.2rem; font-size: 1rem; border: 2px solid #e2e8f0; border-radius: 14px; outline: none; background: #f8fafc; transition: all 0.2s; font-family: inherit; }
+        .search-input:focus { border-color: #6366f1; box-shadow: 0 0 0 4px rgba(99,102,241,0.08); background: white; }
 
-        .platform-select {
-            display: flex;
-            gap: 6px;
-            background: #f1f5f9;
-            border-radius: 14px;
-            padding: 4px;
-        }
-
-        .platform-option {
-            padding: 0.6rem 1.2rem;
-            border-radius: 11px;
-            border: none;
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 0.9rem;
-            transition: all 0.2s;
-            background: transparent;
-            color: var(--subtext);
-            font-family: inherit;
-            white-space: nowrap;
-        }
+        .platform-select { display: flex; gap: 6px; background: #f1f5f9; border-radius: 14px; padding: 4px; }
+        .platform-option { padding: 0.6rem 1.2rem; border-radius: 11px; border: none; cursor: pointer; font-weight: 600; font-size: 0.9rem; transition: all 0.2s; background: transparent; color: var(--subtext); font-family: inherit; white-space: nowrap; }
         .platform-option.active-ozon { background: var(--ozon); color: white; }
         .platform-option.active-wb { background: var(--wb); color: white; }
 
-        .search-btn {
-            padding: 0.85rem 2rem;
-            background: #6366f1;
-            color: white;
-            font-weight: 600;
-            font-size: 1rem;
-            border: none;
-            border-radius: 14px;
-            cursor: pointer;
-            transition: all 0.25s;
-            white-space: nowrap;
-            font-family: inherit;
-        }
+        .search-btn { padding: 0.85rem 2rem; background: #6366f1; color: white; font-weight: 600; font-size: 1rem; border: none; border-radius: 14px; cursor: pointer; transition: all 0.25s; white-space: nowrap; font-family: inherit; }
         .search-btn:hover { background: #4f46e5; transform: translateY(-1px); box-shadow: 0 8px 25px rgba(99,102,241,0.3); }
         .search-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
 
-        .filter-row {
-            display: flex;
-            gap: 8px;
-            margin-top: 0.8rem;
-            flex-wrap: wrap;
-            align-items: center;
-            font-size: 0.8rem;
-            color: var(--subtext);
-        }
-
-        .sort-btn {
-            padding: 0.4rem 0.9rem;
-            border-radius: 20px;
-            border: 1.5px solid #e2e8f0;
-            background: white;
-            font-size: 0.8rem;
-            cursor: pointer;
-            font-weight: 500;
-            transition: all 0.2s;
-            font-family: inherit;
-        }
+        .filter-row { display: flex; gap: 8px; margin-top: 0.8rem; flex-wrap: wrap; align-items: center; font-size: 0.8rem; color: var(--subtext); }
+        .sort-btn { padding: 0.4rem 0.9rem; border-radius: 20px; border: 1.5px solid #e2e8f0; background: white; font-size: 0.8rem; cursor: pointer; font-weight: 500; transition: all 0.2s; font-family: inherit; }
         .sort-btn.active { background: #6366f1; color: white; border-color: #6366f1; }
 
-        /* ========== ЗАГРУЗКА ========== */
-        .loader {
-            display: none;
-            text-align: center;
-            padding: 3rem;
-        }
+        /* Загрузка */
+        .loader { display: none; text-align: center; padding: 3rem; }
         .loader.active { display: block; }
-
-        .spinner {
-            width: 44px;
-            height: 44px;
-            border: 4px solid #e2e8f0;
-            border-top: 4px solid #6366f1;
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-            margin: 0 auto 1rem;
-        }
+        .spinner { width: 44px; height: 44px; border: 4px solid #e2e8f0; border-top: 4px solid #6366f1; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 1rem; }
         @keyframes spin { to { transform: rotate(360deg); } }
 
-        .progress-text {
-            color: var(--subtext);
-            font-size: 0.9rem;
-        }
-
-        /* ========== КАРТОЧКИ ТОВАРОВ ========== */
-        .results-header {
-            display: none;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1rem;
-            font-weight: 600;
-            color: var(--subtext);
-        }
+        /* Результаты */
+        .results-header { display: none; justify-content: space-between; align-items: center; margin-bottom: 1rem; font-weight: 600; color: var(--subtext); }
         .results-header.visible { display: flex; }
 
-        .cards-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 1.2rem;
-        }
+        .cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.2rem; }
 
         .product-card {
-            background: var(--card);
-            border-radius: 18px;
-            padding: 1.2rem;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.04);
-            transition: all 0.3s;
-            border: 2px solid transparent;
-            cursor: pointer;
-            position: relative;
-            display: flex;
-            flex-direction: column;
+            background: var(--card); border-radius: 18px; padding: 1.2rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.04); transition: all 0.3s;
+            border: 2px solid transparent; cursor: pointer; display: flex; flex-direction: column;
         }
-        .product-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 12px 35px rgba(0,0,0,0.08);
-            border-color: #6366f1;
-        }
-        .product-card.best-card {
-            border-color: var(--green);
-            box-shadow: 0 0 0 3px rgba(34,197,94,0.1);
-        }
+        .product-card:hover { transform: translateY(-4px); box-shadow: 0 12px 35px rgba(0,0,0,0.08); border-color: #6366f1; }
+        .product-card.best-card { border-color: var(--green); }
 
-        .card-img-container {
-            width: 100%;
-            height: 180px;
-            background: #f8fafc;
-            border-radius: 14px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 0.8rem;
-            position: relative;
-            overflow: hidden;
-        }
-        .card-img {
-            max-width: 85%;
-            max-height: 85%;
-            object-fit: contain;
-        }
-        .card-platform-badge {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            padding: 0.25rem 0.7rem;
-            border-radius: 10px;
-            font-size: 0.7rem;
-            font-weight: 700;
-            letter-spacing: 0.5px;
-            z-index: 2;
-        }
+        .card-img-container { width: 100%; height: 180px; background: #f8fafc; border-radius: 14px; display: flex; align-items: center; justify-content: center; margin-bottom: 0.8rem; position: relative; overflow: hidden; }
+        .card-img { max-width: 85%; max-height: 85%; object-fit: contain; }
+        .card-platform-badge { position: absolute; top: 10px; left: 10px; padding: 0.25rem 0.7rem; border-radius: 10px; font-size: 0.7rem; font-weight: 700; z-index: 2; }
         .card-platform-badge.ozon { background: var(--ozon-light); color: var(--ozon); }
         .card-platform-badge.wb { background: var(--wb-light); color: var(--wb); }
 
-        .card-title {
-            font-weight: 650;
-            font-size: 0.9rem;
-            margin-bottom: 0.5rem;
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-            flex-grow: 1;
-        }
-
-        .card-price {
-            font-size: 1.4rem;
-            font-weight: 700;
-            color: #0f172a;
-            margin-bottom: 0.3rem;
-        }
-
-        .card-meta {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 0.8rem;
-            flex-wrap: wrap;
-            gap: 0.3rem;
-        }
-
-        .card-seller {
-            color: var(--subtext);
-            display: flex;
-            align-items: center;
-            gap: 0.3rem;
-        }
-
-        .card-rating {
-            display: flex;
-            align-items: center;
-            gap: 0.2rem;
-            font-weight: 600;
-            font-size: 0.85rem;
-        }
-        .stars { color: var(--star); letter-spacing: 1px; }
+        .card-title { font-weight: 650; font-size: 0.9rem; margin-bottom: 0.5rem; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; flex-grow: 1; }
+        .card-price { font-size: 1.4rem; font-weight: 700; color: #0f172a; margin-bottom: 0.3rem; }
+        .card-meta { display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; flex-wrap: wrap; gap: 0.3rem; }
+        .card-seller { color: var(--subtext); display: flex; align-items: center; gap: 0.3rem; }
+        .card-rating { display: flex; align-items: center; gap: 0.2rem; font-weight: 600; font-size: 0.85rem; }
+        .stars { color: var(--star); }
         .rating-high { color: var(--green); }
         .rating-mid { color: var(--star); }
         .rating-low { color: var(--red); }
+        .card-hint { font-size: 0.7rem; color: #94a3b8; text-align: center; margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px dashed #e2e8f0; }
 
-        .card-hint {
-            font-size: 0.7rem;
-            color: #94a3b8;
-            text-align: center;
-            margin-top: 0.5rem;
-            padding-top: 0.5rem;
-            border-top: 1px dashed #e2e8f0;
-        }
-
-        /* ========== МОДАЛЬНОЕ ОКНО ========== */
-        .modal-overlay {
-            display: none;
-            position: fixed;
-            inset: 0;
-            background: rgba(15,23,42,0.6);
-            backdrop-filter: blur(4px);
-            z-index: 1000;
-            align-items: center;
-            justify-content: center;
-            padding: 1rem;
-        }
+        /* Модальное окно */
+        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(15,23,42,0.6); backdrop-filter: blur(4px); z-index: 1000; align-items: center; justify-content: center; padding: 1rem; }
         .modal-overlay.active { display: flex; }
-
-        .modal {
-            background: white;
-            border-radius: 24px;
-            max-width: 850px;
-            width: 100%;
-            max-height: 90vh;
-            overflow-y: auto;
-            padding: 2rem;
-            box-shadow: 0 25px 60px rgba(0,0,0,0.2);
-            animation: modalIn 0.3s ease;
-        }
-        @keyframes modalIn {
-            from { opacity: 0; transform: translateY(30px) scale(0.95); }
-            to { opacity: 1; transform: translateY(0) scale(1); }
-        }
-
-        .modal-close {
-            float: right;
-            background: #f1f5f9;
-            border: none;
-            width: 36px;
-            height: 36px;
-            border-radius: 10px;
-            font-size: 1.2rem;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.2s;
-        }
+        .modal { background: white; border-radius: 24px; max-width: 850px; width: 100%; max-height: 90vh; overflow-y: auto; padding: 2rem; box-shadow: 0 25px 60px rgba(0,0,0,0.2); animation: modalIn 0.3s ease; }
+        @keyframes modalIn { from { opacity: 0; transform: translateY(30px) scale(0.95); } to { opacity: 1; transform: translateY(0) scale(1); } }
+        .modal-close { float: right; background: #f1f5f9; border: none; width: 36px; height: 36px; border-radius: 10px; font-size: 1.2rem; cursor: pointer; display: flex; align-items: center; justify-content: center; }
         .modal-close:hover { background: #e2e8f0; }
+        .modal-header { margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 2px solid #f1f5f9; }
+        .modal-header h2 { font-size: 1.2rem; display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
+        .modal-comparison { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem; }
+        @media (max-width: 650px) { .modal-comparison { grid-template-columns: 1fr; } }
 
-        .modal-header {
-            margin-bottom: 1.5rem;
-            padding-bottom: 1rem;
-            border-bottom: 2px solid #f1f5f9;
-        }
-        .modal-header h2 {
-            font-size: 1.2rem;
-            display: flex;
-            align-items: center;
-            gap: 0.6rem;
-            flex-wrap: wrap;
-        }
-
-        .modal-comparison {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 1.5rem;
-            margin-bottom: 1.5rem;
-        }
-        @media (max-width: 650px) {
-            .modal-comparison { grid-template-columns: 1fr; }
-        }
-
-        .modal-card {
-            border-radius: 18px;
-            padding: 1.3rem;
-            border: 2px solid #e2e8f0;
-            transition: all 0.3s;
-        }
-        .modal-card.best {
-            border-color: var(--green);
-            box-shadow: 0 0 0 4px rgba(34,197,94,0.08);
-        }
-        .modal-card.not-found {
-            opacity: 0.6;
-            border-style: dashed;
-        }
-
-        .modal-card-header {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            margin-bottom: 0.8rem;
-            font-weight: 700;
-            flex-wrap: wrap;
-        }
-        .modal-card-header .dot {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            flex-shrink: 0;
-        }
+        .modal-card { border-radius: 18px; padding: 1.3rem; border: 2px solid #e2e8f0; }
+        .modal-card.best { border-color: var(--green); box-shadow: 0 0 0 4px rgba(34,197,94,0.08); }
+        .modal-card.not-found { opacity: 0.6; border-style: dashed; }
+        .modal-card-header { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.8rem; font-weight: 700; flex-wrap: wrap; }
+        .modal-card-header .dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
         .modal-card-header .dot.ozon-dot { background: var(--ozon); }
         .modal-card-header .dot.wb-dot { background: var(--wb); }
-
-        .modal-card img {
-            width: 100%;
-            height: 150px;
-            object-fit: contain;
-            background: #f8fafc;
-            border-radius: 12px;
-            margin-bottom: 0.8rem;
-        }
-        .modal-card .price-big {
-            font-size: 1.5rem;
-            font-weight: 700;
-        }
+        .modal-card img { width: 100%; height: 150px; object-fit: contain; background: #f8fafc; border-radius: 12px; margin-bottom: 0.8rem; }
+        .modal-card .price-big { font-size: 1.5rem; font-weight: 700; }
         .modal-card .price-big.best-price { color: var(--green); }
-
-        .modal-card .btn-go {
-            display: block;
-            width: 100%;
-            margin-top: 1rem;
-            padding: 0.7rem;
-            border: none;
-            border-radius: 12px;
-            font-weight: 600;
-            cursor: pointer;
-            text-align: center;
-            text-decoration: none;
-            font-family: inherit;
-            color: white;
-            transition: all 0.2s;
-        }
+        .modal-card .btn-go { display: block; width: 100%; margin-top: 1rem; padding: 0.7rem; border: none; border-radius: 12px; font-weight: 600; cursor: pointer; text-align: center; text-decoration: none; font-family: inherit; color: white; transition: all 0.2s; }
         .modal-card .btn-go.ozon-btn { background: var(--ozon); }
         .modal-card .btn-go.wb-btn { background: var(--wb); }
         .modal-card .btn-go:hover { filter: brightness(1.1); }
 
-        .discount-badge {
-            font-size: 0.75rem;
-            padding: 0.2rem 0.6rem;
-            border-radius: 6px;
-            font-weight: 700;
-            display: inline-block;
-            margin-top: 0.3rem;
-        }
+        .discount-badge { font-size: 0.75rem; padding: 0.2rem 0.6rem; border-radius: 6px; font-weight: 700; display: inline-block; margin-top: 0.3rem; }
         .discount-badge.green { background: #dcfce7; color: #16a34a; }
         .discount-badge.red { background: #fef2f2; color: #ef4444; }
 
         /* Похожие товары */
-        .similar-section { margin-top: 0.5rem; }
-        .similar-section h3 {
-            font-size: 1rem;
-            margin-bottom: 0.8rem;
-            color: var(--subtext);
-        }
-        .similar-row {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 0.8rem;
-        }
-        @media (max-width: 550px) {
-            .similar-row { grid-template-columns: 1fr; }
-        }
-
-        .similar-item {
-            background: #f8fafc;
-            border-radius: 14px;
-            padding: 0.8rem;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.2s;
-            border: 1px solid transparent;
-        }
-        .similar-item:hover {
-            background: white;
-            border-color: #6366f1;
-        }
-        .similar-item img {
-            width: 70px;
-            height: 70px;
-            object-fit: contain;
-            margin-bottom: 0.4rem;
-        }
-        .similar-item .s-name {
-            font-size: 0.8rem;
-            font-weight: 500;
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-        }
+        .similar-section h3 { font-size: 1rem; margin-bottom: 0.8rem; color: var(--subtext); }
+        .similar-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.8rem; }
+        @media (max-width: 550px) { .similar-row { grid-template-columns: 1fr; } }
+        .similar-item { background: #f8fafc; border-radius: 14px; padding: 0.8rem; text-align: center; cursor: pointer; transition: all 0.2s; border: 1px solid transparent; }
+        .similar-item:hover { background: white; border-color: #6366f1; }
+        .similar-item img { width: 70px; height: 70px; object-fit: contain; margin-bottom: 0.4rem; }
+        .similar-item .s-name { font-size: 0.8rem; font-weight: 500; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
         .similar-item .s-price { font-weight: 700; margin-top: 0.2rem; }
-        .similar-item .s-platform {
-            font-size: 0.7rem;
-            padding: 0.15rem 0.5rem;
-            border-radius: 8px;
-            display: inline-block;
-            margin-top: 0.2rem;
-        }
+        .similar-item .s-platform { font-size: 0.7rem; padding: 0.15rem 0.5rem; border-radius: 8px; display: inline-block; margin-top: 0.2rem; }
         .similar-item .s-platform.ozon-tag { background: var(--ozon-light); color: var(--ozon); }
         .similar-item .s-platform.wb-tag { background: var(--wb-light); color: var(--wb); }
 
-        /* Нет результатов */
-        .no-results {
-            display: none;
-            text-align: center;
-            padding: 3rem;
-            background: white;
-            border-radius: 20px;
-            color: var(--subtext);
-        }
+        .no-results { display: none; text-align: center; padding: 3rem; background: white; border-radius: 20px; color: var(--subtext); }
         .no-results.active { display: block; }
         .no-results-icon { font-size: 3rem; margin-bottom: 0.8rem; }
+
+        .error-message {
+            background: #fef2f2; color: #991b1b; padding: 1rem; border-radius: 12px;
+            margin-bottom: 1rem; display: none; text-align: center;
+        }
+        .error-message.show { display: block; }
     </style>
 </head>
 <body>
     <div class="container">
-        <!-- Шапка -->
         <div class="header">
-            <h1>🔍 Найди товар дешевле</h1>
-            <p>Реальный поиск по Ozon и Wildberries — сравнение цен одного продавца</p>
+            <h1>🔍 Сравнение цен Ozon vs WB</h1>
+            <p>Поиск товара → сравнение цен одного продавца на двух площадках</p>
         </div>
 
         <div class="warning-banner">
-            <span>⚠️</span>
-            <span>Площадки могут блокировать частые запросы. При ошибке подождите 30 секунд и повторите поиск.</span>
+            ⚠️ Используется публичный CORS-прокси. При большом количестве запросов возможны задержки.
+            Если поиск не работает — подождите минуту и попробуйте снова.
         </div>
 
-        <!-- Поиск -->
+        <div class="error-message" id="errorMessage"></div>
+
         <div class="search-section">
             <div class="search-row">
                 <input type="text" class="search-input" id="searchInput" 
-                       placeholder="Введите название товара..." autofocus>
+                       placeholder="Введите название товара (например: iPhone 15, кроссовки)..." autofocus>
                 <div class="platform-select" id="platformSelect">
                     <button class="platform-option active-ozon" data-platform="ozon">🛒 Ozon</button>
                     <button class="platform-option" data-platform="wb">🛍️ Wildberries</button>
@@ -547,27 +183,24 @@
             </div>
             <div class="filter-row">
                 <span>Сортировка:</span>
-                <button class="sort-btn active" data-sort="best">Лучшие (цена + рейтинг)</button>
+                <button class="sort-btn active" data-sort="best">Лучшие</button>
                 <button class="sort-btn" data-sort="price-asc">Цена ↑</button>
-                <button class="sort-btn" data-sort="rating">По рейтингу</button>
+                <button class="sort-btn" data-sort="rating">Рейтинг</button>
             </div>
         </div>
 
-        <!-- Загрузка -->
         <div class="loader" id="loader">
             <div class="spinner"></div>
-            <p class="progress-text" id="loaderText">Ищем товары...</p>
+            <p id="loaderText">Загрузка...</p>
         </div>
 
-        <!-- Нет результатов -->
         <div class="no-results" id="noResults">
             <div class="no-results-icon">😕</div>
             <p id="noResultsText">Ничего не найдено</p>
         </div>
 
-        <!-- Результаты -->
         <div class="results-header" id="resultsHeader">
-            <span>🛍️ Найдено: <strong id="resultsCount">0</strong> товаров</span>
+            <span>🛍️ Найдено: <strong id="resultsCount">0</strong></span>
             <span id="resultsPlatform"></span>
         </div>
         <div class="cards-grid" id="cardsGrid"></div>
@@ -575,7 +208,7 @@
 
     <!-- Модальное окно -->
     <div class="modal-overlay" id="modalOverlay">
-        <div class="modal" id="modal">
+        <div class="modal">
             <button class="modal-close" id="modalClose">✕</button>
             <div class="modal-header" id="modalHeader"></div>
             <div class="modal-comparison" id="modalComparison"></div>
@@ -588,205 +221,25 @@
 
     <script>
         (function() {
-            // ==================== API СЕРВИСЫ ====================
-            
-            // Прямой поиск через API Ozon
-            async function searchOzonAPI(query) {
-                try {
-                    const url = `https://www.ozon.ru/api/entrypoint-api.bx/page/json/v2?url=/search/?text=${encodeURIComponent(query)}&from_global=true`;
-                    
-                    const response = await fetch(url, {
-                        headers: {
-                            'Accept': 'application/json',
-                            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-                        }
-                    });
-                    
-                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                    
-                    const data = await response.json();
-                    const products = [];
-                    
-                    // Ищем виджет с результатами поиска
-                    const widgets = data.widgetStates || {};
-                    
-                    for (const [key, value] of Object.entries(widgets)) {
-                        if (key.includes('searchResults') || key.includes('SearchResults')) {
-                            try {
-                                const widgetData = JSON.parse(value);
-                                const items = widgetData.items || [];
-                                
-                                for (const item of items.slice(0, 20)) {
-                                    const title = item.title || '';
-                                    const image = item.image || item.picture || '';
-                                    let price = null;
-                                    let rating = null;
-                                    let reviews = 0;
-                                    let seller = '';
-                                    let sellerId = '';
-                                    let productUrl = '';
-                                    
-                                    // Извлечение цены
-                                    const mainState = item.mainState || [];
-                                    for (const state of mainState) {
-                                        if (state.atom && state.atom.price) {
-                                            const priceText = state.atom.price.text || state.atom.price.price || '';
-                                            price = parseInt(String(priceText).replace(/[^\d]/g, '')) || null;
-                                            break;
-                                        }
-                                    }
-                                    
-                                    // Извлечение рейтинга и продавца
-                                    if (item.rating) {
-                                        rating = parseFloat(item.rating) || null;
-                                        reviews = item.reviews || item.feedbackCount || 0;
-                                    }
-                                    
-                                    if (item.seller) {
-                                        seller = item.seller.name || item.seller.title || '';
-                                        sellerId = item.seller.id || '';
-                                    }
-                                    
-                                    // Ссылка на товар
-                                    if (item.link) {
-                                        productUrl = item.link.startsWith('http') ? item.link : `https://www.ozon.ru${item.link}`;
-                                    } else if (item.id) {
-                                        productUrl = `https://www.ozon.ru/product/${item.id}`;
-                                    }
-                                    
-                                    if (title && price) {
-                                        products.push({
-                                            title,
-                                            image,
-                                            price,
-                                            rating,
-                                            reviews,
-                                            seller,
-                                            sellerId,
-                                            url: productUrl,
-                                            platform: 'ozon'
-                                        });
-                                    }
-                                }
-                            } catch (e) {
-                                console.warn('Ozon widget parse error:', e);
-                            }
-                            break;
-                        }
-                    }
-                    
-                    return products;
-                } catch (error) {
-                    console.error('Ozon API error:', error);
-                    throw new Error('Не удалось выполнить поиск на Ozon. Попробуйте позже.');
-                }
-            }
+            // Список CORS-прокси (будем перебирать, если один не работает)
+            const CORS_PROXIES = [
+                'https://api.allorigins.win/raw?url=',
+                'https://corsproxy.io/?',
+                'https://cors-anywhere.herokuapp.com/',
+            ];
 
-            // Поиск через API Wildberries
-            async function searchWBAPI(query) {
-                try {
-                    const url = `https://search.wb.ru/exactmatch/ru/common/v9/search?ab_testid=false&appType=1&curr=rub&dest=-1029256&query=${encodeURIComponent(query)}&resultset=catalog&sort=popular&spp=30`;
-                    
-                    const response = await fetch(url, {
-                        headers: {
-                            'Accept': 'application/json',
-                            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-                        }
-                    });
-                    
-                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                    
-                    const data = await response.json();
-                    const products = [];
-                    const items = data.data?.products || [];
-                    
-                    for (const item of items.slice(0, 20)) {
-                        const title = item.name || '';
-                        const price = item.salePriceU ? Math.floor(item.salePriceU / 100) : null;
-                        const rating = item.reviewRating || item.rating || null;
-                        const reviews = item.feedbacks || item.reviews || 0;
-                        const seller = item.supplier || item.brand || '';
-                        const sellerId = String(item.supplierId || '');
-                        
-                        // Изображение
-                        let image = '';
-                        if (item.pics || item.pic) {
-                            const imageId = item.pics || item.pic;
-                            const vol = Math.floor(imageId / 100000);
-                            const part = Math.floor(imageId / 1000);
-                            image = `https://basket-${(vol % 15) + 1}.wbbasket.ru/vol${vol}/part${part}/${imageId}/images/big/1.webp`;
-                        }
-                        
-                        const productUrl = `https://www.wildberries.ru/catalog/${item.id}/detail.aspx`;
-                        
-                        if (title && price) {
-                            products.push({
-                                title,
-                                image,
-                                price,
-                                rating,
-                                reviews,
-                                seller,
-                                sellerId,
-                                url: productUrl,
-                                platform: 'wb'
-                            });
-                        }
-                    }
-                    
-                    return products;
-                } catch (error) {
-                    console.error('WB API error:', error);
-                    throw new Error('Не удалось выполнить поиск на Wildberries. Попробуйте позже.');
-                }
-            }
+            let currentProxyIndex = 0;
 
-            // Поиск товара на другой площадке по продавцу и названию
-            async function searchOtherPlatform(originalProduct, targetPlatform) {
-                const sellerQuery = originalProduct.seller || '';
-                const productQuery = originalProduct.title.split(' ').slice(0, 4).join(' ');
-                const searchQuery = `${productQuery} ${sellerQuery}`.trim();
-                
-                try {
-                    let results;
-                    if (targetPlatform === 'ozon') {
-                        results = await searchOzonAPI(searchQuery);
-                    } else {
-                        results = await searchWBAPI(searchQuery);
-                    }
-                    
-                    // Фильтруем по продавцу и похожему названию
-                    const filtered = results.filter(r => {
-                        const sellerMatch = !sellerQuery || 
-                            r.seller?.toLowerCase().includes(sellerQuery.toLowerCase()) ||
-                            sellerQuery.toLowerCase().includes(r.seller?.toLowerCase() || '');
-                        
-                        const titleWords = productQuery.toLowerCase().split(' ').filter(w => w.length > 2);
-                        const titleMatch = titleWords.some(w => r.title.toLowerCase().includes(w));
-                        
-                        return sellerMatch || titleMatch;
-                    });
-                    
-                    return filtered.slice(0, 5);
-                } catch (error) {
-                    console.error(`Search on ${targetPlatform} failed:`, error);
-                    return [];
-                }
-            }
-
-            // ==================== СОСТОЯНИЕ ====================
             const state = {
                 searchPlatform: 'ozon',
                 sortMode: 'best',
-                searchResults: [],
-                selectedProduct: null
+                searchResults: []
             };
 
-            // ==================== DOM ====================
+            // DOM элементы
             const dom = {
                 searchInput: document.getElementById('searchInput'),
                 searchBtn: document.getElementById('searchBtn'),
-                platformSelect: document.getElementById('platformSelect'),
                 loader: document.getElementById('loader'),
                 loaderText: document.getElementById('loaderText'),
                 noResults: document.getElementById('noResults'),
@@ -796,58 +249,164 @@
                 resultsPlatform: document.getElementById('resultsPlatform'),
                 cardsGrid: document.getElementById('cardsGrid'),
                 modalOverlay: document.getElementById('modalOverlay'),
-                modal: document.getElementById('modal'),
-                modalClose: document.getElementById('modalClose'),
                 modalHeader: document.getElementById('modalHeader'),
                 modalComparison: document.getElementById('modalComparison'),
-                similarRow: document.getElementById('similarRow'),
                 similarSection: document.getElementById('similarSection'),
-                sortBtns: document.querySelectorAll('.sort-btn'),
-                platformOptions: document.querySelectorAll('.platform-option')
+                similarRow: document.getElementById('similarRow'),
+                errorMessage: document.getElementById('errorMessage')
             };
 
-            // ==================== УТИЛИТЫ ====================
-            function formatPrice(p) {
-                return p ? p.toLocaleString('ru-RU') + ' ₽' : '—';
+            function formatPrice(p) { return p ? p.toLocaleString('ru-RU') + ' ₽' : '—'; }
+            
+            function getStars(r) {
+                if (!r) return '';
+                const f = Math.floor(r);
+                return '★'.repeat(f) + (r - f >= 0.5 ? '½' : '') + '☆'.repeat(5 - f - (r - f >= 0.5 ? 1 : 0));
             }
-
-            function getStars(rating) {
-                if (!rating) return '';
-                const full = Math.floor(rating);
-                const half = rating - full >= 0.5;
-                return '★'.repeat(full) + (half ? '½' : '') + '☆'.repeat(5 - full - (half ? 1 : 0));
-            }
-
-            function getRatingClass(rating) {
-                if (!rating) return '';
-                if (rating >= 4.7) return 'rating-high';
-                if (rating >= 4.3) return 'rating-mid';
-                return 'rating-low';
+            
+            function getRatingClass(r) {
+                if (!r) return '';
+                return r >= 4.7 ? 'rating-high' : r >= 4.3 ? 'rating-mid' : 'rating-low';
             }
 
             function sortResults(results, mode) {
                 const sorted = [...results];
-                
-                switch (mode) {
-                    case 'best':
-                        sorted.sort((a, b) => {
-                            const scoreA = (a.rating || 0) * 10000 - (a.price || 999999);
-                            const scoreB = (b.rating || 0) * 10000 - (b.price || 999999);
-                            return scoreB - scoreA;
-                        });
-                        break;
-                    case 'price-asc':
-                        sorted.sort((a, b) => (a.price || 999999) - (b.price || 999999));
-                        break;
-                    case 'rating':
-                        sorted.sort((a, b) => (b.rating || 0) - (a.rating || 0));
-                        break;
+                if (mode === 'best') {
+                    sorted.sort((a, b) => ((b.rating || 0) * 10000 - (b.price || 999999)) - ((a.rating || 0) * 10000 - (a.price || 999999)));
+                } else if (mode === 'price-asc') {
+                    sorted.sort((a, b) => (a.price || 999999) - (b.price || 999999));
+                } else if (mode === 'rating') {
+                    sorted.sort((a, b) => (b.rating || 0) - (a.rating || 0));
                 }
-                
                 return sorted;
             }
 
-            // ==================== ОТОБРАЖЕНИЕ ====================
+            // Функция запроса через CORS-прокси
+            async function fetchWithProxy(url, proxyIndex = 0) {
+                if (proxyIndex >= CORS_PROXIES.length) {
+                    throw new Error('Все прокси недоступны');
+                }
+
+                const proxy = CORS_PROXIES[proxyIndex];
+                const proxiedUrl = proxy + encodeURIComponent(url);
+
+                try {
+                    const response = await fetch(proxiedUrl);
+                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                    const data = await response.json();
+                    return data;
+                } catch (error) {
+                    console.warn(`Прокси ${proxyIndex + 1} не сработал:`, error.message);
+                    // Пробуем следующий прокси
+                    return fetchWithProxy(url, proxyIndex + 1);
+                }
+            }
+
+            // Поиск на Ozon
+            async function searchOzon(query) {
+                const url = `https://www.ozon.ru/api/entrypoint-api.bx/page/json/v2?url=/search/?text=${encodeURIComponent(query)}&from_global=true`;
+                
+                try {
+                    const data = await fetchWithProxy(url);
+                    const products = [];
+                    const widgets = data.widgetStates || {};
+
+                    for (const [key, value] of Object.entries(widgets)) {
+                        if (key.includes('searchResults') || key.includes('SearchResults')) {
+                            try {
+                                const widgetData = JSON.parse(value);
+                                const items = widgetData.items || [];
+
+                                for (const item of items.slice(0, 20)) {
+                                    const title = item.title || '';
+                                    const image = item.image || '';
+                                    let price = null;
+                                    let rating = null;
+                                    let reviews = 0;
+                                    let seller = '';
+                                    let productUrl = '';
+
+                                    const mainState = item.mainState || [];
+                                    for (const state of mainState) {
+                                        if (state.atom && state.atom.price) {
+                                            const priceText = state.atom.price.text || state.atom.price.price || '';
+                                            price = parseInt(String(priceText).replace(/[^\d]/g, '')) || null;
+                                            break;
+                                        }
+                                    }
+
+                                    if (item.rating) {
+                                        rating = parseFloat(item.rating) || null;
+                                        reviews = item.reviews || 0;
+                                    }
+
+                                    if (item.seller) {
+                                        seller = item.seller.name || item.seller.title || '';
+                                    }
+
+                                    if (item.link) {
+                                        productUrl = item.link.startsWith('http') ? item.link : `https://www.ozon.ru${item.link}`;
+                                    } else if (item.id) {
+                                        productUrl = `https://www.ozon.ru/product/${item.id}`;
+                                    }
+
+                                    if (title && price) {
+                                        products.push({ title, image, price, rating, reviews, seller, url: productUrl, platform: 'ozon' });
+                                    }
+                                }
+                            } catch (e) {
+                                console.warn('Ozon parse error:', e.message);
+                            }
+                            break;
+                        }
+                    }
+
+                    return products;
+                } catch (error) {
+                    console.error('Ozon search failed:', error);
+                    throw error;
+                }
+            }
+
+            // Поиск на Wildberries
+            async function searchWB(query) {
+                const url = `https://search.wb.ru/exactmatch/ru/common/v9/search?ab_testid=false&appType=1&curr=rub&dest=-1029256&query=${encodeURIComponent(query)}&resultset=catalog&sort=popular&spp=30`;
+
+                try {
+                    const data = await fetchWithProxy(url);
+                    const products = [];
+                    const items = data.data?.products || [];
+
+                    for (const item of items.slice(0, 20)) {
+                        const title = item.name || '';
+                        const price = item.salePriceU ? Math.floor(item.salePriceU / 100) : null;
+                        const rating = item.reviewRating || item.rating || null;
+                        const reviews = item.feedbacks || item.reviews || 0;
+                        const seller = item.supplier || item.brand || '';
+
+                        let image = '';
+                        if (item.pics || item.pic) {
+                            const imageId = item.pics || item.pic;
+                            const vol = Math.floor(imageId / 100000);
+                            const part = Math.floor(imageId / 1000);
+                            image = `https://basket-${(vol % 15) + 1}.wbbasket.ru/vol${vol}/part${part}/${imageId}/images/big/1.webp`;
+                        }
+
+                        const productUrl = `https://www.wildberries.ru/catalog/${item.id}/detail.aspx`;
+
+                        if (title && price) {
+                            products.push({ title, image, price, rating, reviews, seller, url: productUrl, platform: 'wb' });
+                        }
+                    }
+
+                    return products;
+                } catch (error) {
+                    console.error('WB search failed:', error);
+                    throw error;
+                }
+            }
+
+            // Отображение карточек
             function renderCards(results, platform) {
                 dom.cardsGrid.innerHTML = '';
 
@@ -863,260 +422,153 @@
                 dom.resultsCount.textContent = results.length;
                 dom.resultsPlatform.textContent = platform === 'ozon' ? '🛒 Ozon' : '🛍️ Wildberries';
 
-                results.forEach((product, index) => {
+                results.forEach((p, i) => {
                     const card = document.createElement('div');
-                    card.className = 'product-card';
-                    if (index === 0 && state.sortMode === 'best') card.classList.add('best-card');
-
-                    const ratingClass = getRatingClass(product.rating);
-                    const stars = getStars(product.rating);
-
+                    card.className = 'product-card' + (i === 0 && state.sortMode === 'best' ? ' best-card' : '');
                     card.innerHTML = `
                         <div class="card-img-container">
                             <span class="card-platform-badge ${platform}">${platform === 'ozon' ? 'OZON' : 'WB'}</span>
-                            ${product.image 
-                                ? `<img src="${product.image}" alt="${product.title}" class="card-img" 
-                                     onerror="this.onerror=null; this.parentElement.innerHTML+='<span style=font-size:3rem>📦</span>'">`
-                                : '<span style="font-size:3rem;">📦</span>'
-                            }
+                            ${p.image ? `<img src="${p.image}" class="card-img" onerror="this.parentElement.innerHTML='<span style=font-size:3rem>📦</span>'">` : '<span style="font-size:3rem">📦</span>'}
                         </div>
-                        <div class="card-title">${product.title}</div>
-                        <div class="card-price">${formatPrice(product.price)}</div>
+                        <div class="card-title">${p.title}</div>
+                        <div class="card-price">${formatPrice(p.price)}</div>
                         <div class="card-meta">
-                            <span class="card-seller" title="${product.seller || 'Продавец не указан'}">
-                                🏪 ${product.seller || 'Неизвестный продавец'}
-                            </span>
-                            ${product.rating ? `
-                                <span class="card-rating ${ratingClass}">
-                                    <span class="stars">${stars}</span>
-                                    ${product.rating.toFixed(1)}
-                                    ${product.reviews ? `<span style="color:#94a3b8;font-weight:400;font-size:0.75rem;">(${product.reviews})</span>` : ''}
-                                </span>
-                            ` : '<span class="card-rating" style="color:#94a3b8;">Нет оценок</span>'}
+                            <span class="card-seller">🏪 ${p.seller || 'Неизвестный'}</span>
+                            ${p.rating ? `<span class="card-rating ${getRatingClass(p.rating)}"><span class="stars">${getStars(p.rating)}</span>${p.rating.toFixed(1)}</span>` : '<span class="card-rating" style="color:#94a3b8">Нет оценок</span>'}
                         </div>
-                        <div class="card-hint">👆 Нажмите, чтобы сравнить с другой площадкой</div>
-                    `;
-
-                    card.addEventListener('click', () => openComparison(product, platform));
+                        <div class="card-hint">👆 Нажмите, чтобы сравнить с другой площадкой</div>`;
+                    
+                    card.addEventListener('click', () => openComparison(p, platform));
                     dom.cardsGrid.appendChild(card);
                 });
             }
 
-            // ==================== МОДАЛЬНОЕ ОКНО ====================
+            // Открытие сравнения
             async function openComparison(product, searchPlatform) {
-                state.selectedProduct = product;
                 const otherPlatform = searchPlatform === 'ozon' ? 'wb' : 'ozon';
+                const modal = dom.modalOverlay;
                 
-                // Показываем модалку с загрузкой
-                dom.modalHeader.innerHTML = `
-                    <h2>
-                        <span>📦 ${product.title}</span>
-                        <span style="font-size:0.85rem;color:var(--subtext);">
-                            ${product.seller ? `от продавца <strong>${product.seller}</strong>` : ''}
-                        </span>
-                    </h2>
-                `;
-
-                dom.modalComparison.innerHTML = `
-                    <div style="grid-column:1/-1;text-align:center;padding:2rem;">
-                        <div class="spinner" style="margin:0 auto 1rem;"></div>
-                        <p>Ищем этот товар у продавца на ${otherPlatform === 'ozon' ? 'Ozon' : 'Wildberries'}...</p>
-                    </div>
-                `;
-                
+                dom.modalHeader.innerHTML = `<h2>📦 ${product.title} <span style="font-size:0.85rem;color:var(--subtext);">от ${product.seller || 'неизвестного продавца'}</span></h2>`;
+                dom.modalComparison.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:2rem"><div class="spinner" style="margin:0 auto 1rem"></div><p>Ищем на другой площадке...</p></div>';
                 dom.similarSection.style.display = 'none';
-                dom.modalOverlay.classList.add('active');
+                modal.classList.add('active');
 
-                // Ищем на другой площадке
-                let otherResults = [];
+                const sellerQuery = product.seller || '';
+                const productQuery = product.title.split(' ').slice(0, 4).join(' ');
+                const searchQuery = `${productQuery} ${sellerQuery}`.trim();
+
                 try {
-                    otherResults = await searchOtherPlatform(product, otherPlatform);
-                } catch (error) {
-                    console.error('Other platform search failed:', error);
-                }
-
-                // Отображаем сравнение
-                renderComparison(product, otherResults, searchPlatform, otherPlatform);
-            }
-
-            function renderComparison(originalProduct, otherResults, searchPlatform, otherPlatform) {
-                const searchData = {
-                    title: originalProduct.title,
-                    price: originalProduct.price,
-                    rating: originalProduct.rating,
-                    reviews: originalProduct.reviews,
-                    image: originalProduct.image,
-                    url: originalProduct.url,
-                    seller: originalProduct.seller,
-                    inStock: true
-                };
-
-                // Берём лучший результат с другой площадки
-                const otherData = otherResults.length > 0 ? {
-                    title: otherResults[0].title,
-                    price: otherResults[0].price,
-                    rating: otherResults[0].rating,
-                    reviews: otherResults[0].reviews,
-                    image: otherResults[0].image,
-                    url: otherResults[0].url,
-                    seller: otherResults[0].seller,
-                    inStock: true
-                } : null;
-
-                // Определяем лучшую цену
-                let bestPlatform = null;
-                if (otherData && otherData.price) {
-                    bestPlatform = searchData.price <= otherData.price ? searchPlatform : otherPlatform;
-                } else {
-                    bestPlatform = searchPlatform;
-                }
-
-                const platforms = [
-                    { 
-                        key: searchPlatform, 
-                        data: searchData, 
-                        label: searchPlatform === 'ozon' ? 'Ozon (исходный поиск)' : 'Wildberries (исходный поиск)', 
-                        dotClass: searchPlatform === 'ozon' ? 'ozon-dot' : 'wb-dot', 
-                        btnClass: searchPlatform === 'ozon' ? 'ozon-btn' : 'wb-btn',
-                        isOriginal: true
-                    },
-                    { 
-                        key: otherPlatform, 
-                        data: otherData, 
-                        label: otherPlatform === 'ozon' ? 'Ozon' : 'Wildberries', 
-                        dotClass: otherPlatform === 'ozon' ? 'ozon-dot' : 'wb-dot', 
-                        btnClass: otherPlatform === 'ozon' ? 'ozon-btn' : 'wb-btn',
-                        isOriginal: false
+                    let otherResults;
+                    if (otherPlatform === 'ozon') {
+                        otherResults = await searchOzon(searchQuery);
+                    } else {
+                        otherResults = await searchWB(searchQuery);
                     }
-                ];
 
-                dom.modalComparison.innerHTML = platforms.map(p => {
-                    const isBest = p.key === bestPlatform && p.data;
-                    const isAvailable = p.data && p.data.price;
-                    const stars = getStars(p.data?.rating);
-                    const ratingClass = getRatingClass(p.data?.rating);
+                    // Фильтруем по продавцу
+                    const filtered = otherResults.filter(r => {
+                        const sellerMatch = !sellerQuery || 
+                            r.seller?.toLowerCase().includes(sellerQuery.toLowerCase()) ||
+                            sellerQuery.toLowerCase().includes(r.seller?.toLowerCase() || '');
+                        const titleWords = productQuery.toLowerCase().split(' ').filter(w => w.length > 2);
+                        const titleMatch = titleWords.some(w => r.title.toLowerCase().includes(w));
+                        return sellerMatch || titleMatch;
+                    });
 
-                    if (!isAvailable) {
-                        return `
-                            <div class="modal-card not-found">
-                                <div class="modal-card-header">
-                                    <span class="dot ${p.dotClass}"></span>
-                                    <span>${p.label}</span>
-                                </div>
-                                <div style="text-align:center;padding:2rem;color:var(--subtext);">
-                                    <p style="font-size:2rem;">📭</p>
-                                    <p>Товар не найден</p>
-                                    <p style="font-size:0.8rem;">Продавец не продаёт этот товар на данной площадке, или товар временно отсутствует</p>
-                                </div>
+                    const otherData = filtered.length > 0 ? filtered[0] : null;
+                    const searchData = { 
+                        title: product.title, price: product.price, rating: product.rating, 
+                        reviews: product.reviews, image: product.image, url: product.url, 
+                        seller: product.seller, inStock: true 
+                    };
+                    
+                    let bestPlatform = otherData && otherData.price 
+                        ? (searchData.price <= otherData.price ? searchPlatform : otherPlatform) 
+                        : searchPlatform;
+
+                    const platforms = [
+                        { key: searchPlatform, data: searchData, label: searchPlatform === 'ozon' ? 'Ozon (исходный)' : 'WB (исходный)', dotClass: searchPlatform === 'ozon' ? 'ozon-dot' : 'wb-dot', btnClass: searchPlatform === 'ozon' ? 'ozon-btn' : 'wb-btn' },
+                        { key: otherPlatform, data: otherData, label: otherPlatform === 'ozon' ? 'Ozon' : 'WB', dotClass: otherPlatform === 'ozon' ? 'ozon-dot' : 'wb-dot', btnClass: otherPlatform === 'ozon' ? 'ozon-btn' : 'wb-btn' }
+                    ];
+
+                    dom.modalComparison.innerHTML = platforms.map(p => {
+                        if (!p.data || !p.data.price) {
+                            return `<div class="modal-card not-found">
+                                <div class="modal-card-header"><span class="dot ${p.dotClass}"></span>${p.label}</div>
+                                <div style="text-align:center;padding:2rem"><p style="font-size:2rem">📭</p><p>Товар не найден</p><p style="font-size:0.8rem;color:var(--subtext);">Продавец не продаёт этот товар на данной площадке</p></div>
                             </div>`;
-                    }
+                        }
+                        
+                        const isBest = p.key === bestPlatform;
+                        const priceDiff = searchData.price && p.data.price && searchData.price !== p.data.price 
+                            ? Math.abs(searchData.price - p.data.price) : 0;
+                        const percentDiff = priceDiff > 0 && Math.min(searchData.price, p.data.price) > 0 
+                            ? Math.round((priceDiff / Math.min(searchData.price, p.data.price)) * 100) : 0;
 
-                    const priceDiff = searchData.price && p.data.price && searchData.price !== p.data.price
-                        ? Math.abs(searchData.price - p.data.price)
-                        : 0;
-                    const percentDiff = priceDiff > 0 && Math.min(searchData.price, p.data.price) > 0
-                        ? Math.round((priceDiff / Math.min(searchData.price, p.data.price)) * 100)
-                        : 0;
-
-                    return `
-                        <div class="modal-card ${isBest ? 'best' : ''}">
+                        return `<div class="modal-card ${isBest ? 'best' : ''}">
                             <div class="modal-card-header">
-                                <span class="dot ${p.dotClass}"></span>
-                                <span>${p.label}</span>
+                                <span class="dot ${p.dotClass}"></span>${p.label}
                                 ${isBest ? '<span class="discount-badge green">🏆 Лучшая цена</span>' : ''}
                             </div>
-                            ${p.data.image 
-                                ? `<img src="${p.data.image}" alt="${p.data.title}" 
-                                     onerror="this.onerror=null; this.parentElement.innerHTML+='<div style=text-align:center;font-size:3rem;padding:1rem>📦</div>'">`
-                                : '<div style="text-align:center;font-size:3rem;padding:1rem;">📦</div>'
-                            }
-                            <p style="font-weight:600;font-size:0.9rem;margin-bottom:0.5rem;">${p.data.title}</p>
+                            ${p.data.image ? `<img src="${p.data.image}" onerror="this.parentElement.innerHTML+='<div style=text-align:center;font-size:3rem>📦</div>'">` : '<div style="text-align:center;font-size:3rem">📦</div>'}
+                            <p style="font-weight:600;font-size:0.9rem;margin-bottom:0.5rem">${p.data.title}</p>
                             <div class="price-big ${isBest ? 'best-price' : ''}">${formatPrice(p.data.price)}</div>
                             ${!isBest && priceDiff > 0 ? `<span class="discount-badge red">Дороже на ${formatPrice(priceDiff)} (${percentDiff}%)</span>` : ''}
                             ${isBest && priceDiff > 0 ? `<span class="discount-badge green">Экономия ${formatPrice(priceDiff)} (${percentDiff}%)</span>` : ''}
-                            <div style="margin-top:0.5rem;font-size:0.85rem;">
-                                ${p.data.rating ? `
-                                    <span class="card-rating ${ratingClass}">
-                                        <span class="stars">${stars}</span>
-                                        ${p.data.rating.toFixed(1)}
-                                    </span>
-                                    ${p.data.reviews ? `<span style="color:#94a3b8;">(${p.data.reviews} отзывов)</span>` : ''}
-                                ` : '<span style="color:#94a3b8;">Нет оценок</span>'}
+                            <div style="margin-top:0.5rem;font-size:0.85rem">
+                                ${p.data.rating ? `★ ${p.data.rating.toFixed(1)}` : 'Нет оценок'}
+                                ${p.data.reviews ? ` (${p.data.reviews} отзывов)` : ''}
                             </div>
-                            <div style="font-size:0.8rem;color:var(--subtext);margin-top:0.3rem;">
-                                🏪 ${p.data.seller || 'Продавец не указан'}
-                            </div>
-                            <a href="${p.data.url || '#'}" target="_blank" rel="noopener" class="btn-go ${p.btnClass}">
-                                Перейти на ${p.key === 'ozon' ? 'Ozon' : 'Wildberries'} →
-                            </a>
+                            <div style="font-size:0.8rem;color:var(--subtext);margin-top:0.3rem">🏪 ${p.data.seller || 'Продавец не указан'}</div>
+                            <a href="${p.data.url || '#'}" target="_blank" rel="noopener" class="btn-go ${p.btnClass}">Перейти →</a>
                         </div>`;
-                }).join('');
+                    }).join('');
 
-                // Похожие товары
-                if (otherResults.length > 1) {
-                    dom.similarSection.style.display = 'block';
-                    dom.similarRow.innerHTML = otherResults.slice(1, 4).map(sp => `
-                        <div class="similar-item" data-url="${sp.url || '#'}">
-                            ${sp.image 
-                                ? `<img src="${sp.image}" alt="${sp.title}" 
-                                     onerror="this.onerror=null; this.parentElement.innerHTML+='<span style=font-size:2rem>📦</span>'">`
-                                : '<span style="font-size:2rem;">📦</span>'
-                            }
-                            <div class="s-name">${sp.title}</div>
-                            <div class="s-price">${formatPrice(sp.price)}</div>
-                            <span class="s-platform ${otherPlatform === 'ozon' ? 'ozon-tag' : 'wb-tag'}">
-                                ${otherPlatform === 'ozon' ? 'Ozon' : 'WB'}
-                            </span>
-                        </div>
-                    `).join('');
-
-                    // Клик по похожим товарам
-                    dom.similarRow.querySelectorAll('.similar-item').forEach(item => {
-                        item.addEventListener('click', (e) => {
-                            e.stopPropagation();
-                            const url = item.dataset.url;
-                            if (url && url !== '#') {
-                                window.open(url, '_blank', 'noopener');
-                            }
-                        });
-                    });
-                } else {
-                    dom.similarSection.style.display = 'none';
+                    // Похожие товары
+                    if (filtered.length > 1) {
+                        dom.similarSection.style.display = 'block';
+                        dom.similarRow.innerHTML = filtered.slice(1, 4).map(s => `
+                            <div class="similar-item" onclick="window.open('${s.url || '#'}', '_blank')">
+                                ${s.image ? `<img src="${s.image}" onerror="this.parentElement.innerHTML='<span style=font-size:2rem>📦</span>'">` : '<span style="font-size:2rem">📦</span>'}
+                                <div class="s-name">${s.title}</div>
+                                <div class="s-price">${formatPrice(s.price)}</div>
+                                <span class="s-platform ${otherPlatform === 'ozon' ? 'ozon-tag' : 'wb-tag'}">${otherPlatform === 'ozon' ? 'Ozon' : 'WB'}</span>
+                            </div>
+                        `).join('');
+                    } else {
+                        dom.similarSection.style.display = 'none';
+                    }
+                } catch (e) {
+                    dom.modalComparison.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--red)"><p>❌ Ошибка при поиске на другой площадке</p><p style="font-size:0.85rem;">Попробуйте позже или проверьте подключение</p></div>';
                 }
             }
 
-            // ==================== ОСНОВНОЙ ПОИСК ====================
+            // Основной поиск
             async function performSearch() {
                 const query = dom.searchInput.value.trim();
-
                 if (query.length < 2) {
-                    alert('Введите минимум 2 символа для поиска');
+                    showError('Введите минимум 2 символа для поиска');
                     return;
                 }
 
-                // Показываем загрузку
                 dom.loader.classList.add('active');
                 dom.loaderText.textContent = `Ищем "${query}" на ${state.searchPlatform === 'ozon' ? 'Ozon' : 'Wildberries'}...`;
                 dom.noResults.classList.remove('active');
                 dom.resultsHeader.classList.remove('visible');
                 dom.cardsGrid.innerHTML = '';
+                dom.errorMessage.classList.remove('show');
                 dom.searchBtn.disabled = true;
 
                 try {
                     let results;
-                    
                     if (state.searchPlatform === 'ozon') {
-                        dom.loaderText.textContent = 'Запрашиваем Ozon API...';
-                        results = await searchOzonAPI(query);
+                        results = await searchOzon(query);
                     } else {
-                        dom.loaderText.textContent = 'Запрашиваем Wildberries API...';
-                        results = await searchWBAPI(query);
+                        results = await searchWB(query);
                     }
 
-                    dom.loaderText.textContent = 'Сортируем результаты...';
                     results = sortResults(results, state.sortMode);
                     state.searchResults = results;
-                    
                     renderCards(results, state.searchPlatform);
 
                     if (results.length === 0) {
@@ -1125,40 +577,43 @@
                 } catch (error) {
                     console.error('Search error:', error);
                     dom.noResults.classList.add('active');
-                    dom.noResultsText.textContent = error.message || 'Ошибка при поиске. Попробуйте позже.';
+                    dom.noResultsText.textContent = 'Ошибка при поиске. Возможно, прокси-сервер недоступен. Подождите минуту и попробуйте снова.';
                     dom.resultsHeader.classList.remove('visible');
-                    dom.cardsGrid.innerHTML = '';
                 } finally {
                     dom.loader.classList.remove('active');
                     dom.searchBtn.disabled = false;
                 }
             }
 
-            // ==================== ОБРАБОТЧИКИ ====================
+            function showError(msg) {
+                dom.errorMessage.textContent = msg;
+                dom.errorMessage.classList.add('show');
+                setTimeout(() => dom.errorMessage.classList.remove('show'), 5000);
+            }
+
+            // Обработчики событий
             dom.searchBtn.addEventListener('click', performSearch);
             dom.searchInput.addEventListener('keypress', e => {
                 if (e.key === 'Enter') performSearch();
             });
 
             // Выбор площадки
-            dom.platformOptions.forEach(btn => {
-                btn.addEventListener('click', () => {
-                    dom.platformOptions.forEach(b => {
+            document.querySelectorAll('.platform-option').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('.platform-option').forEach(b => {
                         b.classList.remove('active-ozon', 'active-wb');
                     });
-                    const platform = btn.dataset.platform;
-                    state.searchPlatform = platform;
-                    btn.classList.add(platform === 'ozon' ? 'active-ozon' : 'active-wb');
+                    state.searchPlatform = this.dataset.platform;
+                    this.classList.add(this.dataset.platform === 'ozon' ? 'active-ozon' : 'active-wb');
                 });
             });
 
             // Сортировка
-            dom.sortBtns.forEach(btn => {
-                btn.addEventListener('click', () => {
-                    dom.sortBtns.forEach(b => b.classList.remove('active'));
-                    btn.classList.add('active');
-                    state.sortMode = btn.dataset.sort;
-
+            document.querySelectorAll('.sort-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    state.sortMode = this.dataset.sort;
                     if (state.searchResults.length > 0) {
                         const sorted = sortResults(state.searchResults, state.sortMode);
                         state.searchResults = sorted;
@@ -1168,18 +623,14 @@
             });
 
             // Закрытие модалки
-            dom.modalClose.addEventListener('click', () => {
+            document.getElementById('modalClose').addEventListener('click', () => {
                 dom.modalOverlay.classList.remove('active');
             });
-            dom.modalOverlay.addEventListener('click', (e) => {
-                if (e.target === dom.modalOverlay) {
-                    dom.modalOverlay.classList.remove('active');
-                }
+            dom.modalOverlay.addEventListener('click', e => {
+                if (e.target === dom.modalOverlay) dom.modalOverlay.classList.remove('active');
             });
-            document.addEventListener('keydown', (e) => {
-                if (e.key === 'Escape' && dom.modalOverlay.classList.contains('active')) {
-                    dom.modalOverlay.classList.remove('active');
-                }
+            document.addEventListener('keydown', e => {
+                if (e.key === 'Escape') dom.modalOverlay.classList.remove('active');
             });
 
         })();
