@@ -3,15 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Поиск товара с минимальной ценой</title>
+    <title>Поиск товара с минимальной ценой — Ozon vs WB</title>
     <style>
         :root {
             --ozon: #005bff;
             --ozon-light: #e8f2ff;
-            --ozon-border: #b8d4ff;
             --wb: #cb11ab;
             --wb-light: #fde8f7;
-            --wb-border: #f5b8e4;
             --star: #f59e0b;
             --green: #22c55e;
             --red: #ef4444;
@@ -51,6 +49,19 @@
             background-clip: text;
         }
         .header p { color: var(--subtext); font-size: 0.95rem; margin-top: 0.25rem; }
+
+        .warning-banner {
+            background: #fef3c7;
+            border: 1px solid #f59e0b;
+            color: #92400e;
+            padding: 0.8rem 1.2rem;
+            border-radius: 12px;
+            margin-bottom: 1rem;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
 
         /* ========== ПОИСК ========== */
         .search-section {
@@ -107,14 +118,8 @@
             font-family: inherit;
             white-space: nowrap;
         }
-        .platform-option.active-ozon {
-            background: var(--ozon);
-            color: white;
-        }
-        .platform-option.active-wb {
-            background: var(--wb);
-            color: white;
-        }
+        .platform-option.active-ozon { background: var(--ozon); color: white; }
+        .platform-option.active-wb { background: var(--wb); color: white; }
 
         .search-btn {
             padding: 0.85rem 2rem;
@@ -153,11 +158,7 @@
             transition: all 0.2s;
             font-family: inherit;
         }
-        .sort-btn.active {
-            background: #6366f1;
-            color: white;
-            border-color: #6366f1;
-        }
+        .sort-btn.active { background: #6366f1; color: white; border-color: #6366f1; }
 
         /* ========== ЗАГРУЗКА ========== */
         .loader {
@@ -177,6 +178,11 @@
             margin: 0 auto 1rem;
         }
         @keyframes spin { to { transform: rotate(360deg); } }
+
+        .progress-text {
+            color: var(--subtext);
+            font-size: 0.9rem;
+        }
 
         /* ========== КАРТОЧКИ ТОВАРОВ ========== */
         .results-header {
@@ -227,6 +233,7 @@
             justify-content: center;
             margin-bottom: 0.8rem;
             position: relative;
+            overflow: hidden;
         }
         .card-img {
             max-width: 85%;
@@ -242,6 +249,7 @@
             font-size: 0.7rem;
             font-weight: 700;
             letter-spacing: 0.5px;
+            z-index: 2;
         }
         .card-platform-badge.ozon { background: var(--ozon-light); color: var(--ozon); }
         .card-platform-badge.wb { background: var(--wb-light); color: var(--wb); }
@@ -269,6 +277,8 @@
             justify-content: space-between;
             align-items: center;
             font-size: 0.8rem;
+            flex-wrap: wrap;
+            gap: 0.3rem;
         }
 
         .card-seller {
@@ -281,8 +291,9 @@
         .card-rating {
             display: flex;
             align-items: center;
-            gap: 0.3rem;
+            gap: 0.2rem;
             font-weight: 600;
+            font-size: 0.85rem;
         }
         .stars { color: var(--star); letter-spacing: 1px; }
         .rating-high { color: var(--green); }
@@ -298,7 +309,7 @@
             border-top: 1px dashed #e2e8f0;
         }
 
-        /* ========== МОДАЛЬНОЕ ОКНО (Клик по карточке) ========== */
+        /* ========== МОДАЛЬНОЕ ОКНО ========== */
         .modal-overlay {
             display: none;
             position: fixed;
@@ -388,11 +399,13 @@
             gap: 0.5rem;
             margin-bottom: 0.8rem;
             font-weight: 700;
+            flex-wrap: wrap;
         }
         .modal-card-header .dot {
             width: 10px;
             height: 10px;
             border-radius: 50%;
+            flex-shrink: 0;
         }
         .modal-card-header .dot.ozon-dot { background: var(--ozon); }
         .modal-card-header .dot.wb-dot { background: var(--wb); }
@@ -409,9 +422,7 @@
             font-size: 1.5rem;
             font-weight: 700;
         }
-        .modal-card .price-big.best-price {
-            color: var(--green);
-        }
+        .modal-card .price-big.best-price { color: var(--green); }
 
         .modal-card .btn-go {
             display: block;
@@ -432,7 +443,19 @@
         .modal-card .btn-go.wb-btn { background: var(--wb); }
         .modal-card .btn-go:hover { filter: brightness(1.1); }
 
+        .discount-badge {
+            font-size: 0.75rem;
+            padding: 0.2rem 0.6rem;
+            border-radius: 6px;
+            font-weight: 700;
+            display: inline-block;
+            margin-top: 0.3rem;
+        }
+        .discount-badge.green { background: #dcfce7; color: #16a34a; }
+        .discount-badge.red { background: #fef2f2; color: #ef4444; }
+
         /* Похожие товары */
+        .similar-section { margin-top: 0.5rem; }
         .similar-section h3 {
             font-size: 1rem;
             margin-bottom: 0.8rem;
@@ -474,10 +497,7 @@
             -webkit-box-orient: vertical;
             overflow: hidden;
         }
-        .similar-item .s-price {
-            font-weight: 700;
-            margin-top: 0.2rem;
-        }
+        .similar-item .s-price { font-weight: 700; margin-top: 0.2rem; }
         .similar-item .s-platform {
             font-size: 0.7rem;
             padding: 0.15rem 0.5rem;
@@ -499,16 +519,6 @@
         }
         .no-results.active { display: block; }
         .no-results-icon { font-size: 3rem; margin-bottom: 0.8rem; }
-
-        /* Бейдж скидки */
-        .discount-badge {
-            font-size: 0.75rem;
-            padding: 0.2rem 0.6rem;
-            border-radius: 6px;
-            font-weight: 700;
-        }
-        .discount-badge.green { background: #dcfce7; color: #16a34a; }
-        .discount-badge.red { background: #fef2f2; color: #ef4444; }
     </style>
 </head>
 <body>
@@ -516,7 +526,12 @@
         <!-- Шапка -->
         <div class="header">
             <h1>🔍 Найди товар дешевле</h1>
-            <p>Поиск по одной площадке → сравнение цен того же продавца на другой</p>
+            <p>Реальный поиск по Ozon и Wildberries — сравнение цен одного продавца</p>
+        </div>
+
+        <div class="warning-banner">
+            <span>⚠️</span>
+            <span>Площадки могут блокировать частые запросы. При ошибке подождите 30 секунд и повторите поиск.</span>
         </div>
 
         <!-- Поиск -->
@@ -535,14 +550,13 @@
                 <button class="sort-btn active" data-sort="best">Лучшие (цена + рейтинг)</button>
                 <button class="sort-btn" data-sort="price-asc">Цена ↑</button>
                 <button class="sort-btn" data-sort="rating">По рейтингу</button>
-                <span style="margin-left:auto;">Отфильтровано по мин. цене и высокому рейтингу</span>
             </div>
         </div>
 
         <!-- Загрузка -->
         <div class="loader" id="loader">
             <div class="spinner"></div>
-            <p id="loaderText">Ищем товары...</p>
+            <p class="progress-text" id="loaderText">Ищем товары...</p>
         </div>
 
         <!-- Нет результатов -->
@@ -574,146 +588,191 @@
 
     <script>
         (function() {
-            // ==================== БАЗА ДАННЫХ ====================
-            const PRODUCTS_DB = [
-                // iPhone 15
-                {
-                    id: 'iph15-128-ts',
-                    name: 'iPhone 15 128GB Black',
-                    image: 'https://img.icons8.com/color/200/iphone.png',
-                    seller: 'TechStore',
-                    sellerId: 'techstore',
-                    ozon: { price: 89990, rating: 4.8, reviews: 1240, inStock: true, url: '#', title: 'Apple iPhone 15 128GB Black (MTP43)' },
-                    wb: { price: 87990, rating: 4.7, reviews: 890, inStock: true, url: '#', title: 'iPhone 15 128GB Black' },
-                    similar: ['iph15-256-ts', 'iph14-128-ts', 'airpods-pro2-ts']
-                },
-                {
-                    id: 'iph15-128-ms',
-                    name: 'iPhone 15 128GB Black',
-                    image: 'https://img.icons8.com/color/200/iphone.png',
-                    seller: 'MobileShop',
-                    sellerId: 'mobileshop',
-                    ozon: { price: 91990, rating: 4.5, reviews: 560, inStock: true, url: '#', title: 'iPhone 15 128GB Black' },
-                    wb: { price: 89990, rating: 4.6, reviews: 430, inStock: true, url: '#', title: 'Apple iPhone 15 128GB' },
-                    similar: ['iph15-256-ms', 'sams24-ms']
-                },
-                {
-                    id: 'iph15-128-es',
-                    name: 'iPhone 15 128GB Black',
-                    image: 'https://img.icons8.com/color/200/iphone.png',
-                    seller: 'ElectroStore',
-                    sellerId: 'electrostore',
-                    ozon: { price: 85990, rating: 4.2, reviews: 180, inStock: true, url: '#', title: 'iPhone 15 128GB' },
-                    wb: { price: null, rating: null, reviews: 0, inStock: false, url: '#', title: '' },
-                    similar: []
-                },
-                // iPhone 15 256GB
-                {
-                    id: 'iph15-256-ts',
-                    name: 'iPhone 15 256GB Blue',
-                    image: 'https://img.icons8.com/color/200/iphone.png',
-                    seller: 'TechStore',
-                    sellerId: 'techstore',
-                    ozon: { price: 99990, rating: 4.9, reviews: 980, inStock: true, url: '#', title: 'Apple iPhone 15 256GB Blue' },
-                    wb: { price: 102990, rating: 4.8, reviews: 750, inStock: true, url: '#', title: 'iPhone 15 256GB Blue' },
-                    similar: ['iph15-128-ts', 'iph15-pro-ts', 'airpods-pro2-ts']
-                },
-                {
-                    id: 'iph15-256-ms',
-                    name: 'iPhone 15 256GB Blue',
-                    image: 'https://img.icons8.com/color/200/iphone.png',
-                    seller: 'MobileShop',
-                    sellerId: 'mobileshop',
-                    ozon: { price: 102990, rating: 4.6, reviews: 320, inStock: true, url: '#', title: 'iPhone 15 256GB Blue' },
-                    wb: { price: 104990, rating: 4.4, reviews: 210, inStock: true, url: '#', title: 'Apple iPhone 15 256GB' },
-                    similar: ['iph15-128-ms', 'sams24-ms']
-                },
-                // iPhone 14
-                {
-                    id: 'iph14-128-ts',
-                    name: 'iPhone 14 128GB Purple',
-                    image: 'https://img.icons8.com/color/200/iphone.png',
-                    seller: 'TechStore',
-                    sellerId: 'techstore',
-                    ozon: { price: 69990, rating: 4.7, reviews: 2100, inStock: true, url: '#', title: 'Apple iPhone 14 128GB Purple' },
-                    wb: { price: 72990, rating: 4.6, reviews: 1800, inStock: true, url: '#', title: 'iPhone 14 128GB Purple' },
-                    similar: ['iph15-128-ts', 'iph13-ts']
-                },
-                // AirPods
-                {
-                    id: 'airpods-pro2-ts',
-                    name: 'AirPods Pro 2 USB-C',
-                    image: 'https://img.icons8.com/color/200/airpods-pro.png',
-                    seller: 'TechStore',
-                    sellerId: 'techstore',
-                    ozon: { price: 24990, rating: 4.9, reviews: 3400, inStock: true, url: '#', title: 'AirPods Pro 2nd gen USB-C' },
-                    wb: { price: 23990, rating: 4.8, reviews: 2900, inStock: true, url: '#', title: 'Наушники Apple AirPods Pro 2' },
-                    similar: ['iph15-128-ts', 'airpods3-ts', 'macbook-m2-ts']
-                },
-                {
-                    id: 'airpods3-ts',
-                    name: 'AirPods 3',
-                    image: 'https://img.icons8.com/color/200/airpods-pro.png',
-                    seller: 'TechStore',
-                    sellerId: 'techstore',
-                    ozon: { price: 17990, rating: 4.7, reviews: 1500, inStock: true, url: '#', title: 'Apple AirPods 3' },
-                    wb: { price: 18990, rating: 4.6, reviews: 1200, inStock: true, url: '#', title: 'AirPods 3' },
-                    similar: ['airpods-pro2-ts']
-                },
-                // MacBook
-                {
-                    id: 'macbook-m2-ts',
-                    name: 'MacBook Air M2 13" 256GB',
-                    image: 'https://img.icons8.com/color/200/macbook.png',
-                    seller: 'TechStore',
-                    sellerId: 'techstore',
-                    ozon: { price: 109990, rating: 4.8, reviews: 670, inStock: true, url: '#', title: 'MacBook Air M2 13.6" 256GB Space Gray' },
-                    wb: { price: 112990, rating: 4.7, reviews: 520, inStock: true, url: '#', title: 'Apple MacBook Air 13 M2 256GB' },
-                    similar: ['iph15-256-ts', 'airpods-pro2-ts']
-                },
-                // Samsung
-                {
-                    id: 'sams24-ms',
-                    name: 'Samsung Galaxy S24 Ultra',
-                    image: 'https://img.icons8.com/color/200/samsung.png',
-                    seller: 'MobileShop',
-                    sellerId: 'mobileshop',
-                    ozon: { price: 119990, rating: 4.6, reviews: 450, inStock: true, url: '#', title: 'Samsung Galaxy S24 Ultra 256GB' },
-                    wb: { price: 124990, rating: 4.5, reviews: 380, inStock: true, url: '#', title: 'Samsung S24 Ultra' },
-                    similar: ['iph15-256-ms', 'iph15-128-ms']
-                },
-                // Джинсы
-                {
-                    id: 'jeans-mom-fs',
-                    name: 'Джинсы Mom Fit голубые',
-                    image: 'https://img.icons8.com/color/200/jeans.png',
-                    seller: 'FashionStyle',
-                    sellerId: 'fashionstyle',
-                    ozon: { price: 4990, rating: 4.5, reviews: 890, inStock: true, url: '#', title: 'Джинсы женские Mom Fit голубые' },
-                    wb: { price: 5490, rating: 4.4, reviews: 760, inStock: true, url: '#', title: 'Джинсы Mom Fit' },
-                    similar: ['dress-fs', 'skirt-fs']
-                },
-                {
-                    id: 'dress-fs',
-                    name: 'Платье летнее хлопковое',
-                    image: 'https://img.icons8.com/color/200/dress.png',
-                    seller: 'FashionStyle',
-                    sellerId: 'fashionstyle',
-                    ozon: { price: 3490, rating: 4.7, reviews: 1200, inStock: true, url: '#', title: 'Платье летнее хлопковое размер M' },
-                    wb: { price: 2990, rating: 4.6, reviews: 980, inStock: true, url: '#', title: 'Платье хлопок летнее FashionStyle' },
-                    similar: ['jeans-mom-fs', 'skirt-fs']
-                },
-                {
-                    id: 'skirt-fs',
-                    name: 'Юбка миди плиссе',
-                    image: 'https://img.icons8.com/color/200/skirt.png',
-                    seller: 'FashionStyle',
-                    sellerId: 'fashionstyle',
-                    ozon: { price: 2890, rating: 4.4, reviews: 560, inStock: true, url: '#', title: 'Юбка миди плиссе черная' },
-                    wb: { price: null, rating: null, reviews: 0, inStock: false, url: '#', title: '' },
-                    similar: ['dress-fs']
+            // ==================== API СЕРВИСЫ ====================
+            
+            // Прямой поиск через API Ozon
+            async function searchOzonAPI(query) {
+                try {
+                    const url = `https://www.ozon.ru/api/entrypoint-api.bx/page/json/v2?url=/search/?text=${encodeURIComponent(query)}&from_global=true`;
+                    
+                    const response = await fetch(url, {
+                        headers: {
+                            'Accept': 'application/json',
+                            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                        }
+                    });
+                    
+                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                    
+                    const data = await response.json();
+                    const products = [];
+                    
+                    // Ищем виджет с результатами поиска
+                    const widgets = data.widgetStates || {};
+                    
+                    for (const [key, value] of Object.entries(widgets)) {
+                        if (key.includes('searchResults') || key.includes('SearchResults')) {
+                            try {
+                                const widgetData = JSON.parse(value);
+                                const items = widgetData.items || [];
+                                
+                                for (const item of items.slice(0, 20)) {
+                                    const title = item.title || '';
+                                    const image = item.image || item.picture || '';
+                                    let price = null;
+                                    let rating = null;
+                                    let reviews = 0;
+                                    let seller = '';
+                                    let sellerId = '';
+                                    let productUrl = '';
+                                    
+                                    // Извлечение цены
+                                    const mainState = item.mainState || [];
+                                    for (const state of mainState) {
+                                        if (state.atom && state.atom.price) {
+                                            const priceText = state.atom.price.text || state.atom.price.price || '';
+                                            price = parseInt(String(priceText).replace(/[^\d]/g, '')) || null;
+                                            break;
+                                        }
+                                    }
+                                    
+                                    // Извлечение рейтинга и продавца
+                                    if (item.rating) {
+                                        rating = parseFloat(item.rating) || null;
+                                        reviews = item.reviews || item.feedbackCount || 0;
+                                    }
+                                    
+                                    if (item.seller) {
+                                        seller = item.seller.name || item.seller.title || '';
+                                        sellerId = item.seller.id || '';
+                                    }
+                                    
+                                    // Ссылка на товар
+                                    if (item.link) {
+                                        productUrl = item.link.startsWith('http') ? item.link : `https://www.ozon.ru${item.link}`;
+                                    } else if (item.id) {
+                                        productUrl = `https://www.ozon.ru/product/${item.id}`;
+                                    }
+                                    
+                                    if (title && price) {
+                                        products.push({
+                                            title,
+                                            image,
+                                            price,
+                                            rating,
+                                            reviews,
+                                            seller,
+                                            sellerId,
+                                            url: productUrl,
+                                            platform: 'ozon'
+                                        });
+                                    }
+                                }
+                            } catch (e) {
+                                console.warn('Ozon widget parse error:', e);
+                            }
+                            break;
+                        }
+                    }
+                    
+                    return products;
+                } catch (error) {
+                    console.error('Ozon API error:', error);
+                    throw new Error('Не удалось выполнить поиск на Ozon. Попробуйте позже.');
                 }
-            ];
+            }
+
+            // Поиск через API Wildberries
+            async function searchWBAPI(query) {
+                try {
+                    const url = `https://search.wb.ru/exactmatch/ru/common/v9/search?ab_testid=false&appType=1&curr=rub&dest=-1029256&query=${encodeURIComponent(query)}&resultset=catalog&sort=popular&spp=30`;
+                    
+                    const response = await fetch(url, {
+                        headers: {
+                            'Accept': 'application/json',
+                            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                        }
+                    });
+                    
+                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                    
+                    const data = await response.json();
+                    const products = [];
+                    const items = data.data?.products || [];
+                    
+                    for (const item of items.slice(0, 20)) {
+                        const title = item.name || '';
+                        const price = item.salePriceU ? Math.floor(item.salePriceU / 100) : null;
+                        const rating = item.reviewRating || item.rating || null;
+                        const reviews = item.feedbacks || item.reviews || 0;
+                        const seller = item.supplier || item.brand || '';
+                        const sellerId = String(item.supplierId || '');
+                        
+                        // Изображение
+                        let image = '';
+                        if (item.pics || item.pic) {
+                            const imageId = item.pics || item.pic;
+                            const vol = Math.floor(imageId / 100000);
+                            const part = Math.floor(imageId / 1000);
+                            image = `https://basket-${(vol % 15) + 1}.wbbasket.ru/vol${vol}/part${part}/${imageId}/images/big/1.webp`;
+                        }
+                        
+                        const productUrl = `https://www.wildberries.ru/catalog/${item.id}/detail.aspx`;
+                        
+                        if (title && price) {
+                            products.push({
+                                title,
+                                image,
+                                price,
+                                rating,
+                                reviews,
+                                seller,
+                                sellerId,
+                                url: productUrl,
+                                platform: 'wb'
+                            });
+                        }
+                    }
+                    
+                    return products;
+                } catch (error) {
+                    console.error('WB API error:', error);
+                    throw new Error('Не удалось выполнить поиск на Wildberries. Попробуйте позже.');
+                }
+            }
+
+            // Поиск товара на другой площадке по продавцу и названию
+            async function searchOtherPlatform(originalProduct, targetPlatform) {
+                const sellerQuery = originalProduct.seller || '';
+                const productQuery = originalProduct.title.split(' ').slice(0, 4).join(' ');
+                const searchQuery = `${productQuery} ${sellerQuery}`.trim();
+                
+                try {
+                    let results;
+                    if (targetPlatform === 'ozon') {
+                        results = await searchOzonAPI(searchQuery);
+                    } else {
+                        results = await searchWBAPI(searchQuery);
+                    }
+                    
+                    // Фильтруем по продавцу и похожему названию
+                    const filtered = results.filter(r => {
+                        const sellerMatch = !sellerQuery || 
+                            r.seller?.toLowerCase().includes(sellerQuery.toLowerCase()) ||
+                            sellerQuery.toLowerCase().includes(r.seller?.toLowerCase() || '');
+                        
+                        const titleWords = productQuery.toLowerCase().split(' ').filter(w => w.length > 2);
+                        const titleMatch = titleWords.some(w => r.title.toLowerCase().includes(w));
+                        
+                        return sellerMatch || titleMatch;
+                    });
+                    
+                    return filtered.slice(0, 5);
+                } catch (error) {
+                    console.error(`Search on ${targetPlatform} failed:`, error);
+                    return [];
+                }
+            }
 
             // ==================== СОСТОЯНИЕ ====================
             const state = {
@@ -742,11 +801,12 @@
                 modalHeader: document.getElementById('modalHeader'),
                 modalComparison: document.getElementById('modalComparison'),
                 similarRow: document.getElementById('similarRow'),
+                similarSection: document.getElementById('similarSection'),
                 sortBtns: document.querySelectorAll('.sort-btn'),
                 platformOptions: document.querySelectorAll('.platform-option')
             };
 
-            // ==================== ФУНКЦИИ ====================
+            // ==================== УТИЛИТЫ ====================
             function formatPrice(p) {
                 return p ? p.toLocaleString('ru-RU') + ' ₽' : '—';
             }
@@ -765,56 +825,35 @@
                 return 'rating-low';
             }
 
-            // Поиск товаров
-            function searchProducts(query, platform) {
-                const q = query.toLowerCase().trim();
-                if (!q || q.length < 2) return [];
-
-                let results = PRODUCTS_DB.filter(p => {
-                    const data = p[platform];
-                    if (!data || !data.price || !data.inStock) return false;
-                    
-                    const nameMatch = p.name.toLowerCase().includes(q);
-                    const titleMatch = data.title && data.title.toLowerCase().includes(q);
-                    const sellerMatch = p.seller.toLowerCase().includes(q);
-                    
-                    return nameMatch || titleMatch || sellerMatch;
-                });
-
-                return results;
-            }
-
-            // Сортировка
-            function sortResults(results, mode, platform) {
+            function sortResults(results, mode) {
                 const sorted = [...results];
                 
                 switch (mode) {
                     case 'best':
-                        // Комбинированная сортировка: цена + рейтинг
                         sorted.sort((a, b) => {
-                            const scoreA = (a[platform].rating || 0) * 10000 - (a[platform].price || 999999);
-                            const scoreB = (b[platform].rating || 0) * 10000 - (b[platform].price || 999999);
+                            const scoreA = (a.rating || 0) * 10000 - (a.price || 999999);
+                            const scoreB = (b.rating || 0) * 10000 - (b.price || 999999);
                             return scoreB - scoreA;
                         });
                         break;
                     case 'price-asc':
-                        sorted.sort((a, b) => (a[platform].price || 999999) - (b[platform].price || 999999));
+                        sorted.sort((a, b) => (a.price || 999999) - (b.price || 999999));
                         break;
                     case 'rating':
-                        sorted.sort((a, b) => (b[platform].rating || 0) - (a[platform].rating || 0));
+                        sorted.sort((a, b) => (b.rating || 0) - (a.rating || 0));
                         break;
                 }
                 
                 return sorted;
             }
 
-            // Отображение карточек
+            // ==================== ОТОБРАЖЕНИЕ ====================
             function renderCards(results, platform) {
                 dom.cardsGrid.innerHTML = '';
 
                 if (results.length === 0) {
                     dom.noResults.classList.add('active');
-                    dom.noResultsText.textContent = 'Ничего не найдено. Попробуйте: iPhone, AirPods, джинсы, платье...';
+                    dom.noResultsText.textContent = 'Ничего не найдено. Попробуйте изменить запрос.';
                     dom.resultsHeader.classList.remove('visible');
                     return;
                 }
@@ -822,32 +861,38 @@
                 dom.noResults.classList.remove('active');
                 dom.resultsHeader.classList.add('visible');
                 dom.resultsCount.textContent = results.length;
-                dom.resultsPlatform.textContent = platform === 'ozon' ? '🛒 Ищем на Ozon' : '🛍️ Ищем на Wildberries';
+                dom.resultsPlatform.textContent = platform === 'ozon' ? '🛒 Ozon' : '🛍️ Wildberries';
 
                 results.forEach((product, index) => {
-                    const data = product[platform];
                     const card = document.createElement('div');
                     card.className = 'product-card';
-                    if (index === 0) card.classList.add('best-card');
+                    if (index === 0 && state.sortMode === 'best') card.classList.add('best-card');
 
-                    const ratingClass = getRatingClass(data.rating);
-                    const stars = getStars(data.rating);
+                    const ratingClass = getRatingClass(product.rating);
+                    const stars = getStars(product.rating);
 
                     card.innerHTML = `
                         <div class="card-img-container">
                             <span class="card-platform-badge ${platform}">${platform === 'ozon' ? 'OZON' : 'WB'}</span>
-                            <img src="${product.image}" alt="${product.name}" class="card-img" 
-                                 onerror="this.style.display='none'; this.parentElement.innerHTML+='<span style=font-size:3rem>📦</span>'">
+                            ${product.image 
+                                ? `<img src="${product.image}" alt="${product.title}" class="card-img" 
+                                     onerror="this.onerror=null; this.parentElement.innerHTML+='<span style=font-size:3rem>📦</span>'">`
+                                : '<span style="font-size:3rem;">📦</span>'
+                            }
                         </div>
-                        <div class="card-title">${data.title || product.name}</div>
-                        <div class="card-price">${formatPrice(data.price)}</div>
+                        <div class="card-title">${product.title}</div>
+                        <div class="card-price">${formatPrice(product.price)}</div>
                         <div class="card-meta">
-                            <span class="card-seller">🏪 ${product.seller}</span>
-                            <span class="card-rating ${ratingClass}">
-                                <span class="stars">${stars}</span>
-                                ${data.rating ? data.rating.toFixed(1) : ''}
-                                ${data.reviews ? `<span style="color:#94a3b8;font-weight:400;">(${data.reviews})</span>` : ''}
+                            <span class="card-seller" title="${product.seller || 'Продавец не указан'}">
+                                🏪 ${product.seller || 'Неизвестный продавец'}
                             </span>
+                            ${product.rating ? `
+                                <span class="card-rating ${ratingClass}">
+                                    <span class="stars">${stars}</span>
+                                    ${product.rating.toFixed(1)}
+                                    ${product.reviews ? `<span style="color:#94a3b8;font-weight:400;font-size:0.75rem;">(${product.reviews})</span>` : ''}
+                                </span>
+                            ` : '<span class="card-rating" style="color:#94a3b8;">Нет оценок</span>'}
                         </div>
                         <div class="card-hint">👆 Нажмите, чтобы сравнить с другой площадкой</div>
                     `;
@@ -857,40 +902,97 @@
                 });
             }
 
-            // Открытие модального окна сравнения
-            function openComparison(product, searchPlatform) {
+            // ==================== МОДАЛЬНОЕ ОКНО ====================
+            async function openComparison(product, searchPlatform) {
                 state.selectedProduct = product;
                 const otherPlatform = searchPlatform === 'ozon' ? 'wb' : 'ozon';
-                const searchData = product[searchPlatform];
-                const otherData = product[otherPlatform];
-
-                // Заголовок
+                
+                // Показываем модалку с загрузкой
                 dom.modalHeader.innerHTML = `
                     <h2>
-                        <span>📦 ${product.name}</span>
-                        <span style="font-size:0.85rem;color:var(--subtext);">от продавца <strong>${product.seller}</strong></span>
+                        <span>📦 ${product.title}</span>
+                        <span style="font-size:0.85rem;color:var(--subtext);">
+                            ${product.seller ? `от продавца <strong>${product.seller}</strong>` : ''}
+                        </span>
                     </h2>
                 `;
 
-                // Определяем лучшую цену
-                let bestPlatform = null;
-                if (searchData.price && otherData.price) {
-                    bestPlatform = searchData.price <= otherData.price ? searchPlatform : otherPlatform;
-                } else if (searchData.price) {
-                    bestPlatform = searchPlatform;
-                } else if (otherData.price) {
-                    bestPlatform = otherPlatform;
+                dom.modalComparison.innerHTML = `
+                    <div style="grid-column:1/-1;text-align:center;padding:2rem;">
+                        <div class="spinner" style="margin:0 auto 1rem;"></div>
+                        <p>Ищем этот товар у продавца на ${otherPlatform === 'ozon' ? 'Ozon' : 'Wildberries'}...</p>
+                    </div>
+                `;
+                
+                dom.similarSection.style.display = 'none';
+                dom.modalOverlay.classList.add('active');
+
+                // Ищем на другой площадке
+                let otherResults = [];
+                try {
+                    otherResults = await searchOtherPlatform(product, otherPlatform);
+                } catch (error) {
+                    console.error('Other platform search failed:', error);
                 }
 
-                // Сравнение
+                // Отображаем сравнение
+                renderComparison(product, otherResults, searchPlatform, otherPlatform);
+            }
+
+            function renderComparison(originalProduct, otherResults, searchPlatform, otherPlatform) {
+                const searchData = {
+                    title: originalProduct.title,
+                    price: originalProduct.price,
+                    rating: originalProduct.rating,
+                    reviews: originalProduct.reviews,
+                    image: originalProduct.image,
+                    url: originalProduct.url,
+                    seller: originalProduct.seller,
+                    inStock: true
+                };
+
+                // Берём лучший результат с другой площадки
+                const otherData = otherResults.length > 0 ? {
+                    title: otherResults[0].title,
+                    price: otherResults[0].price,
+                    rating: otherResults[0].rating,
+                    reviews: otherResults[0].reviews,
+                    image: otherResults[0].image,
+                    url: otherResults[0].url,
+                    seller: otherResults[0].seller,
+                    inStock: true
+                } : null;
+
+                // Определяем лучшую цену
+                let bestPlatform = null;
+                if (otherData && otherData.price) {
+                    bestPlatform = searchData.price <= otherData.price ? searchPlatform : otherPlatform;
+                } else {
+                    bestPlatform = searchPlatform;
+                }
+
                 const platforms = [
-                    { key: searchPlatform, data: searchData, label: searchPlatform === 'ozon' ? 'Ozon (исходный поиск)' : 'Wildberries (исходный поиск)', dotClass: searchPlatform === 'ozon' ? 'ozon-dot' : 'wb-dot', btnClass: searchPlatform === 'ozon' ? 'ozon-btn' : 'wb-btn' },
-                    { key: otherPlatform, data: otherData, label: otherPlatform === 'ozon' ? 'Ozon' : 'Wildberries', dotClass: otherPlatform === 'ozon' ? 'ozon-dot' : 'wb-dot', btnClass: otherPlatform === 'ozon' ? 'ozon-btn' : 'wb-btn' }
+                    { 
+                        key: searchPlatform, 
+                        data: searchData, 
+                        label: searchPlatform === 'ozon' ? 'Ozon (исходный поиск)' : 'Wildberries (исходный поиск)', 
+                        dotClass: searchPlatform === 'ozon' ? 'ozon-dot' : 'wb-dot', 
+                        btnClass: searchPlatform === 'ozon' ? 'ozon-btn' : 'wb-btn',
+                        isOriginal: true
+                    },
+                    { 
+                        key: otherPlatform, 
+                        data: otherData, 
+                        label: otherPlatform === 'ozon' ? 'Ozon' : 'Wildberries', 
+                        dotClass: otherPlatform === 'ozon' ? 'ozon-dot' : 'wb-dot', 
+                        btnClass: otherPlatform === 'ozon' ? 'ozon-btn' : 'wb-btn',
+                        isOriginal: false
+                    }
                 ];
 
                 dom.modalComparison.innerHTML = platforms.map(p => {
-                    const isBest = p.key === bestPlatform;
-                    const isAvailable = p.data && p.data.price && p.data.inStock;
+                    const isBest = p.key === bestPlatform && p.data;
+                    const isAvailable = p.data && p.data.price;
                     const stars = getStars(p.data?.rating);
                     const ratingClass = getRatingClass(p.data?.rating);
 
@@ -904,16 +1006,16 @@
                                 <div style="text-align:center;padding:2rem;color:var(--subtext);">
                                     <p style="font-size:2rem;">📭</p>
                                     <p>Товар не найден</p>
-                                    <p style="font-size:0.8rem;">Продавец не продаёт этот товар на данной площадке</p>
+                                    <p style="font-size:0.8rem;">Продавец не продаёт этот товар на данной площадке, или товар временно отсутствует</p>
                                 </div>
                             </div>`;
                     }
 
-                    const priceDiff = searchData.price && otherData.price 
-                        ? Math.abs(searchData.price - otherData.price)
+                    const priceDiff = searchData.price && p.data.price && searchData.price !== p.data.price
+                        ? Math.abs(searchData.price - p.data.price)
                         : 0;
-                    const percentDiff = searchData.price && otherData.price && searchData.price !== otherData.price
-                        ? Math.round((priceDiff / Math.min(searchData.price, otherData.price)) * 100)
+                    const percentDiff = priceDiff > 0 && Math.min(searchData.price, p.data.price) > 0
+                        ? Math.round((priceDiff / Math.min(searchData.price, p.data.price)) * 100)
                         : 0;
 
                     return `
@@ -923,89 +1025,67 @@
                                 <span>${p.label}</span>
                                 ${isBest ? '<span class="discount-badge green">🏆 Лучшая цена</span>' : ''}
                             </div>
-                            <img src="${product.image}" alt="${product.name}" 
-                                 onerror="this.style.display='none'; this.parentElement.innerHTML+='<div style=text-align:center;font-size:3rem;padding:1rem>📦</div>'">
-                            <p style="font-weight:600;font-size:0.9rem;margin-bottom:0.5rem;">${p.data.title || product.name}</p>
+                            ${p.data.image 
+                                ? `<img src="${p.data.image}" alt="${p.data.title}" 
+                                     onerror="this.onerror=null; this.parentElement.innerHTML+='<div style=text-align:center;font-size:3rem;padding:1rem>📦</div>'">`
+                                : '<div style="text-align:center;font-size:3rem;padding:1rem;">📦</div>'
+                            }
+                            <p style="font-weight:600;font-size:0.9rem;margin-bottom:0.5rem;">${p.data.title}</p>
                             <div class="price-big ${isBest ? 'best-price' : ''}">${formatPrice(p.data.price)}</div>
                             ${!isBest && priceDiff > 0 ? `<span class="discount-badge red">Дороже на ${formatPrice(priceDiff)} (${percentDiff}%)</span>` : ''}
                             ${isBest && priceDiff > 0 ? `<span class="discount-badge green">Экономия ${formatPrice(priceDiff)} (${percentDiff}%)</span>` : ''}
                             <div style="margin-top:0.5rem;font-size:0.85rem;">
-                                <span class="card-rating ${ratingClass}">
-                                    <span class="stars">${stars}</span>
-                                    ${p.data.rating ? p.data.rating.toFixed(1) : ''}
-                                </span>
-                                ${p.data.reviews ? `<span style="color:#94a3b8;">(${p.data.reviews} отзывов)</span>` : ''}
+                                ${p.data.rating ? `
+                                    <span class="card-rating ${ratingClass}">
+                                        <span class="stars">${stars}</span>
+                                        ${p.data.rating.toFixed(1)}
+                                    </span>
+                                    ${p.data.reviews ? `<span style="color:#94a3b8;">(${p.data.reviews} отзывов)</span>` : ''}
+                                ` : '<span style="color:#94a3b8;">Нет оценок</span>'}
                             </div>
-                            <div style="font-size:0.8rem;color:var(--subtext);margin-top:0.3rem;">🏪 ${product.seller}</div>
-                            <a href="${p.data.url}" target="_blank" class="btn-go ${p.btnClass}">
+                            <div style="font-size:0.8rem;color:var(--subtext);margin-top:0.3rem;">
+                                🏪 ${p.data.seller || 'Продавец не указан'}
+                            </div>
+                            <a href="${p.data.url || '#'}" target="_blank" rel="noopener" class="btn-go ${p.btnClass}">
                                 Перейти на ${p.key === 'ozon' ? 'Ozon' : 'Wildberries'} →
                             </a>
                         </div>`;
                 }).join('');
 
                 // Похожие товары
-                renderSimilarProducts(product, otherPlatform);
-
-                // Открываем модалку
-                dom.modalOverlay.classList.add('active');
-            }
-
-            // Похожие товары
-            function renderSimilarProducts(product, targetPlatform) {
-                const similarIds = product.similar || [];
-                let similarProducts = similarIds
-                    .map(id => PRODUCTS_DB.find(p => p.id === id))
-                    .filter(Boolean);
-
-                // Если похожих не хватает, добавляем другие товары того же продавца
-                if (similarProducts.length < 3) {
-                    const sellerProducts = PRODUCTS_DB.filter(
-                        p => p.sellerId === product.sellerId && p.id !== product.id && !similarIds.includes(p.id)
-                    );
-                    similarProducts = [...similarProducts, ...sellerProducts].slice(0, 3);
-                }
-
-                if (similarProducts.length === 0) {
-                    document.getElementById('similarSection').style.display = 'none';
-                    return;
-                }
-
-                document.getElementById('similarSection').style.display = 'block';
-                dom.similarRow.innerHTML = similarProducts.map(sp => {
-                    const data = sp[targetPlatform];
-                    const hasData = data && data.price && data.inStock;
-                    const otherData = sp[targetPlatform === 'ozon' ? 'wb' : 'ozon'];
-                    
-                    return `
-                        <div class="similar-item" data-product-id="${sp.id}">
-                            <img src="${sp.image}" alt="${sp.name}" 
-                                 onerror="this.style.display='none'; this.parentElement.innerHTML+='<span style=font-size:2rem>📦</span>'">
-                            <div class="s-name">${sp.name}</div>
-                            ${hasData 
-                                ? `<div class="s-price">${formatPrice(data.price)}</div>
-                                   <span class="s-platform ${targetPlatform === 'ozon' ? 'ozon-tag' : 'wb-tag'}">
-                                       ${targetPlatform === 'ozon' ? 'Ozon' : 'WB'}
-                                   </span>`
-                                : `<div style="color:var(--subtext);font-size:0.8rem;">Нет на этой площадке</div>`
+                if (otherResults.length > 1) {
+                    dom.similarSection.style.display = 'block';
+                    dom.similarRow.innerHTML = otherResults.slice(1, 4).map(sp => `
+                        <div class="similar-item" data-url="${sp.url || '#'}">
+                            ${sp.image 
+                                ? `<img src="${sp.image}" alt="${sp.title}" 
+                                     onerror="this.onerror=null; this.parentElement.innerHTML+='<span style=font-size:2rem>📦</span>'">`
+                                : '<span style="font-size:2rem;">📦</span>'
                             }
+                            <div class="s-name">${sp.title}</div>
+                            <div class="s-price">${formatPrice(sp.price)}</div>
+                            <span class="s-platform ${otherPlatform === 'ozon' ? 'ozon-tag' : 'wb-tag'}">
+                                ${otherPlatform === 'ozon' ? 'Ozon' : 'WB'}
+                            </span>
                         </div>
-                    `;
-                }).join('');
+                    `).join('');
 
-                // Обработчики клика по похожим
-                dom.similarRow.querySelectorAll('.similar-item').forEach(item => {
-                    item.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        const prodId = item.dataset.productId;
-                        const prod = PRODUCTS_DB.find(p => p.id === prodId);
-                        if (prod) {
-                            openComparison(prod, state.searchPlatform);
-                        }
+                    // Клик по похожим товарам
+                    dom.similarRow.querySelectorAll('.similar-item').forEach(item => {
+                        item.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            const url = item.dataset.url;
+                            if (url && url !== '#') {
+                                window.open(url, '_blank', 'noopener');
+                            }
+                        });
                     });
-                });
+                } else {
+                    dom.similarSection.style.display = 'none';
+                }
             }
 
-            // Основная функция поиска
+            // ==================== ОСНОВНОЙ ПОИСК ====================
             async function performSearch() {
                 const query = dom.searchInput.value.trim();
 
@@ -1022,17 +1102,36 @@
                 dom.cardsGrid.innerHTML = '';
                 dom.searchBtn.disabled = true;
 
-                // Имитация запроса
-                await new Promise(resolve => setTimeout(resolve, 1000));
+                try {
+                    let results;
+                    
+                    if (state.searchPlatform === 'ozon') {
+                        dom.loaderText.textContent = 'Запрашиваем Ozon API...';
+                        results = await searchOzonAPI(query);
+                    } else {
+                        dom.loaderText.textContent = 'Запрашиваем Wildberries API...';
+                        results = await searchWBAPI(query);
+                    }
 
-                let results = searchProducts(query, state.searchPlatform);
-                results = sortResults(results, state.sortMode, state.searchPlatform);
+                    dom.loaderText.textContent = 'Сортируем результаты...';
+                    results = sortResults(results, state.sortMode);
+                    state.searchResults = results;
+                    
+                    renderCards(results, state.searchPlatform);
 
-                state.searchResults = results;
-                renderCards(results, state.searchPlatform);
-
-                dom.loader.classList.remove('active');
-                dom.searchBtn.disabled = false;
+                    if (results.length === 0) {
+                        dom.noResultsText.textContent = `По запросу "${query}" ничего не найдено. Попробуйте изменить запрос.`;
+                    }
+                } catch (error) {
+                    console.error('Search error:', error);
+                    dom.noResults.classList.add('active');
+                    dom.noResultsText.textContent = error.message || 'Ошибка при поиске. Попробуйте позже.';
+                    dom.resultsHeader.classList.remove('visible');
+                    dom.cardsGrid.innerHTML = '';
+                } finally {
+                    dom.loader.classList.remove('active');
+                    dom.searchBtn.disabled = false;
+                }
             }
 
             // ==================== ОБРАБОТЧИКИ ====================
@@ -1050,13 +1149,6 @@
                     const platform = btn.dataset.platform;
                     state.searchPlatform = platform;
                     btn.classList.add(platform === 'ozon' ? 'active-ozon' : 'active-wb');
-
-                    // Если уже есть результаты, обновляем сортировку
-                    if (state.searchResults.length > 0) {
-                        const sorted = sortResults(state.searchResults, state.sortMode, platform);
-                        state.searchResults = sorted;
-                        renderCards(sorted, platform);
-                    }
                 });
             });
 
@@ -1068,7 +1160,7 @@
                     state.sortMode = btn.dataset.sort;
 
                     if (state.searchResults.length > 0) {
-                        const sorted = sortResults(state.searchResults, state.sortMode, state.searchPlatform);
+                        const sorted = sortResults(state.searchResults, state.sortMode);
                         state.searchResults = sorted;
                         renderCards(sorted, state.searchPlatform);
                     }
@@ -1087,18 +1179,6 @@
             document.addEventListener('keydown', (e) => {
                 if (e.key === 'Escape' && dom.modalOverlay.classList.contains('active')) {
                     dom.modalOverlay.classList.remove('active');
-                }
-            });
-
-            // ==================== ДЕМО-ПОДСКАЗКИ ====================
-            const demoSuggestions = [
-                'iPhone 15', 'AirPods', 'MacBook', 'Samsung', 'джинсы', 'платье'
-            ];
-            
-            dom.searchInput.addEventListener('focus', function() {
-                if (!this.value) {
-                    const random = demoSuggestions[Math.floor(Math.random() * demoSuggestions.length)];
-                    this.placeholder = `Например: ${random}...`;
                 }
             });
 
