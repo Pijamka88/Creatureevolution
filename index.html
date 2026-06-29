@@ -1,630 +1,1108 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>CreatureEvolution</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Поиск товара с минимальной ценой</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        :root {
+            --ozon: #005bff;
+            --ozon-light: #e8f2ff;
+            --ozon-border: #b8d4ff;
+            --wb: #cb11ab;
+            --wb-light: #fde8f7;
+            --wb-border: #f5b8e4;
+            --star: #f59e0b;
+            --green: #22c55e;
+            --red: #ef4444;
+            --bg: #f1f5f9;
+            --card: #ffffff;
+            --text: #1e293b;
+            --subtext: #64748b;
         }
-        
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
         body {
-            background: #000;
-            color: #fff;
-            font-family: Arial, sans-serif;
-            overflow: hidden;
-            touch-action: none;
+            font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            line-height: 1.5;
         }
-        
-        #gameCanvas {
-            display: block;
-            background: #000;
-            border: 2px solid #333;
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 1.5rem;
         }
-        
-        #ui {
+
+        /* ========== ШАПКА ========== */
+        .header {
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+        .header h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .header p { color: var(--subtext); font-size: 0.95rem; margin-top: 0.25rem; }
+
+        /* ========== ПОИСК ========== */
+        .search-section {
+            background: var(--card);
+            border-radius: 20px;
+            padding: 1.5rem;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.05);
+            margin-bottom: 1.5rem;
+        }
+
+        .search-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .search-input {
+            flex: 1;
+            min-width: 220px;
+            padding: 0.85rem 1.2rem;
+            font-size: 1rem;
+            border: 2px solid #e2e8f0;
+            border-radius: 14px;
+            outline: none;
+            background: #f8fafc;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+        .search-input:focus {
+            border-color: #6366f1;
+            box-shadow: 0 0 0 4px rgba(99,102,241,0.08);
+            background: white;
+        }
+
+        .platform-select {
+            display: flex;
+            gap: 6px;
+            background: #f1f5f9;
+            border-radius: 14px;
+            padding: 4px;
+        }
+
+        .platform-option {
+            padding: 0.6rem 1.2rem;
+            border-radius: 11px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+            background: transparent;
+            color: var(--subtext);
+            font-family: inherit;
+            white-space: nowrap;
+        }
+        .platform-option.active-ozon {
+            background: var(--ozon);
+            color: white;
+        }
+        .platform-option.active-wb {
+            background: var(--wb);
+            color: white;
+        }
+
+        .search-btn {
+            padding: 0.85rem 2rem;
+            background: #6366f1;
+            color: white;
+            font-weight: 600;
+            font-size: 1rem;
+            border: none;
+            border-radius: 14px;
+            cursor: pointer;
+            transition: all 0.25s;
+            white-space: nowrap;
+            font-family: inherit;
+        }
+        .search-btn:hover { background: #4f46e5; transform: translateY(-1px); box-shadow: 0 8px 25px rgba(99,102,241,0.3); }
+        .search-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+        .filter-row {
+            display: flex;
+            gap: 8px;
+            margin-top: 0.8rem;
+            flex-wrap: wrap;
+            align-items: center;
+            font-size: 0.8rem;
+            color: var(--subtext);
+        }
+
+        .sort-btn {
+            padding: 0.4rem 0.9rem;
+            border-radius: 20px;
+            border: 1.5px solid #e2e8f0;
+            background: white;
+            font-size: 0.8rem;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+        .sort-btn.active {
+            background: #6366f1;
+            color: white;
+            border-color: #6366f1;
+        }
+
+        /* ========== ЗАГРУЗКА ========== */
+        .loader {
+            display: none;
+            text-align: center;
+            padding: 3rem;
+        }
+        .loader.active { display: block; }
+
+        .spinner {
+            width: 44px;
+            height: 44px;
+            border: 4px solid #e2e8f0;
+            border-top: 4px solid #6366f1;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 1rem;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ========== КАРТОЧКИ ТОВАРОВ ========== */
+        .results-header {
+            display: none;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            font-weight: 600;
+            color: var(--subtext);
+        }
+        .results-header.visible { display: flex; }
+
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.2rem;
+        }
+
+        .product-card {
+            background: var(--card);
+            border-radius: 18px;
+            padding: 1.2rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.04);
+            transition: all 0.3s;
+            border: 2px solid transparent;
+            cursor: pointer;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+        .product-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 35px rgba(0,0,0,0.08);
+            border-color: #6366f1;
+        }
+        .product-card.best-card {
+            border-color: var(--green);
+            box-shadow: 0 0 0 3px rgba(34,197,94,0.1);
+        }
+
+        .card-img-container {
+            width: 100%;
+            height: 180px;
+            background: #f8fafc;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 0.8rem;
+            position: relative;
+        }
+        .card-img {
+            max-width: 85%;
+            max-height: 85%;
+            object-fit: contain;
+        }
+        .card-platform-badge {
             position: absolute;
             top: 10px;
             left: 10px;
-            z-index: 10;
-            font-size: 14px;
+            padding: 0.25rem 0.7rem;
+            border-radius: 10px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
         }
-        
-        #upgradePanel {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(0, 0, 0, 0.9);
-            border: 2px solid #fff;
-            padding: 20px;
-            display: none;
-            z-index: 20;
+        .card-platform-badge.ozon { background: var(--ozon-light); color: var(--ozon); }
+        .card-platform-badge.wb { background: var(--wb-light); color: var(--wb); }
+
+        .card-title {
+            font-weight: 650;
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            flex-grow: 1;
         }
-        
-        .upgrade-btn {
-            display: block;
-            margin: 10px 0;
-            padding: 10px 20px;
-            background: #333;
-            color: #fff;
-            border: 1px solid #666;
-            cursor: pointer;
-            font-size: 14px;
+
+        .card-price {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #0f172a;
+            margin-bottom: 0.3rem;
         }
-        
-        .upgrade-btn:hover {
-            background: #555;
-        }
-        
-        #controls {
-            position: absolute;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
+
+        .card-meta {
             display: flex;
-            gap: 10px;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.8rem;
         }
-        
-        .control-btn {
-            width: 50px;
-            height: 50px;
-            background: rgba(255, 255, 255, 0.1);
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            border-radius: 50%;
-            color: #fff;
-            font-size: 18px;
+
+        .card-seller {
+            color: var(--subtext);
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .card-rating {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+            font-weight: 600;
+        }
+        .stars { color: var(--star); letter-spacing: 1px; }
+        .rating-high { color: var(--green); }
+        .rating-mid { color: var(--star); }
+        .rating-low { color: var(--red); }
+
+        .card-hint {
+            font-size: 0.7rem;
+            color: #94a3b8;
+            text-align: center;
+            margin-top: 0.5rem;
+            padding-top: 0.5rem;
+            border-top: 1px dashed #e2e8f0;
+        }
+
+        /* ========== МОДАЛЬНОЕ ОКНО (Клик по карточке) ========== */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(15,23,42,0.6);
+            backdrop-filter: blur(4px);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+        .modal-overlay.active { display: flex; }
+
+        .modal {
+            background: white;
+            border-radius: 24px;
+            max-width: 850px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            padding: 2rem;
+            box-shadow: 0 25px 60px rgba(0,0,0,0.2);
+            animation: modalIn 0.3s ease;
+        }
+        @keyframes modalIn {
+            from { opacity: 0; transform: translateY(30px) scale(0.95); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        .modal-close {
+            float: right;
+            background: #f1f5f9;
+            border: none;
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            font-size: 1.2rem;
             cursor: pointer;
-            touch-action: manipulation;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
         }
-        
-        .control-btn:active {
-            background: rgba(255, 255, 255, 0.3);
+        .modal-close:hover { background: #e2e8f0; }
+
+        .modal-header {
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid #f1f5f9;
         }
+        .modal-header h2 {
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            flex-wrap: wrap;
+        }
+
+        .modal-comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        @media (max-width: 650px) {
+            .modal-comparison { grid-template-columns: 1fr; }
+        }
+
+        .modal-card {
+            border-radius: 18px;
+            padding: 1.3rem;
+            border: 2px solid #e2e8f0;
+            transition: all 0.3s;
+        }
+        .modal-card.best {
+            border-color: var(--green);
+            box-shadow: 0 0 0 4px rgba(34,197,94,0.08);
+        }
+        .modal-card.not-found {
+            opacity: 0.6;
+            border-style: dashed;
+        }
+
+        .modal-card-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.8rem;
+            font-weight: 700;
+        }
+        .modal-card-header .dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+        .modal-card-header .dot.ozon-dot { background: var(--ozon); }
+        .modal-card-header .dot.wb-dot { background: var(--wb); }
+
+        .modal-card img {
+            width: 100%;
+            height: 150px;
+            object-fit: contain;
+            background: #f8fafc;
+            border-radius: 12px;
+            margin-bottom: 0.8rem;
+        }
+        .modal-card .price-big {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+        .modal-card .price-big.best-price {
+            color: var(--green);
+        }
+
+        .modal-card .btn-go {
+            display: block;
+            width: 100%;
+            margin-top: 1rem;
+            padding: 0.7rem;
+            border: none;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            text-align: center;
+            text-decoration: none;
+            font-family: inherit;
+            color: white;
+            transition: all 0.2s;
+        }
+        .modal-card .btn-go.ozon-btn { background: var(--ozon); }
+        .modal-card .btn-go.wb-btn { background: var(--wb); }
+        .modal-card .btn-go:hover { filter: brightness(1.1); }
+
+        /* Похожие товары */
+        .similar-section h3 {
+            font-size: 1rem;
+            margin-bottom: 0.8rem;
+            color: var(--subtext);
+        }
+        .similar-row {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.8rem;
+        }
+        @media (max-width: 550px) {
+            .similar-row { grid-template-columns: 1fr; }
+        }
+
+        .similar-item {
+            background: #f8fafc;
+            border-radius: 14px;
+            padding: 0.8rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+        }
+        .similar-item:hover {
+            background: white;
+            border-color: #6366f1;
+        }
+        .similar-item img {
+            width: 70px;
+            height: 70px;
+            object-fit: contain;
+            margin-bottom: 0.4rem;
+        }
+        .similar-item .s-name {
+            font-size: 0.8rem;
+            font-weight: 500;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        .similar-item .s-price {
+            font-weight: 700;
+            margin-top: 0.2rem;
+        }
+        .similar-item .s-platform {
+            font-size: 0.7rem;
+            padding: 0.15rem 0.5rem;
+            border-radius: 8px;
+            display: inline-block;
+            margin-top: 0.2rem;
+        }
+        .similar-item .s-platform.ozon-tag { background: var(--ozon-light); color: var(--ozon); }
+        .similar-item .s-platform.wb-tag { background: var(--wb-light); color: var(--wb); }
+
+        /* Нет результатов */
+        .no-results {
+            display: none;
+            text-align: center;
+            padding: 3rem;
+            background: white;
+            border-radius: 20px;
+            color: var(--subtext);
+        }
+        .no-results.active { display: block; }
+        .no-results-icon { font-size: 3rem; margin-bottom: 0.8rem; }
+
+        /* Бейдж скидки */
+        .discount-badge {
+            font-size: 0.75rem;
+            padding: 0.2rem 0.6rem;
+            border-radius: 6px;
+            font-weight: 700;
+        }
+        .discount-badge.green { background: #dcfce7; color: #16a34a; }
+        .discount-badge.red { background: #fef2f2; color: #ef4444; }
     </style>
 </head>
 <body>
-    <canvas id="gameCanvas"></canvas>
-    
-    <div id="ui">
-        <div>Level: <span id="level">1</span></div>
-        <div>XP: <span id="xp">0</span>/<span id="xpToNext">10</span></div>
-        <div>Size: <span id="size">10</span></div>
-        <div>Speed: <span id="speed">2</span></div>
+    <div class="container">
+        <!-- Шапка -->
+        <div class="header">
+            <h1>🔍 Найди товар дешевле</h1>
+            <p>Поиск по одной площадке → сравнение цен того же продавца на другой</p>
+        </div>
+
+        <!-- Поиск -->
+        <div class="search-section">
+            <div class="search-row">
+                <input type="text" class="search-input" id="searchInput" 
+                       placeholder="Введите название товара..." autofocus>
+                <div class="platform-select" id="platformSelect">
+                    <button class="platform-option active-ozon" data-platform="ozon">🛒 Ozon</button>
+                    <button class="platform-option" data-platform="wb">🛍️ Wildberries</button>
+                </div>
+                <button class="search-btn" id="searchBtn">🔎 Искать</button>
+            </div>
+            <div class="filter-row">
+                <span>Сортировка:</span>
+                <button class="sort-btn active" data-sort="best">Лучшие (цена + рейтинг)</button>
+                <button class="sort-btn" data-sort="price-asc">Цена ↑</button>
+                <button class="sort-btn" data-sort="rating">По рейтингу</button>
+                <span style="margin-left:auto;">Отфильтровано по мин. цене и высокому рейтингу</span>
+            </div>
+        </div>
+
+        <!-- Загрузка -->
+        <div class="loader" id="loader">
+            <div class="spinner"></div>
+            <p id="loaderText">Ищем товары...</p>
+        </div>
+
+        <!-- Нет результатов -->
+        <div class="no-results" id="noResults">
+            <div class="no-results-icon">😕</div>
+            <p id="noResultsText">Ничего не найдено</p>
+        </div>
+
+        <!-- Результаты -->
+        <div class="results-header" id="resultsHeader">
+            <span>🛍️ Найдено: <strong id="resultsCount">0</strong> товаров</span>
+            <span id="resultsPlatform"></span>
+        </div>
+        <div class="cards-grid" id="cardsGrid"></div>
     </div>
-    
-    <div id="upgradePanel">
-        <h3>Level Up! Choose an upgrade:</h3>
-        <button class="upgrade-btn" onclick="selectUpgrade('size')">Increase Size (+20%)</button>
-        <button class="upgrade-btn" onclick="selectUpgrade('speed')">Increase Speed (+15%)</button>
-        <button class="upgrade-btn" onclick="selectUpgrade('vision')">Increase Vision (+30%)</button>
-        <button class="upgrade-btn" onclick="selectUpgrade('efficiency')">Better Digestion (+25%)</button>
-    </div>
-    
-    <div id="controls">
-        <button class="control-btn" id="upBtn">↑</button>
-        <button class="control-btn" id="downBtn">↓</button>
-        <button class="control-btn" id="leftBtn">←</button>
-        <button class="control-btn" id="rightBtn">→</button>
+
+    <!-- Модальное окно -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal" id="modal">
+            <button class="modal-close" id="modalClose">✕</button>
+            <div class="modal-header" id="modalHeader"></div>
+            <div class="modal-comparison" id="modalComparison"></div>
+            <div class="similar-section" id="similarSection">
+                <h3>📦 Похожие товары этого продавца</h3>
+                <div class="similar-row" id="similarRow"></div>
+            </div>
+        </div>
     </div>
 
     <script>
-        // Game configuration
-        const CONFIG = {
-            WORLD_WIDTH: 2000,
-            WORLD_HEIGHT: 2000,
-            VIEWPORT_WIDTH: window.innerWidth,
-            VIEWPORT_HEIGHT: window.innerHeight,
-            FOOD_COUNT: 200,
-            CREATURE_COUNT: 15,
-            FOOD_SPAWN_RATE: 0.3,
-            CREATURE_SPAWN_RATE: 0.05
-        };
-
-        // Game variables
-        let canvas, ctx;
-        let camera = { x: 0, y: 0 };
-        let player;
-        let creatures = [];
-        let food = [];
-        let gameRunning = true;
-        let keys = {};
-
-        // Creature types
-        const CREATURE_TYPES = {
-            PLAYER: { color: '#00ff00', ai: false },
-            PREDATOR: { color: '#ff0000', ai: 'aggressive' },
-            HERBIVORE: { color: '#ffff00', ai: 'passive' },
-            PARASITE: { color: '#ff00ff', ai: 'sneaky' }
-        };
-
-        // Food types
-        const FOOD_TYPES = [
-            { color: '#00aa00', value: 1, size: 3 },
-            { color: '#0066aa', value: 2, size: 4 },
-            { color: '#aa6600', value: 3, size: 5 }
-        ];
-
-        class Creature {
-            constructor(x, y, type = 'PLAYER') {
-                this.x = x;
-                this.y = y;
-                this.type = type;
-                this.color = CREATURE_TYPES[type].color;
-                this.size = 10;
-                this.level = 1;
-                this.xp = 0;
-                this.xpToNext = 10;
-                this.speed = 2;
-                this.vision = 100;
-                this.efficiency = 1;
-                this.vx = 0;
-                this.vy = 0;
-                this.target = null;
-                this.aiTimer = 0;
-                this.health = 100;
-                this.maxHealth = 100;
-            }
-
-            update() {
-                if (this.type !== 'PLAYER') {
-                    this.updateAI();
+        (function() {
+            // ==================== БАЗА ДАННЫХ ====================
+            const PRODUCTS_DB = [
+                // iPhone 15
+                {
+                    id: 'iph15-128-ts',
+                    name: 'iPhone 15 128GB Black',
+                    image: 'https://img.icons8.com/color/200/iphone.png',
+                    seller: 'TechStore',
+                    sellerId: 'techstore',
+                    ozon: { price: 89990, rating: 4.8, reviews: 1240, inStock: true, url: '#', title: 'Apple iPhone 15 128GB Black (MTP43)' },
+                    wb: { price: 87990, rating: 4.7, reviews: 890, inStock: true, url: '#', title: 'iPhone 15 128GB Black' },
+                    similar: ['iph15-256-ts', 'iph14-128-ts', 'airpods-pro2-ts']
+                },
+                {
+                    id: 'iph15-128-ms',
+                    name: 'iPhone 15 128GB Black',
+                    image: 'https://img.icons8.com/color/200/iphone.png',
+                    seller: 'MobileShop',
+                    sellerId: 'mobileshop',
+                    ozon: { price: 91990, rating: 4.5, reviews: 560, inStock: true, url: '#', title: 'iPhone 15 128GB Black' },
+                    wb: { price: 89990, rating: 4.6, reviews: 430, inStock: true, url: '#', title: 'Apple iPhone 15 128GB' },
+                    similar: ['iph15-256-ms', 'sams24-ms']
+                },
+                {
+                    id: 'iph15-128-es',
+                    name: 'iPhone 15 128GB Black',
+                    image: 'https://img.icons8.com/color/200/iphone.png',
+                    seller: 'ElectroStore',
+                    sellerId: 'electrostore',
+                    ozon: { price: 85990, rating: 4.2, reviews: 180, inStock: true, url: '#', title: 'iPhone 15 128GB' },
+                    wb: { price: null, rating: null, reviews: 0, inStock: false, url: '#', title: '' },
+                    similar: []
+                },
+                // iPhone 15 256GB
+                {
+                    id: 'iph15-256-ts',
+                    name: 'iPhone 15 256GB Blue',
+                    image: 'https://img.icons8.com/color/200/iphone.png',
+                    seller: 'TechStore',
+                    sellerId: 'techstore',
+                    ozon: { price: 99990, rating: 4.9, reviews: 980, inStock: true, url: '#', title: 'Apple iPhone 15 256GB Blue' },
+                    wb: { price: 102990, rating: 4.8, reviews: 750, inStock: true, url: '#', title: 'iPhone 15 256GB Blue' },
+                    similar: ['iph15-128-ts', 'iph15-pro-ts', 'airpods-pro2-ts']
+                },
+                {
+                    id: 'iph15-256-ms',
+                    name: 'iPhone 15 256GB Blue',
+                    image: 'https://img.icons8.com/color/200/iphone.png',
+                    seller: 'MobileShop',
+                    sellerId: 'mobileshop',
+                    ozon: { price: 102990, rating: 4.6, reviews: 320, inStock: true, url: '#', title: 'iPhone 15 256GB Blue' },
+                    wb: { price: 104990, rating: 4.4, reviews: 210, inStock: true, url: '#', title: 'Apple iPhone 15 256GB' },
+                    similar: ['iph15-128-ms', 'sams24-ms']
+                },
+                // iPhone 14
+                {
+                    id: 'iph14-128-ts',
+                    name: 'iPhone 14 128GB Purple',
+                    image: 'https://img.icons8.com/color/200/iphone.png',
+                    seller: 'TechStore',
+                    sellerId: 'techstore',
+                    ozon: { price: 69990, rating: 4.7, reviews: 2100, inStock: true, url: '#', title: 'Apple iPhone 14 128GB Purple' },
+                    wb: { price: 72990, rating: 4.6, reviews: 1800, inStock: true, url: '#', title: 'iPhone 14 128GB Purple' },
+                    similar: ['iph15-128-ts', 'iph13-ts']
+                },
+                // AirPods
+                {
+                    id: 'airpods-pro2-ts',
+                    name: 'AirPods Pro 2 USB-C',
+                    image: 'https://img.icons8.com/color/200/airpods-pro.png',
+                    seller: 'TechStore',
+                    sellerId: 'techstore',
+                    ozon: { price: 24990, rating: 4.9, reviews: 3400, inStock: true, url: '#', title: 'AirPods Pro 2nd gen USB-C' },
+                    wb: { price: 23990, rating: 4.8, reviews: 2900, inStock: true, url: '#', title: 'Наушники Apple AirPods Pro 2' },
+                    similar: ['iph15-128-ts', 'airpods3-ts', 'macbook-m2-ts']
+                },
+                {
+                    id: 'airpods3-ts',
+                    name: 'AirPods 3',
+                    image: 'https://img.icons8.com/color/200/airpods-pro.png',
+                    seller: 'TechStore',
+                    sellerId: 'techstore',
+                    ozon: { price: 17990, rating: 4.7, reviews: 1500, inStock: true, url: '#', title: 'Apple AirPods 3' },
+                    wb: { price: 18990, rating: 4.6, reviews: 1200, inStock: true, url: '#', title: 'AirPods 3' },
+                    similar: ['airpods-pro2-ts']
+                },
+                // MacBook
+                {
+                    id: 'macbook-m2-ts',
+                    name: 'MacBook Air M2 13" 256GB',
+                    image: 'https://img.icons8.com/color/200/macbook.png',
+                    seller: 'TechStore',
+                    sellerId: 'techstore',
+                    ozon: { price: 109990, rating: 4.8, reviews: 670, inStock: true, url: '#', title: 'MacBook Air M2 13.6" 256GB Space Gray' },
+                    wb: { price: 112990, rating: 4.7, reviews: 520, inStock: true, url: '#', title: 'Apple MacBook Air 13 M2 256GB' },
+                    similar: ['iph15-256-ts', 'airpods-pro2-ts']
+                },
+                // Samsung
+                {
+                    id: 'sams24-ms',
+                    name: 'Samsung Galaxy S24 Ultra',
+                    image: 'https://img.icons8.com/color/200/samsung.png',
+                    seller: 'MobileShop',
+                    sellerId: 'mobileshop',
+                    ozon: { price: 119990, rating: 4.6, reviews: 450, inStock: true, url: '#', title: 'Samsung Galaxy S24 Ultra 256GB' },
+                    wb: { price: 124990, rating: 4.5, reviews: 380, inStock: true, url: '#', title: 'Samsung S24 Ultra' },
+                    similar: ['iph15-256-ms', 'iph15-128-ms']
+                },
+                // Джинсы
+                {
+                    id: 'jeans-mom-fs',
+                    name: 'Джинсы Mom Fit голубые',
+                    image: 'https://img.icons8.com/color/200/jeans.png',
+                    seller: 'FashionStyle',
+                    sellerId: 'fashionstyle',
+                    ozon: { price: 4990, rating: 4.5, reviews: 890, inStock: true, url: '#', title: 'Джинсы женские Mom Fit голубые' },
+                    wb: { price: 5490, rating: 4.4, reviews: 760, inStock: true, url: '#', title: 'Джинсы Mom Fit' },
+                    similar: ['dress-fs', 'skirt-fs']
+                },
+                {
+                    id: 'dress-fs',
+                    name: 'Платье летнее хлопковое',
+                    image: 'https://img.icons8.com/color/200/dress.png',
+                    seller: 'FashionStyle',
+                    sellerId: 'fashionstyle',
+                    ozon: { price: 3490, rating: 4.7, reviews: 1200, inStock: true, url: '#', title: 'Платье летнее хлопковое размер M' },
+                    wb: { price: 2990, rating: 4.6, reviews: 980, inStock: true, url: '#', title: 'Платье хлопок летнее FashionStyle' },
+                    similar: ['jeans-mom-fs', 'skirt-fs']
+                },
+                {
+                    id: 'skirt-fs',
+                    name: 'Юбка миди плиссе',
+                    image: 'https://img.icons8.com/color/200/skirt.png',
+                    seller: 'FashionStyle',
+                    sellerId: 'fashionstyle',
+                    ozon: { price: 2890, rating: 4.4, reviews: 560, inStock: true, url: '#', title: 'Юбка миди плиссе черная' },
+                    wb: { price: null, rating: null, reviews: 0, inStock: false, url: '#', title: '' },
+                    similar: ['dress-fs']
                 }
+            ];
 
-                // Apply movement
-                this.x += this.vx;
-                this.y += this.vy;
+            // ==================== СОСТОЯНИЕ ====================
+            const state = {
+                searchPlatform: 'ozon',
+                sortMode: 'best',
+                searchResults: [],
+                selectedProduct: null
+            };
 
-                // World boundaries
-                this.x = Math.max(this.size, Math.min(CONFIG.WORLD_WIDTH - this.size, this.x));
-                this.y = Math.max(this.size, Math.min(CONFIG.WORLD_HEIGHT - this.size, this.y));
+            // ==================== DOM ====================
+            const dom = {
+                searchInput: document.getElementById('searchInput'),
+                searchBtn: document.getElementById('searchBtn'),
+                platformSelect: document.getElementById('platformSelect'),
+                loader: document.getElementById('loader'),
+                loaderText: document.getElementById('loaderText'),
+                noResults: document.getElementById('noResults'),
+                noResultsText: document.getElementById('noResultsText'),
+                resultsHeader: document.getElementById('resultsHeader'),
+                resultsCount: document.getElementById('resultsCount'),
+                resultsPlatform: document.getElementById('resultsPlatform'),
+                cardsGrid: document.getElementById('cardsGrid'),
+                modalOverlay: document.getElementById('modalOverlay'),
+                modal: document.getElementById('modal'),
+                modalClose: document.getElementById('modalClose'),
+                modalHeader: document.getElementById('modalHeader'),
+                modalComparison: document.getElementById('modalComparison'),
+                similarRow: document.getElementById('similarRow'),
+                sortBtns: document.querySelectorAll('.sort-btn'),
+                platformOptions: document.querySelectorAll('.platform-option')
+            };
 
-                // Friction
-                this.vx *= 0.95;
-                this.vy *= 0.95;
+            // ==================== ФУНКЦИИ ====================
+            function formatPrice(p) {
+                return p ? p.toLocaleString('ru-RU') + ' ₽' : '—';
             }
 
-            updateAI() {
-                this.aiTimer++;
-                
-                if (this.aiTimer % 30 === 0) { // Update AI every 30 frames
-                    this.findTarget();
-                }
-
-                if (this.target) {
-                    this.moveTowardsTarget();
-                }
+            function getStars(rating) {
+                if (!rating) return '';
+                const full = Math.floor(rating);
+                const half = rating - full >= 0.5;
+                return '★'.repeat(full) + (half ? '½' : '') + '☆'.repeat(5 - full - (half ? 1 : 0));
             }
 
-            findTarget() {
-                let bestTarget = null;
-                let bestDistance = Infinity;
-
-                if (this.type === 'PREDATOR') {
-                    // Hunt smaller creatures
-                    creatures.forEach(creature => {
-                        if (creature !== this && creature.size < this.size * 0.8) {
-                            const dist = this.distanceTo(creature);
-                            if (dist < this.vision && dist < bestDistance) {
-                                bestTarget = creature;
-                                bestDistance = dist;
-                            }
-                        }
-                    });
-                } else if (this.type === 'HERBIVORE') {
-                    // Find food, avoid predators
-                    food.forEach(f => {
-                        const dist = this.distanceTo(f);
-                        if (dist < this.vision && dist < bestDistance) {
-                            bestTarget = f;
-                            bestDistance = dist;
-                        }
-                    });
-
-                    // Check for nearby predators
-                    creatures.forEach(creature => {
-                        if (creature.type === 'PREDATOR' && creature.size > this.size * 0.8) {
-                            const dist = this.distanceTo(creature);
-                            if (dist < this.vision * 0.7) {
-                                // Run away from predator
-                                const angle = Math.atan2(this.y - creature.y, this.x - creature.x);
-                                this.vx += Math.cos(angle) * this.speed * 0.5;
-                                this.vy += Math.sin(angle) * this.speed * 0.5;
-                                return;
-                            }
-                        }
-                    });
-                } else if (this.type === 'PARASITE') {
-                    // Follow larger creatures to steal their food
-                    creatures.forEach(creature => {
-                        if (creature !== this && creature.size > this.size) {
-                            const dist = this.distanceTo(creature);
-                            if (dist < this.vision && dist < bestDistance) {
-                                bestTarget = creature;
-                                bestDistance = dist;
-                            }
-                        }
-                    });
-                }
-
-                this.target = bestTarget;
+            function getRatingClass(rating) {
+                if (!rating) return '';
+                if (rating >= 4.7) return 'rating-high';
+                if (rating >= 4.3) return 'rating-mid';
+                return 'rating-low';
             }
 
-            moveTowardsTarget() {
-                if (!this.target) return;
+            // Поиск товаров
+            function searchProducts(query, platform) {
+                const q = query.toLowerCase().trim();
+                if (!q || q.length < 2) return [];
 
-                const dx = this.target.x - this.x;
-                const dy = this.target.y - this.y;
-                const distance = Math.sqrt(dx * dx + dy * dy);
-
-                if (distance > 0) {
-                    const moveSpeed = this.type === 'PARASITE' ? this.speed * 0.7 : this.speed;
-                    this.vx += (dx / distance) * moveSpeed * 0.1;
-                    this.vy += (dy / distance) * moveSpeed * 0.1;
-                }
-            }
-
-            distanceTo(other) {
-                const dx = this.x - other.x;
-                const dy = this.y - other.y;
-                return Math.sqrt(dx * dx + dy * dy);
-            }
-
-            move(dx, dy) {
-                this.vx += dx * this.speed * 0.2;
-                this.vy += dy * this.speed * 0.2;
-            }
-
-            eat(foodItem) {
-                const xpGain = Math.floor(foodItem.value * this.efficiency);
-                this.xp += xpGain;
-                
-                if (this.xp >= this.xpToNext) {
-                    this.levelUp();
-                }
-                
-                // Grow slightly
-                this.size += 0.5;
-                this.updateUI();
-            }
-
-            levelUp() {
-                this.level++;
-                this.xp = 0;
-                this.xpToNext = Math.floor(this.xpToNext * 1.5);
-                
-                if (this.type === 'PLAYER') {
-                    this.showUpgradePanel();
-                } else {
-                    // AI auto-upgrade
-                    this.autoUpgrade();
-                }
-            }
-
-            autoUpgrade() {
-                const upgrades = ['size', 'speed', 'vision', 'efficiency'];
-                const randomUpgrade = upgrades[Math.floor(Math.random() * upgrades.length)];
-                this.applyUpgrade(randomUpgrade);
-            }
-
-            applyUpgrade(type) {
-                switch(type) {
-                    case 'size':
-                        this.size *= 1.2;
-                        this.maxHealth *= 1.1;
-                        this.health = this.maxHealth;
-                        break;
-                    case 'speed':
-                        this.speed *= 1.15;
-                        break;
-                    case 'vision':
-                        this.vision *= 1.3;
-                        break;
-                    case 'efficiency':
-                        this.efficiency *= 1.25;
-                        break;
-                }
-                this.updateUI();
-            }
-
-            showUpgradePanel() {
-                document.getElementById('upgradePanel').style.display = 'block';
-                gameRunning = false;
-            }
-
-            updateUI() {
-                if (this.type === 'PLAYER') {
-                    document.getElementById('level').textContent = this.level;
-                    document.getElementById('xp').textContent = this.xp;
-                    document.getElementById('xpToNext').textContent = this.xpToNext;
-                    document.getElementById('size').textContent = Math.floor(this.size);
-                    document.getElementById('speed').textContent = this.speed.toFixed(1);
-                }
-            }
-
-            draw() {
-                const screenX = this.x - camera.x;
-                const screenY = this.y - camera.y;
-                
-                // Draw creature
-                ctx.fillStyle = this.color;
-                ctx.beginPath();
-                ctx.arc(screenX, screenY, this.size, 0, Math.PI * 2);
-                ctx.fill();
-                
-                // Draw outline
-                ctx.strokeStyle = '#fff';
-                ctx.lineWidth = 1;
-                ctx.stroke();
-                
-                // Draw level for player
-                if (this.type === 'PLAYER') {
-                    ctx.fillStyle = '#fff';
-                    ctx.font = '12px Arial';
-                    ctx.textAlign = 'center';
-                    ctx.fillText(this.level, screenX, screenY + 4);
-                }
-            }
-        }
-
-        class Food {
-            constructor(x, y) {
-                this.x = x;
-                this.y = y;
-                const type = FOOD_TYPES[Math.floor(Math.random() * FOOD_TYPES.length)];
-                this.color = type.color;
-                this.value = type.value;
-                this.size = type.size;
-            }
-
-            draw() {
-                const screenX = this.x - camera.x;
-                const screenY = this.y - camera.y;
-                
-                ctx.fillStyle = this.color;
-                ctx.beginPath();
-                ctx.arc(screenX, screenY, this.size, 0, Math.PI * 2);
-                ctx.fill();
-            }
-        }
-
-        function init() {
-            canvas = document.getElementById('gameCanvas');
-            ctx = canvas.getContext('2d');
-            
-            // Set canvas size
-            canvas.width = CONFIG.VIEWPORT_WIDTH;
-            canvas.height = CONFIG.VIEWPORT_HEIGHT;
-            
-            // Create player
-            player = new Creature(CONFIG.WORLD_WIDTH / 2, CONFIG.WORLD_HEIGHT / 2, 'PLAYER');
-            creatures.push(player);
-            
-            // Create other creatures
-            for (let i = 0; i < CONFIG.CREATURE_COUNT; i++) {
-                const types = ['PREDATOR', 'HERBIVORE', 'PARASITE'];
-                const type = types[Math.floor(Math.random() * types.length)];
-                const x = Math.random() * CONFIG.WORLD_WIDTH;
-                const y = Math.random() * CONFIG.WORLD_HEIGHT;
-                
-                // Ensure creatures spawn far from each other
-                let validPosition = false;
-                let attempts = 0;
-                while (!validPosition && attempts < 50) {
-                    validPosition = true;
-                    for (let creature of creatures) {
-                        if (Math.sqrt((x - creature.x) ** 2 + (y - creature.y) ** 2) < 150) {
-                            validPosition = false;
-                            break;
-                        }
-                    }
-                    attempts++;
-                }
-                
-                if (validPosition) {
-                    creatures.push(new Creature(x, y, type));
-                }
-            }
-            
-            // Create initial food
-            for (let i = 0; i < CONFIG.FOOD_COUNT; i++) {
-                spawnFood();
-            }
-            
-            setupControls();
-            gameLoop();
-        }
-
-        function spawnFood() {
-            const x = Math.random() * CONFIG.WORLD_WIDTH;
-            const y = Math.random() * CONFIG.WORLD_HEIGHT;
-            food.push(new Food(x, y));
-        }
-
-        function spawnCreature() {
-            const types = ['PREDATOR', 'HERBIVORE', 'PARASITE'];
-            const type = types[Math.floor(Math.random() * types.length)];
-            const x = Math.random() * CONFIG.WORLD_WIDTH;
-            const y = Math.random() * CONFIG.WORLD_HEIGHT;
-            creatures.push(new Creature(x, y, type));
-        }
-
-        function setupControls() {
-            // Keyboard controls
-            document.addEventListener('keydown', (e) => {
-                keys[e.key] = true;
-            });
-            
-            document.addEventListener('keyup', (e) => {
-                keys[e.key] = false;
-            });
-            
-            // Touch controls
-            document.getElementById('upBtn').addEventListener('touchstart', () => keys['ArrowUp'] = true);
-            document.getElementById('upBtn').addEventListener('touchend', () => keys['ArrowUp'] = false);
-            document.getElementById('downBtn').addEventListener('touchstart', () => keys['ArrowDown'] = true);
-            document.getElementById('downBtn').addEventListener('touchend', () => keys['ArrowDown'] = false);
-            document.getElementById('leftBtn').addEventListener('touchstart', () => keys['ArrowLeft'] = true);
-            document.getElementById('leftBtn').addEventListener('touchend', () => keys['ArrowLeft'] = false);
-            document.getElementById('rightBtn').addEventListener('touchstart', () => keys['ArrowRight'] = true);
-            document.getElementById('rightBtn').addEventListener('touchend', () => keys['ArrowRight'] = false);
-            
-            // Prevent context menu on long press
-            document.addEventListener('contextmenu', (e) => e.preventDefault());
-        }
-
-        function handleInput() {
-            if (!gameRunning) return;
-            
-            if (keys['ArrowUp'] || keys['w'] || keys['W']) {
-                player.move(0, -1);
-            }
-            if (keys['ArrowDown'] || keys['s'] || keys['S']) {
-                player.move(0, 1);
-            }
-            if (keys['ArrowLeft'] || keys['a'] || keys['A']) {
-                player.move(-1, 0);
-            }
-            if (keys['ArrowRight'] || keys['d'] || keys['D']) {
-                player.move(1, 0);
-            }
-        }
-
-        function update() {
-            if (!gameRunning) return;
-            
-            handleInput();
-            
-            // Update creatures
-            creatures.forEach(creature => creature.update());
-            
-            // Check food consumption
-            food = food.filter(f => {
-                for (let creature of creatures) {
-                    if (creature.distanceTo(f) < creature.size + f.size) {
-                        creature.eat(f);
-                        return false;
-                    }
-                }
-                return true;
-            });
-            
-            // Check creature interactions
-            for (let i = 0; i < creatures.length; i++) {
-                for (let j = i + 1; j < creatures.length; j++) {
-                    const c1 = creatures[i];
-                    const c2 = creatures[j];
-                    const distance = c1.distanceTo(c2);
+                let results = PRODUCTS_DB.filter(p => {
+                    const data = p[platform];
+                    if (!data || !data.price || !data.inStock) return false;
                     
-                    if (distance < c1.size + c2.size) {
-                        // Collision detected
-                        if (c1.size > c2.size * 1.2) {
-                            // c1 eats c2
-                            if (c1.type === 'PREDATOR' || (c1.type === 'PLAYER' && c2.type !== 'PLAYER')) {
-                                c1.eat({ value: Math.floor(c2.size / 2), size: c2.size });
-                                creatures.splice(j, 1);
-                                j--;
-                            }
-                        } else if (c2.size > c1.size * 1.2) {
-                            // c2 eats c1
-                            if (c2.type === 'PREDATOR' || (c2.type === 'PLAYER' && c1.type !== 'PLAYER')) {
-                                c2.eat({ value: Math.floor(c1.size / 2), size: c1.size });
-                                creatures.splice(i, 1);
-                                i--;
-                                break;
-                            }
-                        }
+                    const nameMatch = p.name.toLowerCase().includes(q);
+                    const titleMatch = data.title && data.title.toLowerCase().includes(q);
+                    const sellerMatch = p.seller.toLowerCase().includes(q);
+                    
+                    return nameMatch || titleMatch || sellerMatch;
+                });
+
+                return results;
+            }
+
+            // Сортировка
+            function sortResults(results, mode, platform) {
+                const sorted = [...results];
+                
+                switch (mode) {
+                    case 'best':
+                        // Комбинированная сортировка: цена + рейтинг
+                        sorted.sort((a, b) => {
+                            const scoreA = (a[platform].rating || 0) * 10000 - (a[platform].price || 999999);
+                            const scoreB = (b[platform].rating || 0) * 10000 - (b[platform].price || 999999);
+                            return scoreB - scoreA;
+                        });
+                        break;
+                    case 'price-asc':
+                        sorted.sort((a, b) => (a[platform].price || 999999) - (b[platform].price || 999999));
+                        break;
+                    case 'rating':
+                        sorted.sort((a, b) => (b[platform].rating || 0) - (a[platform].rating || 0));
+                        break;
+                }
+                
+                return sorted;
+            }
+
+            // Отображение карточек
+            function renderCards(results, platform) {
+                dom.cardsGrid.innerHTML = '';
+
+                if (results.length === 0) {
+                    dom.noResults.classList.add('active');
+                    dom.noResultsText.textContent = 'Ничего не найдено. Попробуйте: iPhone, AirPods, джинсы, платье...';
+                    dom.resultsHeader.classList.remove('visible');
+                    return;
+                }
+
+                dom.noResults.classList.remove('active');
+                dom.resultsHeader.classList.add('visible');
+                dom.resultsCount.textContent = results.length;
+                dom.resultsPlatform.textContent = platform === 'ozon' ? '🛒 Ищем на Ozon' : '🛍️ Ищем на Wildberries';
+
+                results.forEach((product, index) => {
+                    const data = product[platform];
+                    const card = document.createElement('div');
+                    card.className = 'product-card';
+                    if (index === 0) card.classList.add('best-card');
+
+                    const ratingClass = getRatingClass(data.rating);
+                    const stars = getStars(data.rating);
+
+                    card.innerHTML = `
+                        <div class="card-img-container">
+                            <span class="card-platform-badge ${platform}">${platform === 'ozon' ? 'OZON' : 'WB'}</span>
+                            <img src="${product.image}" alt="${product.name}" class="card-img" 
+                                 onerror="this.style.display='none'; this.parentElement.innerHTML+='<span style=font-size:3rem>📦</span>'">
+                        </div>
+                        <div class="card-title">${data.title || product.name}</div>
+                        <div class="card-price">${formatPrice(data.price)}</div>
+                        <div class="card-meta">
+                            <span class="card-seller">🏪 ${product.seller}</span>
+                            <span class="card-rating ${ratingClass}">
+                                <span class="stars">${stars}</span>
+                                ${data.rating ? data.rating.toFixed(1) : ''}
+                                ${data.reviews ? `<span style="color:#94a3b8;font-weight:400;">(${data.reviews})</span>` : ''}
+                            </span>
+                        </div>
+                        <div class="card-hint">👆 Нажмите, чтобы сравнить с другой площадкой</div>
+                    `;
+
+                    card.addEventListener('click', () => openComparison(product, platform));
+                    dom.cardsGrid.appendChild(card);
+                });
+            }
+
+            // Открытие модального окна сравнения
+            function openComparison(product, searchPlatform) {
+                state.selectedProduct = product;
+                const otherPlatform = searchPlatform === 'ozon' ? 'wb' : 'ozon';
+                const searchData = product[searchPlatform];
+                const otherData = product[otherPlatform];
+
+                // Заголовок
+                dom.modalHeader.innerHTML = `
+                    <h2>
+                        <span>📦 ${product.name}</span>
+                        <span style="font-size:0.85rem;color:var(--subtext);">от продавца <strong>${product.seller}</strong></span>
+                    </h2>
+                `;
+
+                // Определяем лучшую цену
+                let bestPlatform = null;
+                if (searchData.price && otherData.price) {
+                    bestPlatform = searchData.price <= otherData.price ? searchPlatform : otherPlatform;
+                } else if (searchData.price) {
+                    bestPlatform = searchPlatform;
+                } else if (otherData.price) {
+                    bestPlatform = otherPlatform;
+                }
+
+                // Сравнение
+                const platforms = [
+                    { key: searchPlatform, data: searchData, label: searchPlatform === 'ozon' ? 'Ozon (исходный поиск)' : 'Wildberries (исходный поиск)', dotClass: searchPlatform === 'ozon' ? 'ozon-dot' : 'wb-dot', btnClass: searchPlatform === 'ozon' ? 'ozon-btn' : 'wb-btn' },
+                    { key: otherPlatform, data: otherData, label: otherPlatform === 'ozon' ? 'Ozon' : 'Wildberries', dotClass: otherPlatform === 'ozon' ? 'ozon-dot' : 'wb-dot', btnClass: otherPlatform === 'ozon' ? 'ozon-btn' : 'wb-btn' }
+                ];
+
+                dom.modalComparison.innerHTML = platforms.map(p => {
+                    const isBest = p.key === bestPlatform;
+                    const isAvailable = p.data && p.data.price && p.data.inStock;
+                    const stars = getStars(p.data?.rating);
+                    const ratingClass = getRatingClass(p.data?.rating);
+
+                    if (!isAvailable) {
+                        return `
+                            <div class="modal-card not-found">
+                                <div class="modal-card-header">
+                                    <span class="dot ${p.dotClass}"></span>
+                                    <span>${p.label}</span>
+                                </div>
+                                <div style="text-align:center;padding:2rem;color:var(--subtext);">
+                                    <p style="font-size:2rem;">📭</p>
+                                    <p>Товар не найден</p>
+                                    <p style="font-size:0.8rem;">Продавец не продаёт этот товар на данной площадке</p>
+                                </div>
+                            </div>`;
                     }
-                }
-            }
-            
-            // Spawn new food and creatures occasionally
-            if (Math.random() < CONFIG.FOOD_SPAWN_RATE / 60 && food.length < CONFIG.FOOD_COUNT * 2) {
-                spawnFood();
-            }
-            
-            if (Math.random() < CONFIG.CREATURE_SPAWN_RATE / 60 && creatures.length < CONFIG.CREATURE_COUNT * 2) {
-                spawnCreature();
-            }
-            
-            // Update camera to follow player
-            camera.x = player.x - CONFIG.VIEWPORT_WIDTH / 2;
-            camera.y = player.y - CONFIG.VIEWPORT_HEIGHT / 2;
-            
-            // Keep camera within world bounds
-            camera.x = Math.max(0, Math.min(CONFIG.WORLD_WIDTH - CONFIG.VIEWPORT_WIDTH, camera.x));
-            camera.y = Math.max(0, Math.min(CONFIG.WORLD_HEIGHT - CONFIG.VIEWPORT_HEIGHT, camera.y));
-        }
 
-        function draw() {
-            // Clear canvas
-            ctx.fillStyle = '#000';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            
-            // Draw world border
-            ctx.strokeStyle = '#333';
-            ctx.lineWidth = 2;
-            ctx.strokeRect(-camera.x, -camera.y, CONFIG.WORLD_WIDTH, CONFIG.WORLD_HEIGHT);
-            
-            // Draw grid (Petri dish pattern)
-            ctx.strokeStyle = '#111';
-            ctx.lineWidth = 1;
-            const gridSize = 50;
-            for (let x = -camera.x % gridSize; x < canvas.width; x += gridSize) {
-                ctx.beginPath();
-                ctx.moveTo(x, 0);
-                ctx.lineTo(x, canvas.height);
-                ctx.stroke();
+                    const priceDiff = searchData.price && otherData.price 
+                        ? Math.abs(searchData.price - otherData.price)
+                        : 0;
+                    const percentDiff = searchData.price && otherData.price && searchData.price !== otherData.price
+                        ? Math.round((priceDiff / Math.min(searchData.price, otherData.price)) * 100)
+                        : 0;
+
+                    return `
+                        <div class="modal-card ${isBest ? 'best' : ''}">
+                            <div class="modal-card-header">
+                                <span class="dot ${p.dotClass}"></span>
+                                <span>${p.label}</span>
+                                ${isBest ? '<span class="discount-badge green">🏆 Лучшая цена</span>' : ''}
+                            </div>
+                            <img src="${product.image}" alt="${product.name}" 
+                                 onerror="this.style.display='none'; this.parentElement.innerHTML+='<div style=text-align:center;font-size:3rem;padding:1rem>📦</div>'">
+                            <p style="font-weight:600;font-size:0.9rem;margin-bottom:0.5rem;">${p.data.title || product.name}</p>
+                            <div class="price-big ${isBest ? 'best-price' : ''}">${formatPrice(p.data.price)}</div>
+                            ${!isBest && priceDiff > 0 ? `<span class="discount-badge red">Дороже на ${formatPrice(priceDiff)} (${percentDiff}%)</span>` : ''}
+                            ${isBest && priceDiff > 0 ? `<span class="discount-badge green">Экономия ${formatPrice(priceDiff)} (${percentDiff}%)</span>` : ''}
+                            <div style="margin-top:0.5rem;font-size:0.85rem;">
+                                <span class="card-rating ${ratingClass}">
+                                    <span class="stars">${stars}</span>
+                                    ${p.data.rating ? p.data.rating.toFixed(1) : ''}
+                                </span>
+                                ${p.data.reviews ? `<span style="color:#94a3b8;">(${p.data.reviews} отзывов)</span>` : ''}
+                            </div>
+                            <div style="font-size:0.8rem;color:var(--subtext);margin-top:0.3rem;">🏪 ${product.seller}</div>
+                            <a href="${p.data.url}" target="_blank" class="btn-go ${p.btnClass}">
+                                Перейти на ${p.key === 'ozon' ? 'Ozon' : 'Wildberries'} →
+                            </a>
+                        </div>`;
+                }).join('');
+
+                // Похожие товары
+                renderSimilarProducts(product, otherPlatform);
+
+                // Открываем модалку
+                dom.modalOverlay.classList.add('active');
             }
-            for (let y = -camera.y % gridSize; y < canvas.height; y += gridSize) {
-                ctx.beginPath();
-                ctx.moveTo(0, y);
-                ctx.lineTo(canvas.width, y);
-                ctx.stroke();
+
+            // Похожие товары
+            function renderSimilarProducts(product, targetPlatform) {
+                const similarIds = product.similar || [];
+                let similarProducts = similarIds
+                    .map(id => PRODUCTS_DB.find(p => p.id === id))
+                    .filter(Boolean);
+
+                // Если похожих не хватает, добавляем другие товары того же продавца
+                if (similarProducts.length < 3) {
+                    const sellerProducts = PRODUCTS_DB.filter(
+                        p => p.sellerId === product.sellerId && p.id !== product.id && !similarIds.includes(p.id)
+                    );
+                    similarProducts = [...similarProducts, ...sellerProducts].slice(0, 3);
+                }
+
+                if (similarProducts.length === 0) {
+                    document.getElementById('similarSection').style.display = 'none';
+                    return;
+                }
+
+                document.getElementById('similarSection').style.display = 'block';
+                dom.similarRow.innerHTML = similarProducts.map(sp => {
+                    const data = sp[targetPlatform];
+                    const hasData = data && data.price && data.inStock;
+                    const otherData = sp[targetPlatform === 'ozon' ? 'wb' : 'ozon'];
+                    
+                    return `
+                        <div class="similar-item" data-product-id="${sp.id}">
+                            <img src="${sp.image}" alt="${sp.name}" 
+                                 onerror="this.style.display='none'; this.parentElement.innerHTML+='<span style=font-size:2rem>📦</span>'">
+                            <div class="s-name">${sp.name}</div>
+                            ${hasData 
+                                ? `<div class="s-price">${formatPrice(data.price)}</div>
+                                   <span class="s-platform ${targetPlatform === 'ozon' ? 'ozon-tag' : 'wb-tag'}">
+                                       ${targetPlatform === 'ozon' ? 'Ozon' : 'WB'}
+                                   </span>`
+                                : `<div style="color:var(--subtext);font-size:0.8rem;">Нет на этой площадке</div>`
+                            }
+                        </div>
+                    `;
+                }).join('');
+
+                // Обработчики клика по похожим
+                dom.similarRow.querySelectorAll('.similar-item').forEach(item => {
+                    item.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const prodId = item.dataset.productId;
+                        const prod = PRODUCTS_DB.find(p => p.id === prodId);
+                        if (prod) {
+                            openComparison(prod, state.searchPlatform);
+                        }
+                    });
+                });
             }
-            
-            // Draw food
-            food.forEach(f => {
-                if (f.x > camera.x - 50 && f.x < camera.x + CONFIG.VIEWPORT_WIDTH + 50 &&
-                    f.y > camera.y - 50 && f.y < camera.y + CONFIG.VIEWPORT_HEIGHT + 50) {
-                    f.draw();
+
+            // Основная функция поиска
+            async function performSearch() {
+                const query = dom.searchInput.value.trim();
+
+                if (query.length < 2) {
+                    alert('Введите минимум 2 символа для поиска');
+                    return;
+                }
+
+                // Показываем загрузку
+                dom.loader.classList.add('active');
+                dom.loaderText.textContent = `Ищем "${query}" на ${state.searchPlatform === 'ozon' ? 'Ozon' : 'Wildberries'}...`;
+                dom.noResults.classList.remove('active');
+                dom.resultsHeader.classList.remove('visible');
+                dom.cardsGrid.innerHTML = '';
+                dom.searchBtn.disabled = true;
+
+                // Имитация запроса
+                await new Promise(resolve => setTimeout(resolve, 1000));
+
+                let results = searchProducts(query, state.searchPlatform);
+                results = sortResults(results, state.sortMode, state.searchPlatform);
+
+                state.searchResults = results;
+                renderCards(results, state.searchPlatform);
+
+                dom.loader.classList.remove('active');
+                dom.searchBtn.disabled = false;
+            }
+
+            // ==================== ОБРАБОТЧИКИ ====================
+            dom.searchBtn.addEventListener('click', performSearch);
+            dom.searchInput.addEventListener('keypress', e => {
+                if (e.key === 'Enter') performSearch();
+            });
+
+            // Выбор площадки
+            dom.platformOptions.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    dom.platformOptions.forEach(b => {
+                        b.classList.remove('active-ozon', 'active-wb');
+                    });
+                    const platform = btn.dataset.platform;
+                    state.searchPlatform = platform;
+                    btn.classList.add(platform === 'ozon' ? 'active-ozon' : 'active-wb');
+
+                    // Если уже есть результаты, обновляем сортировку
+                    if (state.searchResults.length > 0) {
+                        const sorted = sortResults(state.searchResults, state.sortMode, platform);
+                        state.searchResults = sorted;
+                        renderCards(sorted, platform);
+                    }
+                });
+            });
+
+            // Сортировка
+            dom.sortBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    dom.sortBtns.forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    state.sortMode = btn.dataset.sort;
+
+                    if (state.searchResults.length > 0) {
+                        const sorted = sortResults(state.searchResults, state.sortMode, state.searchPlatform);
+                        state.searchResults = sorted;
+                        renderCards(sorted, state.searchPlatform);
+                    }
+                });
+            });
+
+            // Закрытие модалки
+            dom.modalClose.addEventListener('click', () => {
+                dom.modalOverlay.classList.remove('active');
+            });
+            dom.modalOverlay.addEventListener('click', (e) => {
+                if (e.target === dom.modalOverlay) {
+                    dom.modalOverlay.classList.remove('active');
                 }
             });
-            
-            // Draw creatures
-            creatures.forEach(creature => {
-                if (creature.x > camera.x - 50 && creature.x < camera.x + CONFIG.VIEWPORT_WIDTH + 50 &&
-                    creature.y > camera.y - 50 && creature.y < camera.y + CONFIG.VIEWPORT_HEIGHT + 50) {
-                    creature.draw();
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && dom.modalOverlay.classList.contains('active')) {
+                    dom.modalOverlay.classList.remove('active');
                 }
             });
-        }
 
-        function gameLoop() {
-            update();
-            draw();
-            requestAnimationFrame(gameLoop);
-        }
+            // ==================== ДЕМО-ПОДСКАЗКИ ====================
+            const demoSuggestions = [
+                'iPhone 15', 'AirPods', 'MacBook', 'Samsung', 'джинсы', 'платье'
+            ];
+            
+            dom.searchInput.addEventListener('focus', function() {
+                if (!this.value) {
+                    const random = demoSuggestions[Math.floor(Math.random() * demoSuggestions.length)];
+                    this.placeholder = `Например: ${random}...`;
+                }
+            });
 
-        function selectUpgrade(type) {
-            player.applyUpgrade(type);
-            document.getElementById('upgradePanel').style.display = 'none';
-            gameRunning = true;
-        }
-
-        // Handle window resize
-        window.addEventListener('resize', () => {
-            CONFIG.VIEWPORT_WIDTH = window.innerWidth;
-            CONFIG.VIEWPORT_HEIGHT = window.innerHeight;
-            canvas.width = CONFIG.VIEWPORT_WIDTH;
-            canvas.height = CONFIG.VIEWPORT_HEIGHT;
-        });
-
-        // Initialize game when page loads
-        window.addEventListener('load', init);
+        })();
     </script>
 </body>
 </html>
