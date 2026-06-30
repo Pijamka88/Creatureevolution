@@ -144,17 +144,20 @@
 
         .error-message { background: #fef2f2; color: #991b1b; padding: 1rem; border-radius: 12px; margin-bottom: 1rem; display: none; text-align: center; }
         .error-message.show { display: block; }
+
+        .retry-info { font-size: 0.8rem; color: #64748b; margin-top: 0.3rem; }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
             <h1>🔍 Сравнение цен Ozon vs WB</h1>
-            <p>Поиск товара на одной площадке → сравнение с ценой того же продавца на другой</p>
+            <p>Поиск товара → сравнение цен продавца на двух площадках</p>
         </div>
 
         <div class="warning-banner">
-            ⚠️ Wildberries работает всегда. Ozon может блокировать запросы из браузера (CORS).
+            ⚠️ <strong>Wildberries:</strong> при ошибке 429 подождите 30 секунд (лимит запросов).
+            <strong>Ozon:</strong> работает через JSONP-обход CORS.
         </div>
 
         <div class="error-message" id="errorMessage"></div>
@@ -180,6 +183,7 @@
         <div class="loader" id="loader">
             <div class="spinner"></div>
             <p id="loaderText">Загрузка...</p>
+            <p class="retry-info" id="retryInfo"></p>
         </div>
 
         <div class="no-results" id="noResults">
@@ -207,16 +211,15 @@
     </div>
 
     <script>
-        // Ждём полной загрузки DOM
         document.addEventListener('DOMContentLoaded', function() {
             
             const state = {
                 searchPlatform: 'ozon',
                 sortMode: 'best',
-                searchResults: []
+                searchResults: [],
+                wbRetryAfter: 0
             };
 
-            // Получаем все элементы по ID
             const searchInput = document.getElementById('searchInput');
             const searchBtn = document.getElementById('searchBtn');
             const btnOzon = document.getElementById('btnOzon');
@@ -226,6 +229,7 @@
             const sortRating = document.getElementById('sortRating');
             const loader = document.getElementById('loader');
             const loaderText = document.getElementById('loaderText');
+            const retryInfo = document.getElementById('retryInfo');
             const noResults = document.getElementById('noResults');
             const noResultsText = document.getElementById('noResultsText');
             const resultsHeader = document.getElementById('resultsHeader');
@@ -239,8 +243,6 @@
             const similarSection = document.getElementById('similarSection');
             const similarRow = document.getElementById('similarRow');
             const errorMessage = document.getElementById('errorMessage');
-
-            // Все sort-btn
             const allSortBtns = [sortBest, sortPrice, sortRating];
 
             function formatPrice(p) { return p ? p.toLocaleString('ru-RU') + ' ₽' : '—'; }
@@ -258,72 +260,187 @@
             function showError(msg) {
                 errorMessage.textContent = msg;
                 errorMessage.classList.add('show');
-                setTimeout(() => errorMessage.classList.remove('show'), 4000);
+                setTimeout(() => errorMessage.classList.remove('show'), 5000);
             }
 
-            async function searchWB(query) {
-                const url = `https://search.wb.ru/exactmatch/ru/common/v9/search?ab_testid=false&appType=1&curr=rub&dest=-1029256&query=${encodeURIComponent(query)}&resultset=catalog&sort=popular&spp=30`;
-                const response = await fetch(url);
-                if (!response.ok) throw new Error(`WB API: HTTP ${response.status}`);
-                const data = await response.json();
-                const items = data.data?.products || [];
-                return items.slice(0, 20).map(item => {
-                    const title = item.name || '';
-                    const price = item.salePriceU ? Math.floor(item.salePriceU / 100) : null;
-                    const rating = item.reviewRating || item.rating || null;
-                    const reviews = item.feedbacks || item.reviews || 0;
-                    const seller = item.supplier || item.brand || '';
-                    let image = '';
-                    if (item.pics || item.pic) {
-                        const imageId = item.pics || item.pic;
-                        const vol = Math.floor(imageId / 100000);
-                        const part = Math.floor(imageId / 1000);
-                        image = `https://basket-${(vol % 15) + 1}.wbbasket.ru/vol${vol}/part${part}/${imageId}/images/big/1.webp`;
+            // Задержка
+            function delay(ms) {
+                return new Promise(resolve => setTimeout(resolve, ms));
+            }
+
+            // ============ WILDBERRIES С ПОВТОРНЫМИ ПОПЫТКАМИ ============
+            async function searchWB(query, attempt = 0) {
+                // Проверяем, не ждём ли мы ещё после 429
+                const now = Date.now();
+                if (now < state.wbRetryAfter) {
+                    const waitSec = Math.ceil((state.wbRetryAfter - now) / 1000);
+                    retryInfo.textContent = `⏳ Ждём ${waitSec} сек. (лимит запросов)...`;
+                    await delay(waitSec * 1000);
+                    retryInfo.textContent = '';
+                }
+
+                const urls = [
+                    `https://search.wb.ru/exactmatch/ru/common/v9/search?ab_testid=false&appType=1&curr=rub&dest=-1029256&query=${encodeURIComponent(query)}&resultset=catalog&sort=popular&spp=30`,
+                    `https://search.wb.ru/exactmatch/ru/common/v9/search?ab_testid=false&appType=1&curr=rub&dest=-1257786&query=${encodeURIComponent(query)}&resultset=catalog&sort=popular&spp=30`,
+                    `https://search.wb.ru/exactmatch/ru/common/v9/search?ab_testid=false&appType=1&curr=rub&dest=123585587&query=${encodeURIComponent(query)}&resultset=catalog&sort=popular&spp=30`
+                ];
+
+                for (const url of urls) {
+                    try {
+                        const response = await fetch(url);
+                        
+                        if (response.status === 429) {
+                            console.warn('WB 429, пробуем другой endpoint...');
+                            state.wbRetryAfter = Date.now() + 30000; // ждать 30 сек
+                            continue;
+                        }
+                        
+                        if (!response.ok) continue;
+                        
+                        const data = await response.json();
+                        const items = data.data?.products || [];
+                        
+                        if (items.length === 0) continue;
+                        
+                        state.wbRetryAfter = 0; // сброс блокировки
+                        
+                        return items.slice(0, 20).map(item => {
+                            const title = item.name || '';
+                            const price = item.salePriceU ? Math.floor(item.salePriceU / 100) : null;
+                            const rating = item.reviewRating || item.rating || null;
+                            const reviews = item.feedbacks || item.reviews || 0;
+                            const seller = item.supplier || item.brand || '';
+                            let image = '';
+                            if (item.pics || item.pic) {
+                                const imageId = item.pics || item.pic;
+                                const vol = Math.floor(imageId / 100000);
+                                const part = Math.floor(imageId / 1000);
+                                image = `https://basket-${(vol % 15) + 1}.wbbasket.ru/vol${vol}/part${part}/${imageId}/images/big/1.webp`;
+                            }
+                            const productUrl = `https://www.wildberries.ru/catalog/${item.id}/detail.aspx`;
+                            if (!title || !price) return null;
+                            return { title, image, price, rating, reviews, seller, url: productUrl, platform: 'wb' };
+                        }).filter(Boolean);
+                        
+                    } catch (e) {
+                        console.warn('WB fetch error:', e.message);
+                        continue;
                     }
-                    const productUrl = `https://www.wildberries.ru/catalog/${item.id}/detail.aspx`;
-                    if (!title || !price) return null;
-                    return { title, image, price, rating, reviews, seller, url: productUrl, platform: 'wb' };
-                }).filter(Boolean);
+                }
+
+                // Все попытки исчерпаны
+                if (state.wbRetryAfter > 0) {
+                    throw new Error('Wildberries временно заблокировал запросы (429). Подождите 30 секунд и попробуйте снова.');
+                }
+                throw new Error('Wildberries API недоступен. Попробуйте позже.');
             }
 
+            // ============ OZON ЧЕРЕЗ JSONP (ОБХОД CORS) ============
             async function searchOzon(query) {
-                const url = `https://www.ozon.ru/api/entrypoint-api.bx/page/json/v2?url=/search/?text=${encodeURIComponent(query)}&from_global=true`;
-                const response = await fetch(url, { headers: { 'Accept': 'application/json' } });
-                if (!response.ok) throw new Error(`Ozon API: HTTP ${response.status}`);
-                const data = await response.json();
-                const widgets = data.widgetStates || {};
+                // Способ 1: прямой fetch (может сработать с некоторыми заголовками)
+                try {
+                    const url = `https://www.ozon.ru/api/entrypoint-api.bx/page/json/v2?url=/search/?text=${encodeURIComponent(query)}&from_global=true`;
+                    const response = await fetch(url, {
+                        headers: { 
+                            'Accept': 'application/json',
+                            'User-Agent': 'Mozilla/5.0'
+                        },
+                        mode: 'cors'
+                    });
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        return parseOzonResponse(data);
+                    }
+                } catch (e) {
+                    console.log('Ozon прямой запрос не сработал, пробуем альтернативный метод...');
+                }
+
+                // Способ 2: через JSONP callback
+                try {
+                    const data = await jsonpRequest(query);
+                    if (data) return parseOzonResponse(data);
+                } catch (e) {
+                    console.log('Ozon JSONP не сработал:', e.message);
+                }
+
+                throw new Error('Ozon API недоступен (CORS блокировка). Попробуйте поискать на Wildberries или используйте VPN.');
+            }
+
+            function jsonpRequest(query) {
+                return new Promise((resolve, reject) => {
+                    const callbackName = 'ozonCallback_' + Date.now();
+                    const script = document.createElement('script');
+                    const timeout = setTimeout(() => {
+                        cleanup();
+                        reject(new Error('JSONP timeout'));
+                    }, 10000);
+
+                    function cleanup() {
+                        clearTimeout(timeout);
+                        delete window[callbackName];
+                        if (script.parentNode) script.parentNode.removeChild(script);
+                    }
+
+                    window[callbackName] = function(data) {
+                        cleanup();
+                        resolve(data);
+                    };
+
+                    script.src = `https://www.ozon.ru/api/entrypoint-api.bx/page/json/v2?url=/search/?text=${encodeURIComponent(query)}&from_global=true&callback=${callbackName}`;
+                    script.onerror = () => {
+                        cleanup();
+                        reject(new Error('JSONP script error'));
+                    };
+
+                    document.head.appendChild(script);
+                });
+            }
+
+            function parseOzonResponse(data) {
                 const products = [];
+                const widgets = data.widgetStates || {};
+                
                 for (const [key, value] of Object.entries(widgets)) {
                     if (key.includes('searchResults') || key.includes('SearchResults')) {
-                        const widgetData = JSON.parse(value);
-                        const items = widgetData.items || [];
-                        for (const item of items.slice(0, 20)) {
-                            const title = item.title || '';
-                            const image = item.image || '';
-                            let price = null;
-                            let rating = null;
-                            let reviews = 0;
-                            let seller = '';
-                            let productUrl = '';
-                            const mainState = item.mainState || [];
-                            for (const state of mainState) {
-                                if (state.atom?.price) {
-                                    const pt = state.atom.price.text || state.atom.price.price || '';
-                                    price = parseInt(String(pt).replace(/[^\d]/g, '')) || null;
-                                    break;
+                        try {
+                            const widgetData = JSON.parse(value);
+                            const items = widgetData.items || [];
+                            
+                            for (const item of items.slice(0, 20)) {
+                                const title = item.title || '';
+                                const image = item.image || '';
+                                let price = null;
+                                let rating = null;
+                                let reviews = 0;
+                                let seller = '';
+                                let productUrl = '';
+                                
+                                const mainState = item.mainState || [];
+                                for (const state of mainState) {
+                                    if (state.atom?.price) {
+                                        const pt = state.atom.price.text || state.atom.price.price || '';
+                                        price = parseInt(String(pt).replace(/[^\d]/g, '')) || null;
+                                        break;
+                                    }
+                                }
+                                
+                                if (item.rating) { rating = parseFloat(item.rating) || null; reviews = item.reviews || 0; }
+                                if (item.seller) { seller = item.seller.name || item.seller.title || ''; }
+                                if (item.link) { productUrl = item.link.startsWith('http') ? item.link : `https://www.ozon.ru${item.link}`; }
+                                else if (item.id) { productUrl = `https://www.ozon.ru/product/${item.id}`; }
+                                
+                                if (title && price) {
+                                    products.push({ title, image, price, rating, reviews, seller, url: productUrl, platform: 'ozon' });
                                 }
                             }
-                            if (item.rating) { rating = parseFloat(item.rating) || null; reviews = item.reviews || 0; }
-                            if (item.seller) { seller = item.seller.name || item.seller.title || ''; }
-                            if (item.link) { productUrl = item.link.startsWith('http') ? item.link : `https://www.ozon.ru${item.link}`; }
-                            else if (item.id) { productUrl = `https://www.ozon.ru/product/${item.id}`; }
-                            if (title && price) {
-                                products.push({ title, image, price, rating, reviews, seller, url: productUrl, platform: 'ozon' });
-                            }
+                        } catch (e) {
+                            console.warn('Ozon parse error:', e.message);
                         }
                         break;
                     }
                 }
+                
                 return products;
             }
 
@@ -424,6 +541,7 @@
 
                 loader.classList.add('active');
                 loaderText.textContent = `Ищем "${query}" на ${state.searchPlatform==='ozon'?'Ozon':'Wildberries'}...`;
+                retryInfo.textContent = '';
                 noResults.classList.remove('active');
                 resultsHeader.classList.remove('visible');
                 cardsGrid.innerHTML = '';
@@ -437,101 +555,69 @@
                     if (results.length === 0) noResultsText.textContent = `По запросу "${query}" ничего не найдено`;
                 } catch (e) {
                     noResults.classList.add('active');
-                    noResultsText.textContent = `Ошибка: ${e.message}. ${state.searchPlatform==='ozon'?'Попробуйте поискать на Wildberries.':''}`;
+                    noResultsText.innerHTML = `❌ ${e.message}<br><br>
+                        <small style="color:#64748b;">
+                            🔄 Попробуйте переключиться на другую площадку<br>
+                            ⏱ Если ошибка 429 — подождите 30 секунд<br>
+                            🔍 Проверьте правильность запроса
+                        </small>`;
                 } finally {
                     loader.classList.remove('active');
+                    retryInfo.textContent = '';
                     searchBtn.disabled = false;
                 }
             }
 
-            // ============ ОБРАБОТЧИКИ КНОПОК ============
-
-            // Кнопка поиска
+            // ============ ОБРАБОТЧИКИ ============
             searchBtn.addEventListener('click', performSearch);
-            
-            // Enter в поле ввода
             searchInput.addEventListener('keypress', function(e) {
                 if (e.key === 'Enter') performSearch();
             });
 
-            // Кнопка Ozon
             btnOzon.addEventListener('click', function() {
-                btnOzon.classList.add('active-ozon');
-                btnOzon.classList.remove('active-wb');
-                btnWB.classList.remove('active-ozon', 'active-wb');
+                btnOzon.className = 'platform-option active-ozon';
+                btnWB.className = 'platform-option';
                 state.searchPlatform = 'ozon';
-                console.log('Выбрана площадка: Ozon');
             });
 
-            // Кнопка Wildberries
             btnWB.addEventListener('click', function() {
-                btnWB.classList.add('active-wb');
-                btnWB.classList.remove('active-ozon');
-                btnOzon.classList.remove('active-ozon', 'active-wb');
+                btnWB.className = 'platform-option active-wb';
+                btnOzon.className = 'platform-option';
                 state.searchPlatform = 'wb';
-                console.log('Выбрана площадка: Wildberries');
             });
 
-            // Кнопки сортировки
             sortBest.addEventListener('click', function() {
                 allSortBtns.forEach(b => b.classList.remove('active'));
                 sortBest.classList.add('active');
                 state.sortMode = 'best';
-                if (state.searchResults.length > 0) {
-                    const sorted = sortResults(state.searchResults, 'best');
-                    state.searchResults = sorted;
-                    renderCards(sorted, state.searchPlatform);
-                }
-                console.log('Сортировка: лучшие');
+                if (state.searchResults.length > 0) renderCards(sortResults(state.searchResults, 'best'), state.searchPlatform);
             });
 
             sortPrice.addEventListener('click', function() {
                 allSortBtns.forEach(b => b.classList.remove('active'));
                 sortPrice.classList.add('active');
                 state.sortMode = 'price-asc';
-                if (state.searchResults.length > 0) {
-                    const sorted = sortResults(state.searchResults, 'price-asc');
-                    state.searchResults = sorted;
-                    renderCards(sorted, state.searchPlatform);
-                }
-                console.log('Сортировка: цена по возрастанию');
+                if (state.searchResults.length > 0) renderCards(sortResults(state.searchResults, 'price-asc'), state.searchPlatform);
             });
 
             sortRating.addEventListener('click', function() {
                 allSortBtns.forEach(b => b.classList.remove('active'));
                 sortRating.classList.add('active');
                 state.sortMode = 'rating';
-                if (state.searchResults.length > 0) {
-                    const sorted = sortResults(state.searchResults, 'rating');
-                    state.searchResults = sorted;
-                    renderCards(sorted, state.searchPlatform);
-                }
-                console.log('Сортировка: по рейтингу');
+                if (state.searchResults.length > 0) renderCards(sortResults(state.searchResults, 'rating'), state.searchPlatform);
             });
 
-            // Закрытие модального окна
-            modalClose.addEventListener('click', function() {
-                modalOverlay.classList.remove('active');
+            modalClose.addEventListener('click', () => modalOverlay.classList.remove('active'));
+            modalOverlay.addEventListener('click', e => {
+                if (e.target === modalOverlay) modalOverlay.classList.remove('active');
+            });
+            document.addEventListener('keydown', e => {
+                if (e.key === 'Escape') modalOverlay.classList.remove('active');
             });
 
-            modalOverlay.addEventListener('click', function(e) {
-                if (e.target === modalOverlay) {
-                    modalOverlay.classList.remove('active');
-                }
-            });
-
-            // Escape для закрытия модалки
-            document.addEventListener('keydown', function(e) {
-                if (e.key === 'Escape' && modalOverlay.classList.contains('active')) {
-                    modalOverlay.classList.remove('active');
-                }
-            });
-
-            console.log('✅ Все кнопки работают!');
-            console.log('🛒 Ozon - кнопка слева');
-            console.log('🛍️ Wildberries - кнопка справа');
-            console.log('📊 Сортировка: Лучшие | Цена ↑ | Рейтинг');
-            console.log('💡 Введите запрос и нажмите "Искать" или Enter');
+            console.log('✅ Готово!');
+            console.log('🛒 Ozon — JSONP обход CORS');
+            console.log('🛍️ WB — 3 резервных endpoint + автоповтор при 429');
         });
     </script>
 </body>
