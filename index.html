@@ -154,8 +154,7 @@
         </div>
 
         <div class="warning-banner">
-            ⚠️ Ozon может блокировать прямые запросы из браузера (CORS). Wildberries работает всегда.
-            Если Ozon не отвечает — используйте поиск по Wildberries.
+            ⚠️ Wildberries работает всегда. Ozon может блокировать запросы из браузера (CORS).
         </div>
 
         <div class="error-message" id="errorMessage"></div>
@@ -165,16 +164,16 @@
                 <input type="text" class="search-input" id="searchInput" 
                        placeholder="Введите название товара..." autofocus>
                 <div class="platform-select" id="platformSelect">
-                    <button class="platform-option active-ozon" data-platform="ozon">🛒 Ozon</button>
-                    <button class="platform-option" data-platform="wb">🛍️ Wildberries</button>
+                    <button class="platform-option active-ozon" data-platform="ozon" id="btnOzon">🛒 Ozon</button>
+                    <button class="platform-option" data-platform="wb" id="btnWB">🛍️ Wildberries</button>
                 </div>
                 <button class="search-btn" id="searchBtn">🔎 Искать</button>
             </div>
             <div class="filter-row">
                 <span>Сортировка:</span>
-                <button class="sort-btn active" data-sort="best">Лучшие</button>
-                <button class="sort-btn" data-sort="price-asc">Цена ↑</button>
-                <button class="sort-btn" data-sort="rating">Рейтинг</button>
+                <button class="sort-btn active" data-sort="best" id="sortBest">Лучшие</button>
+                <button class="sort-btn" data-sort="price-asc" id="sortPrice">Цена ↑</button>
+                <button class="sort-btn" data-sort="rating" id="sortRating">Рейтинг</button>
             </div>
         </div>
 
@@ -208,31 +207,41 @@
     </div>
 
     <script>
-        (function() {
+        // Ждём полной загрузки DOM
+        document.addEventListener('DOMContentLoaded', function() {
+            
             const state = {
                 searchPlatform: 'ozon',
                 sortMode: 'best',
                 searchResults: []
             };
 
-            const dom = {
-                searchInput: document.getElementById('searchInput'),
-                searchBtn: document.getElementById('searchBtn'),
-                loader: document.getElementById('loader'),
-                loaderText: document.getElementById('loaderText'),
-                noResults: document.getElementById('noResults'),
-                noResultsText: document.getElementById('noResultsText'),
-                resultsHeader: document.getElementById('resultsHeader'),
-                resultsCount: document.getElementById('resultsCount'),
-                resultsPlatform: document.getElementById('resultsPlatform'),
-                cardsGrid: document.getElementById('cardsGrid'),
-                modalOverlay: document.getElementById('modalOverlay'),
-                modalHeader: document.getElementById('modalHeader'),
-                modalComparison: document.getElementById('modalComparison'),
-                similarSection: document.getElementById('similarSection'),
-                similarRow: document.getElementById('similarRow'),
-                errorMessage: document.getElementById('errorMessage')
-            };
+            // Получаем все элементы по ID
+            const searchInput = document.getElementById('searchInput');
+            const searchBtn = document.getElementById('searchBtn');
+            const btnOzon = document.getElementById('btnOzon');
+            const btnWB = document.getElementById('btnWB');
+            const sortBest = document.getElementById('sortBest');
+            const sortPrice = document.getElementById('sortPrice');
+            const sortRating = document.getElementById('sortRating');
+            const loader = document.getElementById('loader');
+            const loaderText = document.getElementById('loaderText');
+            const noResults = document.getElementById('noResults');
+            const noResultsText = document.getElementById('noResultsText');
+            const resultsHeader = document.getElementById('resultsHeader');
+            const resultsCount = document.getElementById('resultsCount');
+            const resultsPlatform = document.getElementById('resultsPlatform');
+            const cardsGrid = document.getElementById('cardsGrid');
+            const modalOverlay = document.getElementById('modalOverlay');
+            const modalClose = document.getElementById('modalClose');
+            const modalHeader = document.getElementById('modalHeader');
+            const modalComparison = document.getElementById('modalComparison');
+            const similarSection = document.getElementById('similarSection');
+            const similarRow = document.getElementById('similarRow');
+            const errorMessage = document.getElementById('errorMessage');
+
+            // Все sort-btn
+            const allSortBtns = [sortBest, sortPrice, sortRating];
 
             function formatPrice(p) { return p ? p.toLocaleString('ru-RU') + ' ₽' : '—'; }
             function getStars(r) { if (!r) return ''; const f = Math.floor(r); return '★'.repeat(f) + (r - f >= 0.5 ? '½' : '') + '☆'.repeat(5 - f - (r - f >= 0.5 ? 1 : 0)); }
@@ -246,25 +255,24 @@
                 return sorted;
             }
 
-            // ============ ТОЛЬКО РЕАЛЬНЫЕ API ============
+            function showError(msg) {
+                errorMessage.textContent = msg;
+                errorMessage.classList.add('show');
+                setTimeout(() => errorMessage.classList.remove('show'), 4000);
+            }
 
             async function searchWB(query) {
                 const url = `https://search.wb.ru/exactmatch/ru/common/v9/search?ab_testid=false&appType=1&curr=rub&dest=-1029256&query=${encodeURIComponent(query)}&resultset=catalog&sort=popular&spp=30`;
-                
                 const response = await fetch(url);
                 if (!response.ok) throw new Error(`WB API: HTTP ${response.status}`);
-                
                 const data = await response.json();
                 const items = data.data?.products || [];
-                
                 return items.slice(0, 20).map(item => {
                     const title = item.name || '';
                     const price = item.salePriceU ? Math.floor(item.salePriceU / 100) : null;
                     const rating = item.reviewRating || item.rating || null;
                     const reviews = item.feedbacks || item.reviews || 0;
                     const seller = item.supplier || item.brand || '';
-                    const sellerId = String(item.supplierId || '');
-                    
                     let image = '';
                     if (item.pics || item.pic) {
                         const imageId = item.pics || item.pic;
@@ -272,33 +280,23 @@
                         const part = Math.floor(imageId / 1000);
                         image = `https://basket-${(vol % 15) + 1}.wbbasket.ru/vol${vol}/part${part}/${imageId}/images/big/1.webp`;
                     }
-                    
                     const productUrl = `https://www.wildberries.ru/catalog/${item.id}/detail.aspx`;
-                    
                     if (!title || !price) return null;
-                    
-                    return { title, image, price, rating, reviews, seller, sellerId, url: productUrl, platform: 'wb' };
+                    return { title, image, price, rating, reviews, seller, url: productUrl, platform: 'wb' };
                 }).filter(Boolean);
             }
 
             async function searchOzon(query) {
                 const url = `https://www.ozon.ru/api/entrypoint-api.bx/page/json/v2?url=/search/?text=${encodeURIComponent(query)}&from_global=true`;
-                
-                const response = await fetch(url, {
-                    headers: { 'Accept': 'application/json' }
-                });
-                
+                const response = await fetch(url, { headers: { 'Accept': 'application/json' } });
                 if (!response.ok) throw new Error(`Ozon API: HTTP ${response.status}`);
-                
                 const data = await response.json();
                 const widgets = data.widgetStates || {};
                 const products = [];
-                
                 for (const [key, value] of Object.entries(widgets)) {
                     if (key.includes('searchResults') || key.includes('SearchResults')) {
                         const widgetData = JSON.parse(value);
                         const items = widgetData.items || [];
-                        
                         for (const item of items.slice(0, 20)) {
                             const title = item.title || '';
                             const image = item.image || '';
@@ -307,7 +305,6 @@
                             let reviews = 0;
                             let seller = '';
                             let productUrl = '';
-                            
                             const mainState = item.mainState || [];
                             for (const state of mainState) {
                                 if (state.atom?.price) {
@@ -316,12 +313,10 @@
                                     break;
                                 }
                             }
-                            
                             if (item.rating) { rating = parseFloat(item.rating) || null; reviews = item.reviews || 0; }
                             if (item.seller) { seller = item.seller.name || item.seller.title || ''; }
                             if (item.link) { productUrl = item.link.startsWith('http') ? item.link : `https://www.ozon.ru${item.link}`; }
                             else if (item.id) { productUrl = `https://www.ozon.ru/product/${item.id}`; }
-                            
                             if (title && price) {
                                 products.push({ title, image, price, rating, reviews, seller, url: productUrl, platform: 'ozon' });
                             }
@@ -329,22 +324,21 @@
                         break;
                     }
                 }
-                
                 return products;
             }
 
             function renderCards(results, platform) {
-                dom.cardsGrid.innerHTML = '';
+                cardsGrid.innerHTML = '';
                 if (results.length === 0) {
-                    dom.noResults.classList.add('active');
-                    dom.noResultsText.textContent = 'Ничего не найдено. Попробуйте изменить запрос.';
-                    dom.resultsHeader.classList.remove('visible');
+                    noResults.classList.add('active');
+                    noResultsText.textContent = 'Ничего не найдено. Попробуйте изменить запрос.';
+                    resultsHeader.classList.remove('visible');
                     return;
                 }
-                dom.noResults.classList.remove('active');
-                dom.resultsHeader.classList.add('visible');
-                dom.resultsCount.textContent = results.length;
-                dom.resultsPlatform.textContent = platform === 'ozon' ? '🛒 Ozon' : '🛍️ Wildberries';
+                noResults.classList.remove('active');
+                resultsHeader.classList.add('visible');
+                resultsCount.textContent = results.length;
+                resultsPlatform.textContent = platform === 'ozon' ? '🛒 Ozon' : '🛍️ Wildberries';
 
                 results.forEach((p, i) => {
                     const card = document.createElement('div');
@@ -362,16 +356,16 @@
                         </div>
                         <div class="card-hint">👆 Нажмите, чтобы сравнить с другой площадкой</div>`;
                     card.addEventListener('click', () => openComparison(p, platform));
-                    dom.cardsGrid.appendChild(card);
+                    cardsGrid.appendChild(card);
                 });
             }
 
             async function openComparison(product, searchPlatform) {
                 const otherPlatform = searchPlatform === 'ozon' ? 'wb' : 'ozon';
-                dom.modalHeader.innerHTML = `<h2>📦 ${product.title} <span style="font-size:0.85rem;color:var(--subtext);">от ${product.seller||'неизвестного'}</span></h2>`;
-                dom.modalComparison.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:2rem"><div class="spinner" style="margin:0 auto 1rem"></div><p>Ищем на другой площадке...</p></div>';
-                dom.similarSection.style.display = 'none';
-                dom.modalOverlay.classList.add('active');
+                modalHeader.innerHTML = `<h2>📦 ${product.title} <span style="font-size:0.85rem;color:#64748b;">от ${product.seller||'неизвестного'}</span></h2>`;
+                modalComparison.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:2rem"><div class="spinner" style="margin:0 auto 1rem"></div><p>Ищем на другой площадке...</p></div>';
+                similarSection.style.display = 'none';
+                modalOverlay.classList.add('active');
 
                 const sq = `${product.title.split(' ').slice(0,4).join(' ')} ${product.seller||''}`.trim();
 
@@ -388,7 +382,7 @@
                     const sd = { title:product.title, price:product.price, rating:product.rating, reviews:product.reviews, image:product.image, url:product.url, seller:product.seller };
                     const bp = od?.price ? (sd.price <= od.price ? searchPlatform : otherPlatform) : searchPlatform;
 
-                    dom.modalComparison.innerHTML = [
+                    modalComparison.innerHTML = [
                         { k:searchPlatform, d:sd, l:searchPlatform==='ozon'?'Ozon (исходный)':'WB (исходный)', dc:searchPlatform==='ozon'?'ozon-dot':'wb-dot', bc:searchPlatform==='ozon'?'ozon-btn':'wb-btn' },
                         { k:otherPlatform, d:od, l:otherPlatform==='ozon'?'Ozon':'WB', dc:otherPlatform==='ozon'?'ozon-dot':'wb-dot', bc:otherPlatform==='ozon'?'ozon-btn':'wb-btn' }
                     ].map(p => {
@@ -403,15 +397,15 @@
                             <div class="price-big ${ib?'best-price':''}">${formatPrice(p.d.price)}</div>
                             ${!ib&&pd>0?`<span class="discount-badge red">Дороже на ${formatPrice(pd)} (${pp}%)</span>`:''}
                             ${ib&&pd>0?`<span class="discount-badge green">Экономия ${formatPrice(pd)} (${pp}%)</span>`:''}
-                            <div style="margin-top:0.5rem;font-size:0.85rem">${p.d.rating?`★ ${p.d.rating.toFixed(1)}`:''} ${p.d.reviews?`(${p.d.reviews} отзывов)`:</div>'}
-                            <div style="font-size:0.8rem;color:var(--subtext);margin-top:0.3rem">🏪 ${p.d.seller||'Не указан'}</div>
+                            <div style="margin-top:0.5rem;font-size:0.85rem">${p.d.rating?`★ ${p.d.rating.toFixed(1)}`:''} ${p.d.reviews?`(${p.d.reviews} отзывов)`:''}</div>
+                            <div style="font-size:0.8rem;color:#64748b;margin-top:0.3rem">🏪 ${p.d.seller||'Не указан'}</div>
                             <a href="${p.d.url||'#'}" target="_blank" rel="noopener" class="btn-go ${p.bc}">Перейти →</a>
                         </div>`;
                     }).join('');
 
                     if (filtered.length > 1) {
-                        dom.similarSection.style.display = 'block';
-                        dom.similarRow.innerHTML = filtered.slice(1,4).map(s => `
+                        similarSection.style.display = 'block';
+                        similarRow.innerHTML = filtered.slice(1,4).map(s => `
                             <div class="similar-item" onclick="window.open('${s.url||'#'}','_blank')">
                                 ${s.image?`<img src="${s.image}" onerror="this.parentElement.innerHTML='<span style=font-size:2rem>📦</span>'">`:'<span style="font-size:2rem">📦</span>'}
                                 <div class="s-name">${s.title}</div>
@@ -420,58 +414,125 @@
                             </div>`).join('');
                     }
                 } catch (e) {
-                    dom.modalComparison.innerHTML = `<div style="text-align:center;padding:2rem;color:var(--red)"><p>❌ Ошибка: ${e.message}</p></div>`;
+                    modalComparison.innerHTML = `<div style="text-align:center;padding:2rem;color:#ef4444"><p>❌ Ошибка: ${e.message}</p></div>`;
                 }
             }
 
             async function performSearch() {
-                const query = dom.searchInput.value.trim();
+                const query = searchInput.value.trim();
                 if (query.length < 2) { showError('Введите минимум 2 символа'); return; }
 
-                dom.loader.classList.add('active');
-                dom.loaderText.textContent = `Ищем "${query}" на ${state.searchPlatform==='ozon'?'Ozon':'Wildberries'}...`;
-                dom.noResults.classList.remove('active');
-                dom.resultsHeader.classList.remove('visible');
-                dom.cardsGrid.innerHTML = '';
-                dom.searchBtn.disabled = true;
+                loader.classList.add('active');
+                loaderText.textContent = `Ищем "${query}" на ${state.searchPlatform==='ozon'?'Ozon':'Wildberries'}...`;
+                noResults.classList.remove('active');
+                resultsHeader.classList.remove('visible');
+                cardsGrid.innerHTML = '';
+                searchBtn.disabled = true;
 
                 try {
                     const results = state.searchPlatform === 'ozon' ? await searchOzon(query) : await searchWB(query);
                     const sorted = sortResults(results, state.sortMode);
                     state.searchResults = sorted;
                     renderCards(sorted, state.searchPlatform);
-                    if (results.length === 0) dom.noResultsText.textContent = `По запросу "${query}" ничего не найдено`;
+                    if (results.length === 0) noResultsText.textContent = `По запросу "${query}" ничего не найдено`;
                 } catch (e) {
-                    dom.noResults.classList.add('active');
-                    dom.noResultsText.textContent = `Ошибка: ${e.message}. ${state.searchPlatform==='ozon'?'Попробуйте поискать на Wildberries (кнопка справа).':''}`;
+                    noResults.classList.add('active');
+                    noResultsText.textContent = `Ошибка: ${e.message}. ${state.searchPlatform==='ozon'?'Попробуйте поискать на Wildberries.':''}`;
                 } finally {
-                    dom.loader.classList.remove('active');
-                    dom.searchBtn.disabled = false;
+                    loader.classList.remove('active');
+                    searchBtn.disabled = false;
                 }
             }
 
-            function showError(msg) { dom.errorMessage.textContent = msg; dom.errorMessage.classList.add('show'); setTimeout(()=>dom.errorMessage.classList.remove('show'),4000); }
+            // ============ ОБРАБОТЧИКИ КНОПОК ============
 
-            dom.searchBtn.addEventListener('click', performSearch);
-            dom.searchInput.addEventListener('keypress', e => { if(e.key==='Enter') performSearch(); });
+            // Кнопка поиска
+            searchBtn.addEventListener('click', performSearch);
+            
+            // Enter в поле ввода
+            searchInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') performSearch();
+            });
 
-            document.querySelectorAll('.platform-option').forEach(b => b.addEventListener('click', function(){
-                document.querySelectorAll('.platform-option').forEach(x=>x.classList.remove('active-ozon','active-wb'));
-                state.searchPlatform = this.dataset.platform;
-                this.classList.add(this.dataset.platform==='ozon'?'active-ozon':'active-wb');
-            }));
+            // Кнопка Ozon
+            btnOzon.addEventListener('click', function() {
+                btnOzon.classList.add('active-ozon');
+                btnOzon.classList.remove('active-wb');
+                btnWB.classList.remove('active-ozon', 'active-wb');
+                state.searchPlatform = 'ozon';
+                console.log('Выбрана площадка: Ozon');
+            });
 
-            document.querySelectorAll('.sort-btn').forEach(b => b.addEventListener('click', function(){
-                document.querySelectorAll('.sort-btn').forEach(x=>x.classList.remove('active'));
-                this.classList.add('active');
-                state.sortMode = this.dataset.sort;
-                if(state.searchResults.length>0) renderCards(sortResults(state.searchResults,state.sortMode),state.searchPlatform);
-            }));
+            // Кнопка Wildberries
+            btnWB.addEventListener('click', function() {
+                btnWB.classList.add('active-wb');
+                btnWB.classList.remove('active-ozon');
+                btnOzon.classList.remove('active-ozon', 'active-wb');
+                state.searchPlatform = 'wb';
+                console.log('Выбрана площадка: Wildberries');
+            });
 
-            document.getElementById('modalClose').addEventListener('click', ()=>dom.modalOverlay.classList.remove('active'));
-            dom.modalOverlay.addEventListener('click', e=>{ if(e.target===dom.modalOverlay) dom.modalOverlay.classList.remove('active'); });
-            document.addEventListener('keydown', e=>{ if(e.key==='Escape') dom.modalOverlay.classList.remove('active'); });
-        })();
+            // Кнопки сортировки
+            sortBest.addEventListener('click', function() {
+                allSortBtns.forEach(b => b.classList.remove('active'));
+                sortBest.classList.add('active');
+                state.sortMode = 'best';
+                if (state.searchResults.length > 0) {
+                    const sorted = sortResults(state.searchResults, 'best');
+                    state.searchResults = sorted;
+                    renderCards(sorted, state.searchPlatform);
+                }
+                console.log('Сортировка: лучшие');
+            });
+
+            sortPrice.addEventListener('click', function() {
+                allSortBtns.forEach(b => b.classList.remove('active'));
+                sortPrice.classList.add('active');
+                state.sortMode = 'price-asc';
+                if (state.searchResults.length > 0) {
+                    const sorted = sortResults(state.searchResults, 'price-asc');
+                    state.searchResults = sorted;
+                    renderCards(sorted, state.searchPlatform);
+                }
+                console.log('Сортировка: цена по возрастанию');
+            });
+
+            sortRating.addEventListener('click', function() {
+                allSortBtns.forEach(b => b.classList.remove('active'));
+                sortRating.classList.add('active');
+                state.sortMode = 'rating';
+                if (state.searchResults.length > 0) {
+                    const sorted = sortResults(state.searchResults, 'rating');
+                    state.searchResults = sorted;
+                    renderCards(sorted, state.searchPlatform);
+                }
+                console.log('Сортировка: по рейтингу');
+            });
+
+            // Закрытие модального окна
+            modalClose.addEventListener('click', function() {
+                modalOverlay.classList.remove('active');
+            });
+
+            modalOverlay.addEventListener('click', function(e) {
+                if (e.target === modalOverlay) {
+                    modalOverlay.classList.remove('active');
+                }
+            });
+
+            // Escape для закрытия модалки
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape' && modalOverlay.classList.contains('active')) {
+                    modalOverlay.classList.remove('active');
+                }
+            });
+
+            console.log('✅ Все кнопки работают!');
+            console.log('🛒 Ozon - кнопка слева');
+            console.log('🛍️ Wildberries - кнопка справа');
+            console.log('📊 Сортировка: Лучшие | Цена ↑ | Рейтинг');
+            console.log('💡 Введите запрос и нажмите "Искать" или Enter');
+        });
     </script>
 </body>
 </html>
