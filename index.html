@@ -2,623 +2,838 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Сравнение цен Ozon vs Wildberries</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SuperFly · TWA</title>
     <style>
-        :root {
-            --ozon: #005bff;
-            --ozon-light: #e8f2ff;
-            --wb: #cb11ab;
-            --wb-light: #fde8f7;
-            --star: #f59e0b;
-            --green: #22c55e;
-            --red: #ef4444;
-            --bg: #f1f5f9;
-            --card: #ffffff;
-            --text: #1e293b;
-            --subtext: #64748b;
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
         }
-
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-
         body {
-            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-            background: var(--bg);
-            color: var(--text);
+            background: #0b111e;
             min-height: 100vh;
-            line-height: 1.5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Courier New', monospace;
+            touch-action: none;
+            margin: 0;
+            padding: 8px;
         }
-
-        .container { max-width: 1100px; margin: 0 auto; padding: 1.5rem; }
-
-        .header { text-align: center; margin-bottom: 1.5rem; }
-        .header h1 { font-size: 2rem; font-weight: 700; background: linear-gradient(135deg, #6366f1, #8b5cf6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-        .header p { color: var(--subtext); font-size: 0.95rem; margin-top: 0.25rem; }
-
-        .warning-banner {
-            background: #fef3c7; border: 1px solid #f59e0b; color: #92400e;
-            padding: 0.8rem 1.2rem; border-radius: 12px; margin-bottom: 1rem;
+        .game-wrapper {
+            background: #1a1f2e;
+            padding: 14px 14px 20px;
+            border-radius: 32px;
+            box-shadow: 0 10px 0 #0b0e16, 0 8px 24px rgba(0,0,0,0.8);
+            width: 100%;
+            max-width: 820px;
+        }
+        canvas {
+            display: block;
+            margin: 0 auto;
+            border-radius: 18px;
+            background: #87CEEB;
+            box-shadow: inset 0 0 0 3px #2d3a4a, 0 0 0 4px #0f141f;
+            width: 100%;
+            height: auto;
+            aspect-ratio: 800 / 500;
+            touch-action: none;
+            cursor: crosshair;
+        }
+        .ui-panel {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 12px;
+            color: #b8d0e0;
+            text-shadow: 0 2px 0 #0a0e14;
+            font-weight: 700;
+            font-size: 1.2rem;
+            padding: 0 4px;
+            flex-wrap: wrap;
+            gap: 8px 12px;
+        }
+        .score-box {
+            background: #0f1622;
+            padding: 4px 20px;
+            border-radius: 40px;
+            border-bottom: 4px solid #3f5a70;
+            letter-spacing: 1.5px;
+            color: #f5d742;
+            box-shadow: inset 0 -2px 0 #2a3b4a;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .enemy-counter {
+            background: #1f2a3a;
+            padding: 4px 18px;
+            border-radius: 40px;
+            border-bottom: 4px solid #4a2a2a;
+            color: #ff8a7a;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .restart-btn {
+            background: #2d3f54;
+            border: none;
+            border-bottom: 4px solid #151f2b;
+            color: #eaf2f9;
+            font-weight: bold;
+            font-size: 1.1rem;
+            padding: 4px 22px;
+            border-radius: 40px;
+            cursor: pointer;
+            transition: 0.06s ease;
+            font-family: 'Courier New', monospace;
+            letter-spacing: 0.5px;
+            box-shadow: 0 3px 0 #0b1119;
+            touch-action: manipulation;
+        }
+        .restart-btn:active {
+            transform: translateY(4px);
+            border-bottom-width: 0px;
+        }
+        .hint {
+            color: #7b94aa;
             font-size: 0.85rem;
+            letter-spacing: 0.5px;
+            padding-right: 2px;
         }
-
-        .search-section { background: var(--card); border-radius: 20px; padding: 1.5rem; box-shadow: 0 8px 30px rgba(0,0,0,0.05); margin-bottom: 1.5rem; }
-
-        .search-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-
-        .search-input { flex: 1; min-width: 220px; padding: 0.85rem 1.2rem; font-size: 1rem; border: 2px solid #e2e8f0; border-radius: 14px; outline: none; background: #f8fafc; transition: all 0.2s; font-family: inherit; }
-        .search-input:focus { border-color: #6366f1; box-shadow: 0 0 0 4px rgba(99,102,241,0.08); background: white; }
-
-        .platform-select { display: flex; gap: 6px; background: #f1f5f9; border-radius: 14px; padding: 4px; }
-        .platform-option { padding: 0.6rem 1.2rem; border-radius: 11px; border: none; cursor: pointer; font-weight: 600; font-size: 0.9rem; transition: all 0.2s; background: transparent; color: var(--subtext); font-family: inherit; white-space: nowrap; }
-        .platform-option.active-ozon { background: var(--ozon); color: white; }
-        .platform-option.active-wb { background: var(--wb); color: white; }
-
-        .search-btn { padding: 0.85rem 2rem; background: #6366f1; color: white; font-weight: 600; font-size: 1rem; border: none; border-radius: 14px; cursor: pointer; transition: all 0.25s; white-space: nowrap; font-family: inherit; }
-        .search-btn:hover { background: #4f46e5; transform: translateY(-1px); box-shadow: 0 8px 25px rgba(99,102,241,0.3); }
-        .search-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
-
-        .filter-row { display: flex; gap: 8px; margin-top: 0.8rem; flex-wrap: wrap; align-items: center; font-size: 0.8rem; color: var(--subtext); }
-        .sort-btn { padding: 0.4rem 0.9rem; border-radius: 20px; border: 1.5px solid #e2e8f0; background: white; font-size: 0.8rem; cursor: pointer; font-weight: 500; transition: all 0.2s; font-family: inherit; }
-        .sort-btn.active { background: #6366f1; color: white; border-color: #6366f1; }
-
-        .loader { display: none; text-align: center; padding: 3rem; }
-        .loader.active { display: block; }
-        .spinner { width: 44px; height: 44px; border: 4px solid #e2e8f0; border-top: 4px solid #6366f1; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 1rem; }
-        @keyframes spin { to { transform: rotate(360deg); } }
-
-        .results-header { display: none; justify-content: space-between; align-items: center; margin-bottom: 1rem; font-weight: 600; color: var(--subtext); }
-        .results-header.visible { display: flex; }
-
-        .cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.2rem; }
-
-        .product-card {
-            background: var(--card); border-radius: 18px; padding: 1.2rem;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.04); transition: all 0.3s;
-            border: 2px solid transparent; cursor: pointer; display: flex; flex-direction: column;
+        @media (max-width: 480px) {
+            .ui-panel {
+                font-size: 0.95rem;
+                justify-content: center;
+            }
+            .score-box, .enemy-counter {
+                padding: 2px 14px;
+                font-size: 1rem;
+            }
+            .restart-btn {
+                font-size: 0.95rem;
+                padding: 2px 18px;
+            }
         }
-        .product-card:hover { transform: translateY(-4px); box-shadow: 0 12px 35px rgba(0,0,0,0.08); border-color: #6366f1; }
-        .product-card.best-card { border-color: var(--green); }
-
-        .card-img-container { width: 100%; height: 180px; background: #f8fafc; border-radius: 14px; display: flex; align-items: center; justify-content: center; margin-bottom: 0.8rem; position: relative; overflow: hidden; }
-        .card-img { max-width: 85%; max-height: 85%; object-fit: contain; }
-        .card-platform-badge { position: absolute; top: 10px; left: 10px; padding: 0.25rem 0.7rem; border-radius: 10px; font-size: 0.7rem; font-weight: 700; z-index: 2; }
-        .card-platform-badge.ozon { background: var(--ozon-light); color: var(--ozon); }
-        .card-platform-badge.wb { background: var(--wb-light); color: var(--wb); }
-
-        .card-title { font-weight: 650; font-size: 0.9rem; margin-bottom: 0.5rem; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; flex-grow: 1; }
-        .card-price { font-size: 1.4rem; font-weight: 700; color: #0f172a; margin-bottom: 0.3rem; }
-        .card-meta { display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; flex-wrap: wrap; gap: 0.3rem; }
-        .card-seller { color: var(--subtext); display: flex; align-items: center; gap: 0.3rem; }
-        .card-rating { display: flex; align-items: center; gap: 0.2rem; font-weight: 600; font-size: 0.85rem; }
-        .stars { color: var(--star); }
-        .rating-high { color: var(--green); }
-        .rating-mid { color: var(--star); }
-        .rating-low { color: var(--red); }
-        .card-hint { font-size: 0.7rem; color: #94a3b8; text-align: center; margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px dashed #e2e8f0; }
-
-        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(15,23,42,0.6); backdrop-filter: blur(4px); z-index: 1000; align-items: center; justify-content: center; padding: 1rem; }
-        .modal-overlay.active { display: flex; }
-        .modal { background: white; border-radius: 24px; max-width: 850px; width: 100%; max-height: 90vh; overflow-y: auto; padding: 2rem; box-shadow: 0 25px 60px rgba(0,0,0,0.2); animation: modalIn 0.3s ease; }
-        @keyframes modalIn { from { opacity: 0; transform: translateY(30px) scale(0.95); } to { opacity: 1; transform: translateY(0) scale(1); } }
-        .modal-close { float: right; background: #f1f5f9; border: none; width: 36px; height: 36px; border-radius: 10px; font-size: 1.2rem; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-        .modal-close:hover { background: #e2e8f0; }
-        .modal-header { margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 2px solid #f1f5f9; }
-        .modal-header h2 { font-size: 1.2rem; display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
-        .modal-comparison { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem; }
-        @media (max-width: 650px) { .modal-comparison { grid-template-columns: 1fr; } }
-
-        .modal-card { border-radius: 18px; padding: 1.3rem; border: 2px solid #e2e8f0; }
-        .modal-card.best { border-color: var(--green); box-shadow: 0 0 0 4px rgba(34,197,94,0.08); }
-        .modal-card.not-found { opacity: 0.6; border-style: dashed; }
-        .modal-card-header { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.8rem; font-weight: 700; flex-wrap: wrap; }
-        .modal-card-header .dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
-        .modal-card-header .dot.ozon-dot { background: var(--ozon); }
-        .modal-card-header .dot.wb-dot { background: var(--wb); }
-        .modal-card img { width: 100%; height: 150px; object-fit: contain; background: #f8fafc; border-radius: 12px; margin-bottom: 0.8rem; }
-        .modal-card .price-big { font-size: 1.5rem; font-weight: 700; }
-        .modal-card .price-big.best-price { color: var(--green); }
-        .modal-card .btn-go { display: block; width: 100%; margin-top: 1rem; padding: 0.7rem; border: none; border-radius: 12px; font-weight: 600; cursor: pointer; text-align: center; text-decoration: none; font-family: inherit; color: white; transition: all 0.2s; }
-        .modal-card .btn-go.ozon-btn { background: var(--ozon); }
-        .modal-card .btn-go.wb-btn { background: var(--wb); }
-        .modal-card .btn-go:hover { filter: brightness(1.1); }
-
-        .discount-badge { font-size: 0.75rem; padding: 0.2rem 0.6rem; border-radius: 6px; font-weight: 700; display: inline-block; margin-top: 0.3rem; }
-        .discount-badge.green { background: #dcfce7; color: #16a34a; }
-        .discount-badge.red { background: #fef2f2; color: #ef4444; }
-
-        .similar-section h3 { font-size: 1rem; margin-bottom: 0.8rem; color: var(--subtext); }
-        .similar-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.8rem; }
-        @media (max-width: 550px) { .similar-row { grid-template-columns: 1fr; } }
-        .similar-item { background: #f8fafc; border-radius: 14px; padding: 0.8rem; text-align: center; cursor: pointer; transition: all 0.2s; border: 1px solid transparent; }
-        .similar-item:hover { background: white; border-color: #6366f1; }
-        .similar-item img { width: 70px; height: 70px; object-fit: contain; margin-bottom: 0.4rem; }
-        .similar-item .s-name { font-size: 0.8rem; font-weight: 500; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-        .similar-item .s-price { font-weight: 700; margin-top: 0.2rem; }
-        .similar-item .s-platform { font-size: 0.7rem; padding: 0.15rem 0.5rem; border-radius: 8px; display: inline-block; margin-top: 0.2rem; }
-        .similar-item .s-platform.ozon-tag { background: var(--ozon-light); color: var(--ozon); }
-        .similar-item .s-platform.wb-tag { background: var(--wb-light); color: var(--wb); }
-
-        .no-results { display: none; text-align: center; padding: 3rem; background: white; border-radius: 20px; color: var(--subtext); }
-        .no-results.active { display: block; }
-        .no-results-icon { font-size: 3rem; margin-bottom: 0.8rem; }
-
-        .error-message { background: #fef2f2; color: #991b1b; padding: 1rem; border-radius: 12px; margin-bottom: 1rem; display: none; text-align: center; }
-        .error-message.show { display: block; }
-
-        .retry-info { font-size: 0.8rem; color: #64748b; margin-top: 0.3rem; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>🔍 Сравнение цен Ozon vs WB</h1>
-            <p>Поиск товара → сравнение цен продавца на двух площадках</p>
-        </div>
-
-        <div class="warning-banner">
-            ⚠️ <strong>Wildberries:</strong> при ошибке 429 подождите 30 секунд (лимит запросов).
-            <strong>Ozon:</strong> работает через JSONP-обход CORS.
-        </div>
-
-        <div class="error-message" id="errorMessage"></div>
-
-        <div class="search-section">
-            <div class="search-row">
-                <input type="text" class="search-input" id="searchInput" 
-                       placeholder="Введите название товара..." autofocus>
-                <div class="platform-select" id="platformSelect">
-                    <button class="platform-option active-ozon" data-platform="ozon" id="btnOzon">🛒 Ozon</button>
-                    <button class="platform-option" data-platform="wb" id="btnWB">🛍️ Wildberries</button>
-                </div>
-                <button class="search-btn" id="searchBtn">🔎 Искать</button>
-            </div>
-            <div class="filter-row">
-                <span>Сортировка:</span>
-                <button class="sort-btn active" data-sort="best" id="sortBest">Лучшие</button>
-                <button class="sort-btn" data-sort="price-asc" id="sortPrice">Цена ↑</button>
-                <button class="sort-btn" data-sort="rating" id="sortRating">Рейтинг</button>
-            </div>
-        </div>
-
-        <div class="loader" id="loader">
-            <div class="spinner"></div>
-            <p id="loaderText">Загрузка...</p>
-            <p class="retry-info" id="retryInfo"></p>
-        </div>
-
-        <div class="no-results" id="noResults">
-            <div class="no-results-icon">😕</div>
-            <p id="noResultsText">Ничего не найдено</p>
-        </div>
-
-        <div class="results-header" id="resultsHeader">
-            <span>🛍️ Найдено: <strong id="resultsCount">0</strong></span>
-            <span id="resultsPlatform"></span>
-        </div>
-        <div class="cards-grid" id="cardsGrid"></div>
+<div class="game-wrapper">
+    <canvas id="gameCanvas" width="800" height="500"></canvas>
+    <div class="ui-panel">
+        <span class="score-box">⭐ <span id="scoreDisplay">0</span></span>
+        <span class="enemy-counter">👾 <span id="enemyCountDisplay">1</span></span>
+        <span class="hint">🪰 мышь / палец</span>
+        <button class="restart-btn" id="restartButton">↺ старт</button>
     </div>
+</div>
+<script>
+    (function() {
+        // ---------- НАСТРОЙКИ ----------
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreSpan = document.getElementById('scoreDisplay');
+        const enemyCountSpan = document.getElementById('enemyCountDisplay');
 
-    <div class="modal-overlay" id="modalOverlay">
-        <div class="modal">
-            <button class="modal-close" id="modalClose">✕</button>
-            <div class="modal-header" id="modalHeader"></div>
-            <div class="modal-comparison" id="modalComparison"></div>
-            <div class="similar-section" id="similarSection">
-                <h3>📦 Похожие товары этого продавца</h3>
-                <div class="similar-row" id="similarRow"></div>
-            </div>
-        </div>
-    </div>
+        const W = 800, H = 500;
 
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            
-            const state = {
-                searchPlatform: 'ozon',
-                sortMode: 'best',
-                searchResults: [],
-                wbRetryAfter: 0
+        // Игровое состояние
+        let gameActive = false;
+        let score = 0;
+        let frameId = null;
+
+        // Параметры усложнения
+        const ENEMY_SPAWN_SCORE_INTERVAL = 10;
+        let enemySpawnThreshold = ENEMY_SPAWN_SCORE_INTERVAL;
+
+        // ------ Эффекты ------
+        let particleEffects = [];
+
+        // ------ Игрок (муха) ------
+        const fly = {
+            x: 200, y: 200,
+            r: 14,
+            speed: 4.6,
+            vx: 0, vy: 0,
+            targetX: 200, targetY: 200,
+            wingAngle: 0,
+            wingSpeed: 0.25,
+            eyeAngle: 0,
+        };
+
+        // ------ Враги (массив) ------
+        let enemies = [];
+
+        const ENEMY_BASE = {
+            r: 16,
+            speed: 1.9,
+            chaseRadius: 280,
+            idleSpeed: 0.6,
+        };
+
+        // ------ Бонусы (звёзды) ------
+        let bonuses = [];
+        const BONUS_RADIUS = 11;
+        const MAX_BONUSES = 9;
+        const SPAWN_COOLDOWN = 26;
+        let spawnTimer = 0;
+
+        // ------ Вспомогательные функции ------
+        function updateUI() {
+            scoreSpan.textContent = score;
+            enemyCountSpan.textContent = enemies.length;
+        }
+
+        // Проверка перекрытия с другими врагами
+        function isOverlappingWithEnemies(x, y, radius, ignoreIndex = -1) {
+            for (let i = 0; i < enemies.length; i++) {
+                if (i === ignoreIndex) continue;
+                const e = enemies[i];
+                const dist = Math.hypot(x - e.x, y - e.y);
+                if (dist < radius + e.r + 6) return true;
+            }
+            return false;
+        }
+
+        // Проверка перекрытия с другими бонусами
+        function isOverlappingWithBonuses(x, y, radius, ignoreIndex = -1) {
+            for (let i = 0; i < bonuses.length; i++) {
+                if (i === ignoreIndex) continue;
+                const b = bonuses[i];
+                const dist = Math.hypot(x - b.x, y - b.y);
+                if (dist < radius + b.r + 8) return true;
+            }
+            return false;
+        }
+
+        // Создать врага в безопасной позиции
+        function createEnemy(avoidX, avoidY, avoidRadius = 120) {
+            let attempts = 0;
+            let x, y, valid;
+            const padding = 35;
+            do {
+                x = padding + Math.random() * (W - 2 * padding);
+                y = padding + Math.random() * (H - 2 * padding);
+                const dx = x - avoidX;
+                const dy = y - avoidY;
+                const dist = Math.hypot(dx, dy);
+                valid = dist > avoidRadius;
+                if (valid) {
+                    if (isOverlappingWithEnemies(x, y, ENEMY_BASE.r)) {
+                        valid = false;
+                    }
+                }
+                attempts++;
+                if (attempts > 150) break;
+            } while (!valid);
+
+            return {
+                x, y,
+                r: ENEMY_BASE.r,
+                speed: ENEMY_BASE.speed + (enemies.length * 0.04),
+                chaseRadius: ENEMY_BASE.chaseRadius,
+                idleSpeed: ENEMY_BASE.idleSpeed + (enemies.length * 0.02),
+                vx: (Math.random() - 0.5) * 0.8,
+                vy: (Math.random() - 0.5) * 0.8,
+                idleTimer: 0,
+                targetAngle: Math.random() * Math.PI * 2,
+                eyeAngle: 0,
             };
+        }
 
-            const searchInput = document.getElementById('searchInput');
-            const searchBtn = document.getElementById('searchBtn');
-            const btnOzon = document.getElementById('btnOzon');
-            const btnWB = document.getElementById('btnWB');
-            const sortBest = document.getElementById('sortBest');
-            const sortPrice = document.getElementById('sortPrice');
-            const sortRating = document.getElementById('sortRating');
-            const loader = document.getElementById('loader');
-            const loaderText = document.getElementById('loaderText');
-            const retryInfo = document.getElementById('retryInfo');
-            const noResults = document.getElementById('noResults');
-            const noResultsText = document.getElementById('noResultsText');
-            const resultsHeader = document.getElementById('resultsHeader');
-            const resultsCount = document.getElementById('resultsCount');
-            const resultsPlatform = document.getElementById('resultsPlatform');
-            const cardsGrid = document.getElementById('cardsGrid');
-            const modalOverlay = document.getElementById('modalOverlay');
-            const modalClose = document.getElementById('modalClose');
-            const modalHeader = document.getElementById('modalHeader');
-            const modalComparison = document.getElementById('modalComparison');
-            const similarSection = document.getElementById('similarSection');
-            const similarRow = document.getElementById('similarRow');
-            const errorMessage = document.getElementById('errorMessage');
-            const allSortBtns = [sortBest, sortPrice, sortRating];
-
-            function formatPrice(p) { return p ? p.toLocaleString('ru-RU') + ' ₽' : '—'; }
-            function getStars(r) { if (!r) return ''; const f = Math.floor(r); return '★'.repeat(f) + (r - f >= 0.5 ? '½' : '') + '☆'.repeat(5 - f - (r - f >= 0.5 ? 1 : 0)); }
-            function getRatingClass(r) { if (!r) return ''; return r >= 4.7 ? 'rating-high' : r >= 4.3 ? 'rating-mid' : 'rating-low'; }
-
-            function sortResults(results, mode) {
-                const sorted = [...results];
-                if (mode === 'best') sorted.sort((a, b) => ((b.rating || 0) * 10000 - (b.price || 999999)) - ((a.rating || 0) * 10000 - (a.price || 999999)));
-                else if (mode === 'price-asc') sorted.sort((a, b) => (a.price || 999999) - (b.price || 999999));
-                else if (mode === 'rating') sorted.sort((a, b) => (b.rating || 0) - (a.rating || 0));
-                return sorted;
-            }
-
-            function showError(msg) {
-                errorMessage.textContent = msg;
-                errorMessage.classList.add('show');
-                setTimeout(() => errorMessage.classList.remove('show'), 5000);
-            }
-
-            // Задержка
-            function delay(ms) {
-                return new Promise(resolve => setTimeout(resolve, ms));
-            }
-
-            // ============ WILDBERRIES С ПОВТОРНЫМИ ПОПЫТКАМИ ============
-            async function searchWB(query, attempt = 0) {
-                // Проверяем, не ждём ли мы ещё после 429
-                const now = Date.now();
-                if (now < state.wbRetryAfter) {
-                    const waitSec = Math.ceil((state.wbRetryAfter - now) / 1000);
-                    retryInfo.textContent = `⏳ Ждём ${waitSec} сек. (лимит запросов)...`;
-                    await delay(waitSec * 1000);
-                    retryInfo.textContent = '';
-                }
-
-                const urls = [
-                    `https://search.wb.ru/exactmatch/ru/common/v9/search?ab_testid=false&appType=1&curr=rub&dest=-1029256&query=${encodeURIComponent(query)}&resultset=catalog&sort=popular&spp=30`,
-                    `https://search.wb.ru/exactmatch/ru/common/v9/search?ab_testid=false&appType=1&curr=rub&dest=-1257786&query=${encodeURIComponent(query)}&resultset=catalog&sort=popular&spp=30`,
-                    `https://search.wb.ru/exactmatch/ru/common/v9/search?ab_testid=false&appType=1&curr=rub&dest=123585587&query=${encodeURIComponent(query)}&resultset=catalog&sort=popular&spp=30`
-                ];
-
-                for (const url of urls) {
-                    try {
-                        const response = await fetch(url);
-                        
-                        if (response.status === 429) {
-                            console.warn('WB 429, пробуем другой endpoint...');
-                            state.wbRetryAfter = Date.now() + 30000; // ждать 30 сек
-                            continue;
+        // Проверка и добавление новых врагов
+        function checkAndSpawnEnemy() {
+            if (!gameActive) return;
+            if (score >= enemySpawnThreshold) {
+                if (enemies.length < 10) {
+                    const newEnemy = createEnemy(fly.x, fly.y, 140);
+                    if (!isOverlappingWithEnemies(newEnemy.x, newEnemy.y, newEnemy.r)) {
+                        enemies.push(newEnemy);
+                    } else {
+                        const retry = createEnemy(fly.x, fly.y, 160);
+                        if (!isOverlappingWithEnemies(retry.x, retry.y, retry.r)) {
+                            enemies.push(retry);
                         }
-                        
-                        if (!response.ok) continue;
-                        
-                        const data = await response.json();
-                        const items = data.data?.products || [];
-                        
-                        if (items.length === 0) continue;
-                        
-                        state.wbRetryAfter = 0; // сброс блокировки
-                        
-                        return items.slice(0, 20).map(item => {
-                            const title = item.name || '';
-                            const price = item.salePriceU ? Math.floor(item.salePriceU / 100) : null;
-                            const rating = item.reviewRating || item.rating || null;
-                            const reviews = item.feedbacks || item.reviews || 0;
-                            const seller = item.supplier || item.brand || '';
-                            let image = '';
-                            if (item.pics || item.pic) {
-                                const imageId = item.pics || item.pic;
-                                const vol = Math.floor(imageId / 100000);
-                                const part = Math.floor(imageId / 1000);
-                                image = `https://basket-${(vol % 15) + 1}.wbbasket.ru/vol${vol}/part${part}/${imageId}/images/big/1.webp`;
-                            }
-                            const productUrl = `https://www.wildberries.ru/catalog/${item.id}/detail.aspx`;
-                            if (!title || !price) return null;
-                            return { title, image, price, rating, reviews, seller, url: productUrl, platform: 'wb' };
-                        }).filter(Boolean);
-                        
-                    } catch (e) {
-                        console.warn('WB fetch error:', e.message);
-                        continue;
                     }
                 }
-
-                // Все попытки исчерпаны
-                if (state.wbRetryAfter > 0) {
-                    throw new Error('Wildberries временно заблокировал запросы (429). Подождите 30 секунд и попробуйте снова.');
-                }
-                throw new Error('Wildberries API недоступен. Попробуйте позже.');
+                enemySpawnThreshold += ENEMY_SPAWN_SCORE_INTERVAL;
+                updateUI();
             }
+        }
 
-            // ============ OZON ЧЕРЕЗ JSONP (ОБХОД CORS) ============
-            async function searchOzon(query) {
-                // Способ 1: прямой fetch (может сработать с некоторыми заголовками)
-                try {
-                    const url = `https://www.ozon.ru/api/entrypoint-api.bx/page/json/v2?url=/search/?text=${encodeURIComponent(query)}&from_global=true`;
-                    const response = await fetch(url, {
-                        headers: { 
-                            'Accept': 'application/json',
-                            'User-Agent': 'Mozilla/5.0'
-                        },
-                        mode: 'cors'
-                    });
-                    
-                    if (response.ok) {
-                        const data = await response.json();
-                        return parseOzonResponse(data);
-                    }
-                } catch (e) {
-                    console.log('Ozon прямой запрос не сработал, пробуем альтернативный метод...');
-                }
-
-                // Способ 2: через JSONP callback
-                try {
-                    const data = await jsonpRequest(query);
-                    if (data) return parseOzonResponse(data);
-                } catch (e) {
-                    console.log('Ozon JSONP не сработал:', e.message);
-                }
-
-                throw new Error('Ozon API недоступен (CORS блокировка). Попробуйте поискать на Wildberries или используйте VPN.');
-            }
-
-            function jsonpRequest(query) {
-                return new Promise((resolve, reject) => {
-                    const callbackName = 'ozonCallback_' + Date.now();
-                    const script = document.createElement('script');
-                    const timeout = setTimeout(() => {
-                        cleanup();
-                        reject(new Error('JSONP timeout'));
-                    }, 10000);
-
-                    function cleanup() {
-                        clearTimeout(timeout);
-                        delete window[callbackName];
-                        if (script.parentNode) script.parentNode.removeChild(script);
-                    }
-
-                    window[callbackName] = function(data) {
-                        cleanup();
-                        resolve(data);
-                    };
-
-                    script.src = `https://www.ozon.ru/api/entrypoint-api.bx/page/json/v2?url=/search/?text=${encodeURIComponent(query)}&from_global=true&callback=${callbackName}`;
-                    script.onerror = () => {
-                        cleanup();
-                        reject(new Error('JSONP script error'));
-                    };
-
-                    document.head.appendChild(script);
+        // ------ Создание эффекта сбора звезды (уменьшенная дальность, увеличенный размер) ------
+        function createCollectEffect(x, y) {
+            const count = 20;
+            for (let i = 0; i < count; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const speed = 0.8 + Math.random() * 1.8; // Уменьшена дальность
+                const color = ['#ffd700', '#ffec8b', '#ffb347', '#ff8c00', '#fff4a0'][Math.floor(Math.random() * 5)];
+                particleEffects.push({
+                    x: x,
+                    y: y,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed - 0.3,
+                    radius: 2.5 + Math.random() * 3.5, // Увеличен размер
+                    life: 1.0,
+                    decay: 0.015 + Math.random() * 0.018,
+                    color: color,
+                    gravity: 0.04,
                 });
             }
+            // Искры
+            for (let i = 0; i < 10; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const speed = 1.0 + Math.random() * 2.5;
+                particleEffects.push({
+                    x: x,
+                    y: y,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed - 0.5,
+                    radius: 1.5 + Math.random() * 2.0,
+                    life: 1.0,
+                    decay: 0.025 + Math.random() * 0.02,
+                    color: '#ffffff',
+                    gravity: 0.06,
+                });
+            }
+        }
 
-            function parseOzonResponse(data) {
-                const products = [];
-                const widgets = data.widgetStates || {};
+        // ------ Сброс игры ------
+        function resetGame() {
+            if (frameId) {
+                cancelAnimationFrame(frameId);
+                frameId = null;
+            }
+
+            gameActive = true;
+            score = 0;
+            enemySpawnThreshold = ENEMY_SPAWN_SCORE_INTERVAL;
+            particleEffects = [];
+
+            fly.x = 200; fly.y = 200;
+            fly.vx = 0; fly.vy = 0;
+            fly.targetX = 200; fly.targetY = 200;
+            fly.wingAngle = 0;
+            fly.eyeAngle = 0;
+
+            enemies = [];
+            const firstEnemy = createEnemy(fly.x, fly.y, 160);
+            enemies.push(firstEnemy);
+
+            bonuses = [];
+            spawnTimer = 0;
+
+            updateUI();
+            gameLoop();
+        }
+
+        // ------ Спавн бонуса (звезды) ------
+        function spawnBonus() {
+            if (!gameActive) return;
+            if (bonuses.length >= MAX_BONUSES) return;
+
+            const padding = 30;
+            let x, y, valid;
+            let attempts = 0;
+            do {
+                x = padding + Math.random() * (W - 2 * padding);
+                y = padding + Math.random() * (H - 2 * padding);
+                valid = true;
                 
-                for (const [key, value] of Object.entries(widgets)) {
-                    if (key.includes('searchResults') || key.includes('SearchResults')) {
-                        try {
-                            const widgetData = JSON.parse(value);
-                            const items = widgetData.items || [];
-                            
-                            for (const item of items.slice(0, 20)) {
-                                const title = item.title || '';
-                                const image = item.image || '';
-                                let price = null;
-                                let rating = null;
-                                let reviews = 0;
-                                let seller = '';
-                                let productUrl = '';
-                                
-                                const mainState = item.mainState || [];
-                                for (const state of mainState) {
-                                    if (state.atom?.price) {
-                                        const pt = state.atom.price.text || state.atom.price.price || '';
-                                        price = parseInt(String(pt).replace(/[^\d]/g, '')) || null;
-                                        break;
-                                    }
-                                }
-                                
-                                if (item.rating) { rating = parseFloat(item.rating) || null; reviews = item.reviews || 0; }
-                                if (item.seller) { seller = item.seller.name || item.seller.title || ''; }
-                                if (item.link) { productUrl = item.link.startsWith('http') ? item.link : `https://www.ozon.ru${item.link}`; }
-                                else if (item.id) { productUrl = `https://www.ozon.ru/product/${item.id}`; }
-                                
-                                if (title && price) {
-                                    products.push({ title, image, price, rating, reviews, seller, url: productUrl, platform: 'ozon' });
-                                }
-                            }
-                        } catch (e) {
-                            console.warn('Ozon parse error:', e.message);
-                        }
-                        break;
+                if (Math.hypot(x - fly.x, y - fly.y) < 50) valid = false;
+                
+                for (const e of enemies) {
+                    if (Math.hypot(x - e.x, y - e.y) < 50) { valid = false; break; }
+                }
+                
+                if (valid) {
+                    if (isOverlappingWithBonuses(x, y, BONUS_RADIUS)) {
+                        valid = false;
                     }
                 }
                 
-                return products;
+                attempts++;
+                if (attempts > 80) break;
+            } while (!valid);
+
+            if (valid) {
+                bonuses.push({ x, y, r: BONUS_RADIUS });
+            }
+        }
+
+        // ------ Обновление ------
+        function update() {
+            if (!gameActive) return;
+
+            // 0. Анимация крыльев
+            fly.wingAngle += fly.wingSpeed;
+            if (fly.wingAngle > Math.PI * 2) fly.wingAngle -= Math.PI * 2;
+
+            // Обновляем угол глаз игрока (на курсор)
+            const dxToTarget = fly.targetX - fly.x;
+            const dyToTarget = fly.targetY - fly.y;
+            fly.eyeAngle = Math.atan2(dyToTarget, dxToTarget);
+
+            // 1. Муха к цели
+            const dx = fly.targetX - fly.x;
+            const dy = fly.targetY - fly.y;
+            const dist = Math.hypot(dx, dy);
+
+            if (dist > 0.5) {
+                const accel = 0.19;
+                fly.vx += dx * accel;
+                fly.vy += dy * accel;
+                const spd = Math.hypot(fly.vx, fly.vy);
+                const maxSpd = fly.speed;
+                if (spd > maxSpd) {
+                    fly.vx = (fly.vx / spd) * maxSpd;
+                    fly.vy = (fly.vy / spd) * maxSpd;
+                }
+            } else {
+                fly.vx *= 0.92;
+                fly.vy *= 0.92;
+                if (Math.abs(fly.vx) < 0.02) fly.vx = 0;
+                if (Math.abs(fly.vy) < 0.02) fly.vy = 0;
             }
 
-            function renderCards(results, platform) {
-                cardsGrid.innerHTML = '';
-                if (results.length === 0) {
-                    noResults.classList.add('active');
-                    noResultsText.textContent = 'Ничего не найдено. Попробуйте изменить запрос.';
-                    resultsHeader.classList.remove('visible');
+            fly.x += fly.vx;
+            fly.y += fly.vy;
+
+            const r = fly.r;
+            if (fly.x - r < 0) { fly.x = r; fly.vx *= -0.3; }
+            if (fly.x + r > W) { fly.x = W - r; fly.vx *= -0.3; }
+            if (fly.y - r < 0) { fly.y = r; fly.vy *= -0.3; }
+            if (fly.y + r > H) { fly.y = H - r; fly.vy *= -0.3; }
+
+            // 2. Враги
+            for (let i = 0; i < enemies.length; i++) {
+                const enemy = enemies[i];
+                const dxE = fly.x - enemy.x;
+                const dyE = fly.y - enemy.y;
+                const distToPlayer = Math.hypot(dxE, dyE);
+
+                // Обновляем угол глаз врага (на игрока)
+                enemy.eyeAngle = Math.atan2(dyE, dxE);
+
+                const isChasing = distToPlayer < enemy.chaseRadius && gameActive;
+
+                if (isChasing) {
+                    if (distToPlayer > 0.5) {
+                        const accel = 0.07;
+                        enemy.vx += dxE * accel;
+                        enemy.vy += dyE * accel;
+                        const spd = Math.hypot(enemy.vx, enemy.vy);
+                        const maxSpd = enemy.speed || ENEMY_BASE.speed;
+                        if (spd > maxSpd) {
+                            enemy.vx = (enemy.vx / spd) * maxSpd;
+                            enemy.vy = (enemy.vy / spd) * maxSpd;
+                        }
+                    } else {
+                        enemy.vx *= 0.9;
+                        enemy.vy *= 0.9;
+                    }
+                } else {
+                    // Блуждание
+                    enemy.idleTimer = (enemy.idleTimer || 0) + 1;
+                    if (enemy.idleTimer > 60 + Math.random() * 80) {
+                        enemy.idleTimer = 0;
+                        enemy.targetAngle = Math.random() * Math.PI * 2;
+                    }
+
+                    const idleSpeed = enemy.idleSpeed || ENEMY_BASE.idleSpeed;
+                    const currentAngle = Math.atan2(enemy.vy, enemy.vx);
+                    let angleDiff = enemy.targetAngle - currentAngle;
+                    while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+                    while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+                    const turnSpeed = 0.04;
+                    const newAngle = currentAngle + Math.sign(angleDiff) * Math.min(Math.abs(angleDiff), turnSpeed);
+
+                    enemy.vx = Math.cos(newAngle) * idleSpeed;
+                    enemy.vy = Math.sin(newAngle) * idleSpeed;
+
+                    const distFromCenter = Math.hypot(enemy.x - W/2, enemy.y - H/2);
+                    if (distFromCenter > 300) {
+                        const toCenter = Math.atan2(H/2 - enemy.y, W/2 - enemy.x);
+                        enemy.targetAngle = toCenter;
+                        enemy.idleTimer = 70;
+                    }
+                }
+
+                enemy.x += enemy.vx;
+                enemy.y += enemy.vy;
+
+                const er = enemy.r;
+                if (enemy.x - er < 0) { enemy.x = er; enemy.vx *= -0.5; enemy.targetAngle = Math.atan2(enemy.vy, -enemy.vx); }
+                if (enemy.x + er > W) { enemy.x = W - er; enemy.vx *= -0.5; enemy.targetAngle = Math.atan2(enemy.vy, -enemy.vx); }
+                if (enemy.y - er < 0) { enemy.y = er; enemy.vy *= -0.5; enemy.targetAngle = Math.atan2(-enemy.vy, enemy.vx); }
+                if (enemy.y + er > H) { enemy.y = H - er; enemy.vy *= -0.5; enemy.targetAngle = Math.atan2(-enemy.vy, enemy.vx); }
+            }
+
+            // 3. Разрешение коллизий между врагами
+            for (let i = 0; i < enemies.length; i++) {
+                for (let j = i + 1; j < enemies.length; j++) {
+                    const a = enemies[i];
+                    const b = enemies[j];
+                    const dx = a.x - b.x;
+                    const dy = a.y - b.y;
+                    const dist = Math.hypot(dx, dy);
+                    const minDist = a.r + b.r + 4;
+                    if (dist < minDist && dist > 0.001) {
+                        const overlap = (minDist - dist) / 2;
+                        const nx = dx / dist;
+                        const ny = dy / dist;
+                        a.x += nx * overlap;
+                        a.y += ny * overlap;
+                        b.x -= nx * overlap;
+                        b.y -= ny * overlap;
+                        const tempVx = a.vx;
+                        const tempVy = a.vy;
+                        a.vx = b.vx * 0.6 + (Math.random() - 0.5) * 0.3;
+                        a.vy = b.vy * 0.6 + (Math.random() - 0.5) * 0.3;
+                        b.vx = tempVx * 0.6 + (Math.random() - 0.5) * 0.3;
+                        b.vy = tempVy * 0.6 + (Math.random() - 0.5) * 0.3;
+                        a.idleTimer = 50;
+                        b.idleTimer = 50;
+                        a.targetAngle = Math.atan2(a.vy, a.vx);
+                        b.targetAngle = Math.atan2(b.vy, b.vx);
+                    }
+                }
+            }
+
+            // 4. Коллизия муха + враг → GAME OVER
+            for (const enemy of enemies) {
+                const d = Math.hypot(fly.x - enemy.x, fly.y - enemy.y);
+                if (d < fly.r + enemy.r - 3) {
+                    gameActive = false;
                     return;
                 }
-                noResults.classList.remove('active');
-                resultsHeader.classList.add('visible');
-                resultsCount.textContent = results.length;
-                resultsPlatform.textContent = platform === 'ozon' ? '🛒 Ozon' : '🛍️ Wildberries';
-
-                results.forEach((p, i) => {
-                    const card = document.createElement('div');
-                    card.className = 'product-card' + (i === 0 && state.sortMode === 'best' ? ' best-card' : '');
-                    card.innerHTML = `
-                        <div class="card-img-container">
-                            <span class="card-platform-badge ${platform}">${platform==='ozon'?'OZON':'WB'}</span>
-                            ${p.image?`<img src="${p.image}" class="card-img" onerror="this.parentElement.innerHTML='<span style=font-size:3rem>📦</span>'">`:'<span style="font-size:3rem">📦</span>'}
-                        </div>
-                        <div class="card-title">${p.title}</div>
-                        <div class="card-price">${formatPrice(p.price)}</div>
-                        <div class="card-meta">
-                            <span class="card-seller">🏪 ${p.seller||'Неизвестный'}</span>
-                            ${p.rating?`<span class="card-rating ${getRatingClass(p.rating)}"><span class="stars">${getStars(p.rating)}</span>${p.rating.toFixed(1)}</span>`:'<span class="card-rating" style="color:#94a3b8">Нет оценок</span>'}
-                        </div>
-                        <div class="card-hint">👆 Нажмите, чтобы сравнить с другой площадкой</div>`;
-                    card.addEventListener('click', () => openComparison(p, platform));
-                    cardsGrid.appendChild(card);
-                });
             }
 
-            async function openComparison(product, searchPlatform) {
-                const otherPlatform = searchPlatform === 'ozon' ? 'wb' : 'ozon';
-                modalHeader.innerHTML = `<h2>📦 ${product.title} <span style="font-size:0.85rem;color:#64748b;">от ${product.seller||'неизвестного'}</span></h2>`;
-                modalComparison.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:2rem"><div class="spinner" style="margin:0 auto 1rem"></div><p>Ищем на другой площадке...</p></div>';
-                similarSection.style.display = 'none';
-                modalOverlay.classList.add('active');
-
-                const sq = `${product.title.split(' ').slice(0,4).join(' ')} ${product.seller||''}`.trim();
-
-                try {
-                    const otherResults = otherPlatform === 'ozon' ? await searchOzon(sq) : await searchWB(sq);
-                    const filtered = otherResults.filter(r => {
-                        const sm = !product.seller || r.seller?.toLowerCase().includes(product.seller.toLowerCase()) || product.seller.toLowerCase().includes(r.seller?.toLowerCase()||'');
-                        const tw = product.title.toLowerCase().split(' ').filter(w=>w.length>2);
-                        const tm = tw.some(w=>r.title.toLowerCase().includes(w));
-                        return sm || tm;
-                    });
-
-                    const od = filtered[0] || null;
-                    const sd = { title:product.title, price:product.price, rating:product.rating, reviews:product.reviews, image:product.image, url:product.url, seller:product.seller };
-                    const bp = od?.price ? (sd.price <= od.price ? searchPlatform : otherPlatform) : searchPlatform;
-
-                    modalComparison.innerHTML = [
-                        { k:searchPlatform, d:sd, l:searchPlatform==='ozon'?'Ozon (исходный)':'WB (исходный)', dc:searchPlatform==='ozon'?'ozon-dot':'wb-dot', bc:searchPlatform==='ozon'?'ozon-btn':'wb-btn' },
-                        { k:otherPlatform, d:od, l:otherPlatform==='ozon'?'Ozon':'WB', dc:otherPlatform==='ozon'?'ozon-dot':'wb-dot', bc:otherPlatform==='ozon'?'ozon-btn':'wb-btn' }
-                    ].map(p => {
-                        if (!p.d?.price) return `<div class="modal-card not-found"><div class="modal-card-header"><span class="dot ${p.dc}"></span>${p.l}</div><div style="text-align:center;padding:2rem"><p style="font-size:2rem">📭</p><p>Товар не найден</p></div></div>`;
-                        const ib = p.k === bp;
-                        const pd = sd.price && p.d.price && sd.price !== p.d.price ? Math.abs(sd.price - p.d.price) : 0;
-                        const pp = pd>0 && Math.min(sd.price,p.d.price)>0 ? Math.round((pd/Math.min(sd.price,p.d.price))*100) : 0;
-                        return `<div class="modal-card ${ib?'best':''}">
-                            <div class="modal-card-header"><span class="dot ${p.dc}"></span>${p.l} ${ib?'<span class="discount-badge green">🏆 Лучшая цена</span>':''}</div>
-                            ${p.d.image?`<img src="${p.d.image}" onerror="this.parentElement.innerHTML+='<div style=text-align:center;font-size:3rem>📦</div>'">`:'<div style="text-align:center;font-size:3rem">📦</div>'}
-                            <p style="font-weight:600;font-size:0.9rem;margin-bottom:0.5rem">${p.d.title}</p>
-                            <div class="price-big ${ib?'best-price':''}">${formatPrice(p.d.price)}</div>
-                            ${!ib&&pd>0?`<span class="discount-badge red">Дороже на ${formatPrice(pd)} (${pp}%)</span>`:''}
-                            ${ib&&pd>0?`<span class="discount-badge green">Экономия ${formatPrice(pd)} (${pp}%)</span>`:''}
-                            <div style="margin-top:0.5rem;font-size:0.85rem">${p.d.rating?`★ ${p.d.rating.toFixed(1)}`:''} ${p.d.reviews?`(${p.d.reviews} отзывов)`:''}</div>
-                            <div style="font-size:0.8rem;color:#64748b;margin-top:0.3rem">🏪 ${p.d.seller||'Не указан'}</div>
-                            <a href="${p.d.url||'#'}" target="_blank" rel="noopener" class="btn-go ${p.bc}">Перейти →</a>
-                        </div>`;
-                    }).join('');
-
-                    if (filtered.length > 1) {
-                        similarSection.style.display = 'block';
-                        similarRow.innerHTML = filtered.slice(1,4).map(s => `
-                            <div class="similar-item" onclick="window.open('${s.url||'#'}','_blank')">
-                                ${s.image?`<img src="${s.image}" onerror="this.parentElement.innerHTML='<span style=font-size:2rem>📦</span>'">`:'<span style="font-size:2rem">📦</span>'}
-                                <div class="s-name">${s.title}</div>
-                                <div class="s-price">${formatPrice(s.price)}</div>
-                                <span class="s-platform ${otherPlatform==='ozon'?'ozon-tag':'wb-tag'}">${otherPlatform==='ozon'?'Ozon':'WB'}</span>
-                            </div>`).join('');
-                    }
-                } catch (e) {
-                    modalComparison.innerHTML = `<div style="text-align:center;padding:2rem;color:#ef4444"><p>❌ Ошибка: ${e.message}</p></div>`;
+            // 5. Сбор бонусов
+            for (let i = bonuses.length - 1; i >= 0; i--) {
+                const b = bonuses[i];
+                if (Math.hypot(fly.x - b.x, fly.y - b.y) < fly.r + b.r - 2) {
+                    createCollectEffect(b.x, b.y);
+                    score++;
+                    updateUI();
+                    bonuses.splice(i, 1);
+                    checkAndSpawnEnemy();
                 }
             }
 
-            async function performSearch() {
-                const query = searchInput.value.trim();
-                if (query.length < 2) { showError('Введите минимум 2 символа'); return; }
-
-                loader.classList.add('active');
-                loaderText.textContent = `Ищем "${query}" на ${state.searchPlatform==='ozon'?'Ozon':'Wildberries'}...`;
-                retryInfo.textContent = '';
-                noResults.classList.remove('active');
-                resultsHeader.classList.remove('visible');
-                cardsGrid.innerHTML = '';
-                searchBtn.disabled = true;
-
-                try {
-                    const results = state.searchPlatform === 'ozon' ? await searchOzon(query) : await searchWB(query);
-                    const sorted = sortResults(results, state.sortMode);
-                    state.searchResults = sorted;
-                    renderCards(sorted, state.searchPlatform);
-                    if (results.length === 0) noResultsText.textContent = `По запросу "${query}" ничего не найдено`;
-                } catch (e) {
-                    noResults.classList.add('active');
-                    noResultsText.innerHTML = `❌ ${e.message}<br><br>
-                        <small style="color:#64748b;">
-                            🔄 Попробуйте переключиться на другую площадку<br>
-                            ⏱ Если ошибка 429 — подождите 30 секунд<br>
-                            🔍 Проверьте правильность запроса
-                        </small>`;
-                } finally {
-                    loader.classList.remove('active');
-                    retryInfo.textContent = '';
-                    searchBtn.disabled = false;
+            // 6. Обновление частиц
+            for (let i = particleEffects.length - 1; i >= 0; i--) {
+                const p = particleEffects[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.vy += p.gravity || 0.05;
+                p.life -= p.decay;
+                p.radius *= 0.998;
+                if (p.life <= 0 || p.radius < 0.2) {
+                    particleEffects.splice(i, 1);
                 }
             }
 
-            // ============ ОБРАБОТЧИКИ ============
-            searchBtn.addEventListener('click', performSearch);
-            searchInput.addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') performSearch();
-            });
+            // 7. Спавн бонусов
+            if (gameActive) {
+                spawnTimer++;
+                if (spawnTimer >= SPAWN_COOLDOWN) {
+                    spawnTimer = 0;
+                    spawnBonus();
+                }
+                if (bonuses.length < 4 && Math.random() < 0.02) spawnBonus();
+            }
+        }
 
-            btnOzon.addEventListener('click', function() {
-                btnOzon.className = 'platform-option active-ozon';
-                btnWB.className = 'platform-option';
-                state.searchPlatform = 'ozon';
-            });
+        // ------ Отрисовка ------
+        function draw() {
+            ctx.clearRect(0, 0, W, H);
 
-            btnWB.addEventListener('click', function() {
-                btnWB.className = 'platform-option active-wb';
-                btnOzon.className = 'platform-option';
-                state.searchPlatform = 'wb';
-            });
+            const grad = ctx.createLinearGradient(0, 0, 0, H);
+            grad.addColorStop(0, '#a6d8f0');
+            grad.addColorStop(0.6, '#8fc4e0');
+            grad.addColorStop(1, '#b0d0e8');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, W, H);
 
-            sortBest.addEventListener('click', function() {
-                allSortBtns.forEach(b => b.classList.remove('active'));
-                sortBest.classList.add('active');
-                state.sortMode = 'best';
-                if (state.searchResults.length > 0) renderCards(sortResults(state.searchResults, 'best'), state.searchPlatform);
-            });
+            // облака
+            ctx.fillStyle = 'rgba(255,255,245,0.18)';
+            ctx.beginPath();
+            ctx.arc(100, 70, 45, 0, Math.PI*2);
+            ctx.arc(150, 90, 35, 0, Math.PI*2);
+            ctx.arc(60, 110, 30, 0, Math.PI*2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(600, 120, 50, 0, Math.PI*2);
+            ctx.arc(660, 100, 40, 0, Math.PI*2);
+            ctx.arc(560, 140, 30, 0, Math.PI*2);
+            ctx.fill();
 
-            sortPrice.addEventListener('click', function() {
-                allSortBtns.forEach(b => b.classList.remove('active'));
-                sortPrice.classList.add('active');
-                state.sortMode = 'price-asc';
-                if (state.searchResults.length > 0) renderCards(sortResults(state.searchResults, 'price-asc'), state.searchPlatform);
-            });
+            // бонусы (звёзды)
+            for (const b of bonuses) {
+                ctx.shadowColor = '#f5e56b';
+                ctx.shadowBlur = 22;
+                const gradB = ctx.createRadialGradient(b.x-3, b.y-3, 2, b.x, b.y, b.r+4);
+                gradB.addColorStop(0, '#fcee8f');
+                gradB.addColorStop(0.7, '#e8b83a');
+                gradB.addColorStop(1, '#b87c1a');
+                ctx.beginPath();
+                ctx.arc(b.x, b.y, b.r, 0, Math.PI*2);
+                ctx.fillStyle = gradB;
+                ctx.fill();
+                ctx.shadowBlur = 8;
+                ctx.beginPath();
+                ctx.arc(b.x-3, b.y-4, 4, 0, Math.PI*2);
+                ctx.fillStyle = '#fffbe6';
+                ctx.fill();
+                ctx.shadowBlur = 0;
+                ctx.strokeStyle = '#dba53f';
+                ctx.lineWidth = 1.8;
+                ctx.stroke();
+            }
 
-            sortRating.addEventListener('click', function() {
-                allSortBtns.forEach(b => b.classList.remove('active'));
-                sortRating.classList.add('active');
-                state.sortMode = 'rating';
-                if (state.searchResults.length > 0) renderCards(sortResults(state.searchResults, 'rating'), state.searchPlatform);
-            });
+            // эффекты частиц
+            for (const p of particleEffects) {
+                const alpha = p.life;
+                ctx.globalAlpha = alpha;
+                ctx.shadowBlur = 12;
+                ctx.shadowColor = p.color;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                ctx.fillStyle = p.color;
+                ctx.fill();
+                ctx.shadowBlur = 0;
+            }
+            ctx.globalAlpha = 1.0;
 
-            modalClose.addEventListener('click', () => modalOverlay.classList.remove('active'));
-            modalOverlay.addEventListener('click', e => {
-                if (e.target === modalOverlay) modalOverlay.classList.remove('active');
-            });
-            document.addEventListener('keydown', e => {
-                if (e.key === 'Escape') modalOverlay.classList.remove('active');
-            });
+            // враги (с глазами, смотрящими на игрока)
+            for (const enemy of enemies) {
+                ctx.shadowColor = '#d03030';
+                ctx.shadowBlur = 28;
+                const gradE = ctx.createRadialGradient(enemy.x-5, enemy.y-6, 5, enemy.x, enemy.y, enemy.r+6);
+                gradE.addColorStop(0, '#e05a5a');
+                gradE.addColorStop(0.7, '#b12a2a');
+                gradE.addColorStop(1, '#611515');
+                ctx.beginPath();
+                ctx.arc(enemy.x, enemy.y, enemy.r, 0, Math.PI*2);
+                ctx.fillStyle = gradE;
+                ctx.fill();
+                
+                // Глаза врага
+                ctx.shadowBlur = 8;
+                const eyeOffsetX = Math.cos(enemy.eyeAngle || 0) * 5;
+                const eyeOffsetY = Math.sin(enemy.eyeAngle || 0) * 5;
+                
+                // Левый глаз (белок)
+                ctx.fillStyle = '#f0f4fa';
+                ctx.beginPath();
+                ctx.arc(enemy.x-7 + eyeOffsetX * 0.3, enemy.y-5 + eyeOffsetY * 0.3, 6, 0, Math.PI*2);
+                ctx.fill();
+                
+                // Правый глаз (белок)
+                ctx.beginPath();
+                ctx.arc(enemy.x+7 + eyeOffsetX * 0.3, enemy.y-5 + eyeOffsetY * 0.3, 6, 0, Math.PI*2);
+                ctx.fill();
+                
+                // Зрачки
+                ctx.fillStyle = '#1c222e';
+                const leftPupilX = enemy.x-7 + eyeOffsetX * 0.6;
+                const leftPupilY = enemy.y-5 + eyeOffsetY * 0.6;
+                const rightPupilX = enemy.x+7 + eyeOffsetX * 0.6;
+                const rightPupilY = enemy.y-5 + eyeOffsetY * 0.6;
+                
+                ctx.beginPath();
+                ctx.arc(leftPupilX, leftPupilY, 3.2, 0, Math.PI*2);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.arc(rightPupilX, rightPupilY, 3.2, 0, Math.PI*2);
+                ctx.fill();
+                
+                // Блики
+                ctx.fillStyle = '#f5f9ff';
+                ctx.beginPath();
+                ctx.arc(leftPupilX - 1.5, leftPupilY - 2, 1.5, 0, Math.PI*2);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.arc(rightPupilX - 1.5, rightPupilY - 2, 1.5, 0, Math.PI*2);
+                ctx.fill();
+            }
 
-            console.log('✅ Готово!');
-            console.log('🛒 Ozon — JSONP обход CORS');
-            console.log('🛍️ WB — 3 резервных endpoint + автоповтор при 429');
+            // ------ ИГРОК (муха с глазами, смотрящими на курсор) ------
+            const wingPhase = Math.sin(fly.wingAngle);
+            const wingAngle = wingPhase * 0.6;
+            
+            ctx.shadowColor = '#3f9eff';
+            ctx.shadowBlur = 28;
+            const gradF = ctx.createRadialGradient(fly.x-4, fly.y-5, 4, fly.x, fly.y, fly.r+5);
+            gradF.addColorStop(0, '#a3d0ff');
+            gradF.addColorStop(0.6, '#3b8cff');
+            gradF.addColorStop(1, '#0e4b9e');
+            ctx.beginPath();
+            ctx.arc(fly.x, fly.y, fly.r, 0, Math.PI*2);
+            ctx.fillStyle = gradF;
+            ctx.fill();
+
+            // Крылья
+            ctx.save();
+            ctx.translate(fly.x - 8, fly.y - 6);
+            ctx.rotate(wingAngle * 0.8);
+            ctx.shadowBlur = 18;
+            ctx.shadowColor = 'rgba(180, 220, 255, 0.5)';
+            ctx.beginPath();
+            ctx.ellipse(0, 0, 14, 6, 0, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(200, 240, 255, 0.55)';
+            ctx.fill();
+            ctx.strokeStyle = 'rgba(180, 220, 255, 0.7)';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+            ctx.restore();
+
+            ctx.save();
+            ctx.translate(fly.x + 8, fly.y - 6);
+            ctx.rotate(-wingAngle * 0.8);
+            ctx.shadowBlur = 18;
+            ctx.shadowColor = 'rgba(180, 220, 255, 0.5)';
+            ctx.beginPath();
+            ctx.ellipse(0, 0, 14, 6, 0, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(200, 240, 255, 0.55)';
+            ctx.fill();
+            ctx.strokeStyle = 'rgba(180, 220, 255, 0.7)';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+            ctx.restore();
+
+            // Глаза игрока (смотрят на курсор)
+            ctx.shadowBlur = 6;
+            ctx.shadowColor = 'rgba(0,0,0,0.2)';
+            
+            // Белки глаз
+            const eyeAngle = fly.eyeAngle || 0;
+            const eyeOffX = Math.cos(eyeAngle) * 4;
+            const eyeOffY = Math.sin(eyeAngle) * 4;
+            
+            ctx.fillStyle = '#f2faff';
+            // Левый глаз
+            ctx.beginPath();
+            ctx.arc(fly.x-7 + eyeOffX * 0.2, fly.y-4 + eyeOffY * 0.2, 6, 0, Math.PI*2);
+            ctx.fill();
+            // Правый глаз
+            ctx.beginPath();
+            ctx.arc(fly.x+7 + eyeOffX * 0.2, fly.y-4 + eyeOffY * 0.2, 6, 0, Math.PI*2);
+            ctx.fill();
+            
+            // Зрачки (направлены на курсор)
+            ctx.fillStyle = '#111a2e';
+            const pupilOff = 3.5;
+            ctx.beginPath();
+            ctx.arc(fly.x-7 + eyeOffX * 0.6, fly.y-4 + eyeOffY * 0.6, 3, 0, Math.PI*2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(fly.x+7 + eyeOffX * 0.6, fly.y-4 + eyeOffY * 0.6, 3, 0, Math.PI*2);
+            ctx.fill();
+            
+            // Блики
+            ctx.fillStyle = 'white';
+            ctx.beginPath();
+            ctx.arc(fly.x-7 + eyeOffX * 0.6 - 1.2, fly.y-4 + eyeOffY * 0.6 - 1.5, 1.2, 0, Math.PI*2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(fly.x+7 + eyeOffX * 0.6 - 1.2, fly.y-4 + eyeOffY * 0.6 - 1.5, 1.2, 0, Math.PI*2);
+            ctx.fill();
+
+            // Блик на теле
+            ctx.shadowBlur = 0;
+            ctx.beginPath();
+            ctx.arc(fly.x-3, fly.y-6, 4, 0, Math.PI*2);
+            ctx.fillStyle = 'rgba(255,255,255,0.25)';
+            ctx.fill();
+
+            // Game Over
+            if (!gameActive) {
+                ctx.shadowBlur = 28;
+                ctx.shadowColor = '#cc2222';
+                ctx.font = 'bold 52px "Courier New", monospace';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillStyle = '#f0d0d0';
+                ctx.strokeStyle = '#3a0e0e';
+                ctx.lineWidth = 6;
+                ctx.strokeText('✖ GAME OVER', 400, 220);
+                ctx.fillText('✖ GAME OVER', 400, 220);
+                ctx.font = '20px monospace';
+                ctx.fillStyle = '#eecfaf';
+                ctx.fillText('нажми "старт"', 400, 300);
+            }
+
+            ctx.shadowBlur = 0;
+        }
+
+        // ------ Цикл ------
+        function gameLoop() {
+            if (!gameActive) {
+                draw();
+                frameId = null;
+                return;
+            }
+            update();
+            draw();
+            frameId = requestAnimationFrame(gameLoop);
+        }
+
+        // ------ Управление ------
+        function handlePointer(x, y) {
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            let cx = (x - rect.left) * scaleX;
+            let cy = (y - rect.top) * scaleY;
+            cx = Math.min(W - 8, Math.max(8, cx));
+            cy = Math.min(H - 8, Math.max(8, cy));
+            fly.targetX = cx;
+            fly.targetY = cy;
+        }
+
+        function onMove(e) {
+            e.preventDefault();
+            const ev = e.touches ? e.touches[0] : e;
+            if (ev) handlePointer(ev.clientX, ev.clientY);
+        }
+
+        function onStart(e) {
+            e.preventDefault();
+            const ev = e.touches ? e.touches[0] : e;
+            if (ev) handlePointer(ev.clientX, ev.clientY);
+        }
+
+        function initControls() {
+            canvas.addEventListener('mousemove', onMove);
+            canvas.addEventListener('touchmove', onMove, { passive: false });
+            canvas.addEventListener('touchstart', onStart, { passive: false });
+            document.body.addEventListener('touchmove', (e) => {
+                if (e.target === canvas) e.preventDefault();
+            }, { passive: false });
+        }
+
+        // ------ Кнопка рестарта ------
+        document.getElementById('restartButton').addEventListener('click', resetGame);
+        document.getElementById('restartButton').addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            resetGame();
         });
-    </script>
+
+        // ------ Инициализация ------
+        function init() {
+            initControls();
+            resetGame();
+        }
+
+        init();
+    })();
+</script>
 </body>
 </html>
