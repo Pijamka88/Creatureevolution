@@ -2,8 +2,8 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>SuperFly · TWA</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, shrink-to-fit=no">
+    <title>SuperFly · iPhone</title>
     <style>
         * {
             margin: 0;
@@ -12,28 +12,25 @@
             user-select: none;
             -webkit-tap-highlight-color: transparent;
         }
-        html, body {
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            background: #0b111e;
-            touch-action: none;
-        }
         body {
+            background: #0b111e;
+            min-height: 100vh;
+            min-height: 100dvh;
             display: flex;
             justify-content: center;
             align-items: center;
             font-family: 'Courier New', monospace;
-            padding: 0;
+            touch-action: none;
             margin: 0;
-            orientation: landscape;
+            padding: 0;
+            overflow: hidden;
             position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
+            width: 100%;
+            height: 100%;
+            height: 100dvh;
         }
-        /* Блокировка вертикальной ориентации */
+        
+        /* Принудительная горизонтальная ориентация */
         @media screen and (orientation: portrait) and (max-width: 768px) {
             body::before {
                 content: "Поверните телефон горизонтально";
@@ -44,7 +41,7 @@
                 bottom: 0;
                 background: #0b111e;
                 color: #b8d0e0;
-                font-size: 24px;
+                font-size: clamp(18px, 4vw, 28px);
                 display: flex;
                 justify-content: center;
                 align-items: center;
@@ -52,12 +49,13 @@
                 text-align: center;
                 padding: 40px;
                 font-family: 'Courier New', monospace;
-                border: 2px solid #3f5a70;
+                line-height: 1.6;
             }
             .game-wrapper {
                 display: none !important;
             }
         }
+        
         @media screen and (orientation: landscape), (min-width: 769px) {
             body::before {
                 display: none !important;
@@ -66,84 +64,86 @@
                 display: flex !important;
             }
         }
+        
         .game-wrapper {
             background: #1a1f2e;
-            padding: 10px 10px 14px;
-            border-radius: 24px;
+            padding: clamp(6px, 1.5vw, 14px);
+            border-radius: clamp(16px, 3vw, 32px);
             box-shadow: 0 8px 0 #0b0e16, 0 8px 24px rgba(0,0,0,0.8);
             width: 100%;
-            height: 100%;
-            max-width: 100vw;
-            max-height: 100vh;
+            max-width: min(820px, 98vh);
+            height: fit-content;
+            max-height: 98vh;
             display: flex;
             flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            position: relative;
-            margin: 0;
+            gap: clamp(6px, 1.2vw, 12px);
+            touch-action: none;
         }
+        
         canvas {
             display: block;
-            border-radius: 16px;
+            margin: 0 auto;
+            border-radius: clamp(12px, 2vw, 18px);
             background: #87CEEB;
-            box-shadow: inset 0 0 0 3px #2d3a4a, 0 0 0 4px #0f141f;
+            box-shadow: inset 0 0 0 clamp(2px, 0.4vw, 3px) #2d3a4a, 0 0 0 clamp(3px, 0.5vw, 4px) #0f141f;
             width: 100%;
             height: auto;
             aspect-ratio: 800 / 500;
             touch-action: none;
             cursor: crosshair;
-            flex-shrink: 0;
-            max-width: 100%;
-            max-height: calc(100% - 50px);
+            image-rendering: auto;
         }
+        
         .ui-panel {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-top: 8px;
             color: #b8d0e0;
             text-shadow: 0 2px 0 #0a0e14;
             font-weight: 700;
-            font-size: 1rem;
-            padding: 0 4px;
+            font-size: clamp(0.75rem, 1.8vw, 1.2rem);
+            padding: 0 clamp(2px, 0.5vw, 8px);
             flex-wrap: wrap;
-            gap: 4px 8px;
-            width: 100%;
+            gap: clamp(4px, 1vw, 12px);
             flex-shrink: 0;
-            min-height: 40px;
         }
+        
         .score-box {
             background: #0f1622;
-            padding: 3px 16px;
+            padding: clamp(2px, 0.5vw, 6px) clamp(12px, 2.5vw, 24px);
             border-radius: 40px;
-            border-bottom: 3px solid #3f5a70;
+            border-bottom: clamp(2px, 0.4vw, 4px) solid #3f5a70;
             letter-spacing: 1.5px;
             color: #f5d742;
             box-shadow: inset 0 -2px 0 #2a3b4a;
-            font-size: 1rem;
+            font-size: clamp(0.7rem, 1.6vw, 1.2rem);
             display: flex;
             align-items: center;
-            gap: 4px;
+            gap: clamp(4px, 0.8vw, 8px);
+            white-space: nowrap;
         }
+        
         .enemy-counter {
             background: #1f2a3a;
-            padding: 3px 14px;
+            padding: clamp(2px, 0.5vw, 6px) clamp(10px, 2vw, 18px);
             border-radius: 40px;
-            border-bottom: 3px solid #4a2a2a;
+            border-bottom: clamp(2px, 0.4vw, 4px) solid #4a2a2a;
             color: #ff8a7a;
-            font-size: 0.95rem;
+            font-size: clamp(0.7rem, 1.5vw, 1.1rem);
             display: flex;
             align-items: center;
-            gap: 4px;
+            gap: clamp(4px, 0.8vw, 8px);
+            white-space: nowrap;
         }
+        
         .restart-btn {
             background: #2d3f54;
             border: none;
-            border-bottom: 3px solid #151f2b;
+            border-bottom: clamp(2px, 0.4vw, 4px) solid #151f2b;
             color: #eaf2f9;
             font-weight: bold;
-            font-size: 0.95rem;
-            padding: 3px 18px;
+            font-size: clamp(0.7rem, 1.5vw, 1.1rem);
+            padding: clamp(2px, 0.5vw, 6px) clamp(14px, 2.5vw, 22px);
             border-radius: 40px;
             cursor: pointer;
             transition: 0.06s ease;
@@ -151,67 +151,64 @@
             letter-spacing: 0.5px;
             box-shadow: 0 3px 0 #0b1119;
             touch-action: manipulation;
-            flex-shrink: 0;
+            -webkit-tap-highlight-color: transparent;
+            white-space: nowrap;
         }
+        
         .restart-btn:active {
-            transform: translateY(3px);
+            transform: translateY(clamp(2px, 0.4vw, 4px));
             border-bottom-width: 0px;
         }
+        
         .hint {
             color: #7b94aa;
-            font-size: 0.75rem;
+            font-size: clamp(0.55rem, 1.2vw, 0.85rem);
             letter-spacing: 0.5px;
-            padding-right: 2px;
-            flex-shrink: 0;
+            padding-right: clamp(2px, 0.5vw, 8px);
+            white-space: nowrap;
         }
+        
         @media (max-width: 480px) {
             .ui-panel {
-                font-size: 0.85rem;
-                gap: 3px 6px;
-                min-height: 34px;
-                margin-top: 6px;
+                gap: 4px;
             }
             .score-box, .enemy-counter {
-                padding: 2px 12px;
-                font-size: 0.85rem;
-                border-bottom-width: 2px;
+                padding: 2px 10px;
+                font-size: 0.7rem;
             }
             .restart-btn {
-                font-size: 0.85rem;
-                padding: 2px 14px;
-                border-bottom-width: 2px;
+                font-size: 0.7rem;
+                padding: 2px 12px;
             }
             .hint {
-                font-size: 0.65rem;
-            }
-            .game-wrapper {
-                padding: 6px 6px 10px;
-                border-radius: 16px;
-            }
-            canvas {
-                border-radius: 12px;
-                max-height: calc(100% - 40px);
+                font-size: 0.5rem;
             }
         }
-        @media (max-height: 500px) {
+        
+        @media (max-width: 380px) {
             .ui-panel {
-                min-height: 28px;
-                margin-top: 4px;
+                gap: 2px;
             }
             .score-box, .enemy-counter {
-                padding: 1px 10px;
-                font-size: 0.75rem;
-                border-bottom-width: 2px;
-            }
-            .restart-btn {
-                font-size: 0.75rem;
-                padding: 1px 12px;
-            }
-            .hint {
+                padding: 1px 6px;
                 font-size: 0.6rem;
             }
-            .game-wrapper {
-                padding: 4px 4px 6px;
+            .restart-btn {
+                font-size: 0.6rem;
+                padding: 1px 8px;
+            }
+            .hint {
+                display: none;
+            }
+        }
+        
+        /* Для iPhone с вырезом */
+        @supports (padding: max(0px)) {
+            body {
+                padding-left: min(0px, env(safe-area-inset-left));
+                padding-right: min(0px, env(safe-area-inset-right));
+                padding-top: min(0px, env(safe-area-inset-top));
+                padding-bottom: min(0px, env(safe-area-inset-bottom));
             }
         }
     </style>
@@ -222,8 +219,8 @@
     <div class="ui-panel">
         <span class="score-box">⭐ <span id="scoreDisplay">0</span></span>
         <span class="enemy-counter">👾 <span id="enemyCountDisplay">1</span></span>
-        <span class="hint">🪰 мышь / палец</span>
-        <button class="restart-btn" id="restartButton">↺ старт</button>
+        <span class="hint">🪰</span>
+        <button class="restart-btn" id="restartButton">↺</button>
     </div>
 </div>
 <script>
