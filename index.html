@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>SuperFly · iPhone</title>
+    <title>SuperFly · TWA</title>
     <style>
         * {
             margin: 0;
@@ -21,179 +21,118 @@
             font-family: 'Courier New', monospace;
             touch-action: none;
             margin: 0;
-            padding: 0;
-            overflow: hidden;
-            position: fixed;
-            width: 100%;
-            height: 100%;
-            orientation: landscape;
-        }
-        /* Блокировка вертикальной ориентации */
-        @media screen and (orientation: portrait) and (max-width: 768px) {
-            body::before {
-                content: "Поверните телефон горизонтально";
-                position: fixed;
-                top: 0;
-                left: 0;
-                right: 0;
-                bottom: 0;
-                background: #0b111e;
-                color: #b8d0e0;
-                font-size: 24px;
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                z-index: 9999;
-                text-align: center;
-                padding: 40px;
-                font-family: 'Courier New', monospace;
-            }
-            .game-wrapper {
-                display: none;
-            }
-        }
-        @media screen and (orientation: landscape), (min-width: 769px) {
-            body::before {
-                display: none !important;
-            }
-            .game-wrapper {
-                display: block !important;
-            }
+            padding: 8px;
         }
         .game-wrapper {
             background: #1a1f2e;
-            padding: 8px 8px 12px;
-            border-radius: 20px;
-            box-shadow: 0 8px 0 #0b0e16, 0 8px 24px rgba(0,0,0,0.8);
+            padding: 14px 14px 20px;
+            border-radius: 32px;
+            box-shadow: 0 10px 0 #0b0e16, 0 8px 24px rgba(0,0,0,0.8);
             width: 100%;
-            max-width: 100%;
-            height: 100vh;
-            max-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            touch-action: none;
+            max-width: 500px;
+            margin: 0 auto;
         }
         canvas {
             display: block;
             margin: 0 auto;
-            border-radius: 14px;
+            border-radius: 18px;
             background: #87CEEB;
             box-shadow: inset 0 0 0 3px #2d3a4a, 0 0 0 4px #0f141f;
             width: 100%;
             height: auto;
-            aspect-ratio: 16 / 9;
+            aspect-ratio: 800 / 500;
             touch-action: none;
             cursor: crosshair;
-            image-rendering: auto;
         }
         .ui-panel {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-top: 8px;
+            margin-top: 12px;
             color: #b8d0e0;
             text-shadow: 0 2px 0 #0a0e14;
             font-weight: 700;
-            font-size: clamp(0.8rem, 2.5vw, 1.2rem);
+            font-size: 1.1rem;
             padding: 0 4px;
             flex-wrap: wrap;
-            gap: 4px 8px;
-            touch-action: manipulation;
+            gap: 8px 12px;
         }
         .score-box {
             background: #0f1622;
-            padding: 4px 14px;
-            border-radius: 30px;
-            border-bottom: 3px solid #3f5a70;
-            letter-spacing: 1px;
+            padding: 4px 16px;
+            border-radius: 40px;
+            border-bottom: 4px solid #3f5a70;
+            letter-spacing: 1.5px;
             color: #f5d742;
             box-shadow: inset 0 -2px 0 #2a3b4a;
-            font-size: clamp(0.7rem, 2vw, 1.1rem);
+            font-size: 1.1rem;
             display: flex;
             align-items: center;
-            gap: 4px;
+            gap: 6px;
         }
         .enemy-counter {
             background: #1f2a3a;
             padding: 4px 14px;
-            border-radius: 30px;
-            border-bottom: 3px solid #4a2a2a;
+            border-radius: 40px;
+            border-bottom: 4px solid #4a2a2a;
             color: #ff8a7a;
-            font-size: clamp(0.7rem, 2vw, 1.1rem);
+            font-size: 1.0rem;
             display: flex;
             align-items: center;
-            gap: 4px;
+            gap: 6px;
         }
         .restart-btn {
             background: #2d3f54;
             border: none;
-            border-bottom: 3px solid #151f2b;
+            border-bottom: 4px solid #151f2b;
             color: #eaf2f9;
             font-weight: bold;
-            font-size: clamp(0.7rem, 2vw, 1.1rem);
-            padding: 4px 16px;
-            border-radius: 30px;
+            font-size: 1.0rem;
+            padding: 4px 18px;
+            border-radius: 40px;
             cursor: pointer;
             transition: 0.06s ease;
             font-family: 'Courier New', monospace;
             letter-spacing: 0.5px;
             box-shadow: 0 3px 0 #0b1119;
             touch-action: manipulation;
-            -webkit-tap-highlight-color: transparent;
         }
         .restart-btn:active {
-            transform: translateY(3px);
+            transform: translateY(4px);
             border-bottom-width: 0px;
         }
         .hint {
             color: #7b94aa;
-            font-size: clamp(0.6rem, 1.8vw, 0.85rem);
+            font-size: 0.8rem;
             letter-spacing: 0.5px;
             padding-right: 2px;
-            display: none;
-        }
-        @media (min-width: 768px) {
-            .hint {
-                display: block;
-            }
         }
         @media (max-width: 480px) {
-            .game-wrapper {
-                padding: 4px 4px 8px;
-                border-radius: 12px;
-            }
             .ui-panel {
-                margin-top: 4px;
-                gap: 2px 4px;
+                font-size: 0.9rem;
+                justify-content: center;
             }
             .score-box, .enemy-counter {
-                padding: 2px 10px;
-                border-bottom-width: 2px;
+                padding: 2px 12px;
+                font-size: 0.9rem;
             }
             .restart-btn {
-                padding: 2px 12px;
-                border-bottom-width: 2px;
+                font-size: 0.9rem;
+                padding: 2px 14px;
             }
-        }
-        /* Для iPhone с вырезом */
-        @supports (padding: max(0px)) {
             .game-wrapper {
-                padding-left: max(8px, env(safe-area-inset-left));
-                padding-right: max(8px, env(safe-area-inset-right));
-                padding-top: max(8px, env(safe-area-inset-top));
-                padding-bottom: max(8px, env(safe-area-inset-bottom));
+                padding: 10px 10px 16px;
             }
         }
     </style>
 </head>
 <body>
 <div class="game-wrapper">
-    <canvas id="gameCanvas"></canvas>
+    <canvas id="gameCanvas" width="800" height="500"></canvas>
     <div class="ui-panel">
         <span class="score-box">⭐ <span id="scoreDisplay">0</span></span>
         <span class="enemy-counter">👾 <span id="enemyCountDisplay">1</span></span>
-        <span class="hint">🪰 мышь / палец</span>
+        <span class="hint">🪰 палец</span>
         <button class="restart-btn" id="restartButton">↺ старт</button>
     </div>
 </div>
@@ -205,45 +144,7 @@
         const scoreSpan = document.getElementById('scoreDisplay');
         const enemyCountSpan = document.getElementById('enemyCountDisplay');
 
-        // АДАПТИВНОЕ РАЗРЕШЕНИЕ
-        let W, H;
-        let scale = 1;
-
-        function resizeCanvas() {
-            const wrapper = canvas.parentElement;
-            const wrapperWidth = wrapper.clientWidth - 16;
-            const wrapperHeight = window.innerHeight - 80;
-            
-            // Соотношение 16:9
-            let width = Math.min(wrapperWidth, wrapperHeight * 16 / 9);
-            let height = width * 9 / 16;
-            
-            if (height > wrapperHeight) {
-                height = wrapperHeight;
-                width = height * 16 / 9;
-            }
-            
-            // Устанавливаем размеры canvas в пикселях (физические)
-            // Используем фиксированное разрешение для производительности
-            const baseWidth = 800;
-            const baseHeight = 450;
-            
-            // Определяем масштаб для рендеринга
-            const scaleX = width / baseWidth;
-            const scaleY = height / baseHeight;
-            scale = Math.min(scaleX, scaleY);
-            
-            // Устанавливаем логический размер canvas
-            canvas.width = baseWidth;
-            canvas.height = baseHeight;
-            
-            // Устанавливаем CSS размеры
-            canvas.style.width = (baseWidth * scale) + 'px';
-            canvas.style.height = (baseHeight * scale) + 'px';
-            
-            W = baseWidth;
-            H = baseHeight;
-        }
+        const W = 800, H = 500;
 
         // Игровое состояние
         let gameActive = false;
@@ -347,6 +248,7 @@
                 idleTimer: 0,
                 targetAngle: Math.random() * Math.PI * 2,
                 eyeAngle: 0,
+                // Анимация роста
                 scale: 0.01,
                 growing: true,
                 growSpeed: 0.035 + Math.random() * 0.025,
@@ -375,37 +277,37 @@
 
         // ------ Создание эффекта сбора звезды ------
         function createCollectEffect(x, y, isSpecial = false) {
-            const count = isSpecial ? 24 : 12;
+            const count = isSpecial ? 30 : 16;
             const colors = isSpecial ? 
                 ['#ffd700', '#ffec8b', '#ffb347', '#ff8c00', '#fff4a0', '#ffed4a'] :
                 ['#9b59b6', '#8e44ad', '#a569bd', '#7d3c98', '#bb8fce'];
             
             for (let i = 0; i < count; i++) {
                 const angle = Math.random() * Math.PI * 2;
-                const speed = isSpecial ? (0.6 + Math.random() * 2.0) : (0.5 + Math.random() * 1.2);
+                const speed = isSpecial ? (0.8 + Math.random() * 2.5) : (0.6 + Math.random() * 1.5);
                 const color = colors[Math.floor(Math.random() * colors.length)];
                 particleEffects.push({
                     x: x,
                     y: y,
                     vx: Math.cos(angle) * speed,
                     vy: Math.sin(angle) * speed - 0.3,
-                    radius: isSpecial ? (1.2 + Math.random() * 2.0) : (0.8 + Math.random() * 1.2),
+                    radius: isSpecial ? (1.5 + Math.random() * 2.5) : (1.0 + Math.random() * 1.5),
                     life: 1.0,
                     decay: 0.015 + Math.random() * 0.018,
                     color: color,
                     gravity: 0.03,
                 });
             }
-            const sparkCount = isSpecial ? 8 : 4;
+            const sparkCount = isSpecial ? 12 : 6;
             for (let i = 0; i < sparkCount; i++) {
                 const angle = Math.random() * Math.PI * 2;
-                const speed = isSpecial ? (0.8 + Math.random() * 2.5) : (0.6 + Math.random() * 1.5);
+                const speed = isSpecial ? (1.0 + Math.random() * 3.0) : (0.8 + Math.random() * 2.0);
                 particleEffects.push({
                     x: x,
                     y: y,
                     vx: Math.cos(angle) * speed,
                     vy: Math.sin(angle) * speed - 0.4,
-                    radius: isSpecial ? (0.6 + Math.random() * 1.2) : (0.4 + Math.random() * 0.8),
+                    radius: isSpecial ? (0.8 + Math.random() * 1.5) : (0.6 + Math.random() * 1.0),
                     life: 1.0,
                     decay: 0.025 + Math.random() * 0.02,
                     color: '#ffffff',
@@ -440,6 +342,7 @@
             bonuses = [];
             spawnTimer = 0;
 
+            // Инициализируем след
             for (let i = 0; i < 20; i++) {
                 trailPositions.push({ x: fly.x, y: fly.y, life: 1.0 - i * 0.05 });
             }
@@ -484,6 +387,7 @@
                     r: isSpecial ? BONUS_RADIUS * 1.3 : BONUS_RADIUS,
                     isSpecial: isSpecial,
                     pulse: Math.random() * Math.PI * 2,
+                    // Анимация роста
                     scale: 0.01,
                     growing: true,
                     growSpeed: 0.04 + Math.random() * 0.03,
@@ -499,6 +403,7 @@
             fly.wingAngle += fly.wingSpeed;
             if (fly.wingAngle > Math.PI * 2) fly.wingAngle -= Math.PI * 2;
 
+            // Обновляем угол глаз игрока (на курсор)
             const dxToTarget = fly.targetX - fly.x;
             const dyToTarget = fly.targetY - fly.y;
             fly.eyeAngle = Math.atan2(dyToTarget, dxToTarget);
@@ -548,6 +453,7 @@
             for (let i = 0; i < enemies.length; i++) {
                 const enemy = enemies[i];
                 
+                // Анимация роста врага
                 if (enemy.growing) {
                     enemy.scale += enemy.growSpeed;
                     if (enemy.scale >= 1.0) {
@@ -658,6 +564,7 @@
             // 5. Сбор бонусов
             for (let i = bonuses.length - 1; i >= 0; i--) {
                 const b = bonuses[i];
+                // Пропускаем бонусы, которые ещё не выросли
                 if (b.growing && b.scale < 0.3) continue;
                 
                 const currentRadius = b.r * (b.scale || 1);
@@ -719,42 +626,44 @@
             ctx.fillStyle = grad;
             ctx.fillRect(0, 0, W, H);
 
-            // облака (упрощённые для производительности)
-            ctx.fillStyle = 'rgba(255,255,245,0.15)';
+            // облака
+            ctx.fillStyle = 'rgba(255,255,245,0.18)';
             ctx.beginPath();
-            ctx.arc(100, 70, 40, 0, Math.PI*2);
-            ctx.arc(140, 90, 30, 0, Math.PI*2);
-            ctx.arc(60, 110, 25, 0, Math.PI*2);
+            ctx.arc(100, 70, 45, 0, Math.PI*2);
+            ctx.arc(150, 90, 35, 0, Math.PI*2);
+            ctx.arc(60, 110, 30, 0, Math.PI*2);
             ctx.fill();
             ctx.beginPath();
-            ctx.arc(600, 120, 45, 0, Math.PI*2);
-            ctx.arc(650, 100, 35, 0, Math.PI*2);
-            ctx.arc(560, 140, 25, 0, Math.PI*2);
+            ctx.arc(600, 120, 50, 0, Math.PI*2);
+            ctx.arc(660, 100, 40, 0, Math.PI*2);
+            ctx.arc(560, 140, 30, 0, Math.PI*2);
             ctx.fill();
 
             // След мухи
             for (let i = 0; i < trailPositions.length; i++) {
                 const pos = trailPositions[i];
                 if (pos.life <= 0) continue;
-                const alpha = pos.life * 0.5;
-                const radius = (pos.life * 4 + 2) * 0.6;
+                const alpha = pos.life * 0.6;
+                const radius = (pos.life * 5 + 2) * 0.7;
                 ctx.globalAlpha = alpha;
-                ctx.shadowBlur = 12;
+                ctx.shadowBlur = 18;
                 ctx.shadowColor = '#4a9eff';
-                const gradient = ctx.createRadialGradient(pos.x, pos.y, 0, pos.x, pos.y, radius * 1.3);
-                gradient.addColorStop(0, `rgba(80, 180, 255, ${alpha * 0.4})`);
-                gradient.addColorStop(0.5, `rgba(40, 120, 255, ${alpha * 0.2})`);
+                // Внешнее свечение
+                const gradient = ctx.createRadialGradient(pos.x, pos.y, 0, pos.x, pos.y, radius * 1.4);
+                gradient.addColorStop(0, `rgba(80, 180, 255, ${alpha * 0.5})`);
+                gradient.addColorStop(0.5, `rgba(40, 120, 255, ${alpha * 0.25})`);
                 gradient.addColorStop(1, `rgba(20, 80, 255, 0)`);
                 ctx.beginPath();
-                ctx.arc(pos.x, pos.y, radius * 1.3, 0, Math.PI * 2);
+                ctx.arc(pos.x, pos.y, radius * 1.4, 0, Math.PI * 2);
                 ctx.fillStyle = gradient;
                 ctx.fill();
                 
-                ctx.shadowBlur = 8;
+                // Ядро следа
+                ctx.shadowBlur = 12;
                 ctx.shadowColor = '#3f9eff';
                 ctx.beginPath();
                 ctx.arc(pos.x, pos.y, radius * 0.5, 0, Math.PI * 2);
-                ctx.fillStyle = `rgba(100, 200, 255, ${alpha * 0.35})`;
+                ctx.fillStyle = `rgba(100, 200, 255, ${alpha * 0.4})`;
                 ctx.fill();
                 ctx.shadowBlur = 0;
             }
@@ -770,8 +679,8 @@
                     const radius = currentRadius * pulseScale;
                     
                     ctx.shadowColor = '#ffd700';
-                    ctx.shadowBlur = 25;
-                    const gradB = ctx.createRadialGradient(b.x-3, b.y-3, 2, b.x, b.y, radius+3);
+                    ctx.shadowBlur = 35;
+                    const gradB = ctx.createRadialGradient(b.x-3, b.y-3, 2, b.x, b.y, radius+4);
                     gradB.addColorStop(0, '#fff4a0');
                     gradB.addColorStop(0.5, '#ffd700');
                     gradB.addColorStop(1, '#e6a800');
@@ -779,27 +688,27 @@
                     ctx.arc(b.x, b.y, radius, 0, Math.PI*2);
                     ctx.fillStyle = gradB;
                     ctx.fill();
-                    ctx.shadowBlur = 10;
+                    ctx.shadowBlur = 15;
                     ctx.beginPath();
-                    ctx.arc(b.x-3, b.y-4, 4 * currentScale, 0, Math.PI*2);
+                    ctx.arc(b.x-3, b.y-4, 5 * currentScale, 0, Math.PI*2);
                     ctx.fillStyle = '#fffbe6';
                     ctx.fill();
                     ctx.shadowBlur = 0;
                     ctx.strokeStyle = '#dba53f';
-                    ctx.lineWidth = 1.5 * currentScale;
+                    ctx.lineWidth = 2 * currentScale;
                     ctx.stroke();
-                    ctx.font = `bold ${12 * currentScale}px Arial`;
+                    ctx.font = `bold ${14 * currentScale}px Arial`;
                     ctx.textAlign = 'center';
                     ctx.textBaseline = 'middle';
                     ctx.fillStyle = '#fffbe6';
-                    ctx.shadowBlur = 8;
+                    ctx.shadowBlur = 10;
                     ctx.shadowColor = '#ffd700';
                     ctx.fillText('✦', b.x, b.y - 1);
                     ctx.shadowBlur = 0;
                 } else {
                     ctx.shadowColor = '#9b59b6';
-                    ctx.shadowBlur = 18;
-                    const gradB = ctx.createRadialGradient(b.x-3, b.y-3, 2, b.x, b.y, currentRadius+3);
+                    ctx.shadowBlur = 22;
+                    const gradB = ctx.createRadialGradient(b.x-3, b.y-3, 2, b.x, b.y, currentRadius+4);
                     gradB.addColorStop(0, '#d7bde2');
                     gradB.addColorStop(0.5, '#9b59b6');
                     gradB.addColorStop(1, '#6c3483');
@@ -807,14 +716,14 @@
                     ctx.arc(b.x, b.y, currentRadius, 0, Math.PI*2);
                     ctx.fillStyle = gradB;
                     ctx.fill();
-                    ctx.shadowBlur = 6;
+                    ctx.shadowBlur = 8;
                     ctx.beginPath();
-                    ctx.arc(b.x-3, b.y-4, 3 * currentScale, 0, Math.PI*2);
+                    ctx.arc(b.x-3, b.y-4, 4 * currentScale, 0, Math.PI*2);
                     ctx.fillStyle = '#e8d5f5';
                     ctx.fill();
                     ctx.shadowBlur = 0;
                     ctx.strokeStyle = '#8e44ad';
-                    ctx.lineWidth = 1.5 * currentScale;
+                    ctx.lineWidth = 1.8 * currentScale;
                     ctx.stroke();
                 }
             }
@@ -823,7 +732,7 @@
             for (const p of particleEffects) {
                 const alpha = p.life;
                 ctx.globalAlpha = alpha;
-                ctx.shadowBlur = 6;
+                ctx.shadowBlur = 10;
                 ctx.shadowColor = p.color;
                 ctx.beginPath();
                 ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
@@ -839,8 +748,8 @@
                 const currentRadius = enemy.r * currentScale;
                 
                 ctx.shadowColor = '#d03030';
-                ctx.shadowBlur = 20;
-                const gradE = ctx.createRadialGradient(enemy.x-5, enemy.y-6, 5 * currentScale, enemy.x, enemy.y, currentRadius+4);
+                ctx.shadowBlur = 28;
+                const gradE = ctx.createRadialGradient(enemy.x-5, enemy.y-6, 5 * currentScale, enemy.x, enemy.y, currentRadius+6);
                 gradE.addColorStop(0, '#e05a5a');
                 gradE.addColorStop(0.7, '#b12a2a');
                 gradE.addColorStop(1, '#611515');
@@ -849,26 +758,26 @@
                 ctx.fillStyle = gradE;
                 ctx.fill();
                 
-                ctx.shadowBlur = 6;
+                ctx.shadowBlur = 8;
                 const eyeOffsetX = Math.cos(enemy.eyeAngle || 0) * 5 * currentScale;
                 const eyeOffsetY = Math.sin(enemy.eyeAngle || 0) * 5 * currentScale;
-                const eyeSize = 5 * currentScale;
-                const pupilSize = 2.8 * currentScale;
-                const sparkSize = 1.2 * currentScale;
+                const eyeSize = 6 * currentScale;
+                const pupilSize = 3.2 * currentScale;
+                const sparkSize = 1.5 * currentScale;
                 
                 ctx.fillStyle = '#f0f4fa';
                 ctx.beginPath();
-                ctx.arc(enemy.x-6 * currentScale + eyeOffsetX * 0.3, enemy.y-4 * currentScale + eyeOffsetY * 0.3, eyeSize, 0, Math.PI*2);
+                ctx.arc(enemy.x-7 * currentScale + eyeOffsetX * 0.3, enemy.y-5 * currentScale + eyeOffsetY * 0.3, eyeSize, 0, Math.PI*2);
                 ctx.fill();
                 ctx.beginPath();
-                ctx.arc(enemy.x+6 * currentScale + eyeOffsetX * 0.3, enemy.y-4 * currentScale + eyeOffsetY * 0.3, eyeSize, 0, Math.PI*2);
+                ctx.arc(enemy.x+7 * currentScale + eyeOffsetX * 0.3, enemy.y-5 * currentScale + eyeOffsetY * 0.3, eyeSize, 0, Math.PI*2);
                 ctx.fill();
                 
                 ctx.fillStyle = '#1c222e';
-                const leftPupilX = enemy.x-6 * currentScale + eyeOffsetX * 0.6;
-                const leftPupilY = enemy.y-4 * currentScale + eyeOffsetY * 0.6;
-                const rightPupilX = enemy.x+6 * currentScale + eyeOffsetX * 0.6;
-                const rightPupilY = enemy.y-4 * currentScale + eyeOffsetY * 0.6;
+                const leftPupilX = enemy.x-7 * currentScale + eyeOffsetX * 0.6;
+                const leftPupilY = enemy.y-5 * currentScale + eyeOffsetY * 0.6;
+                const rightPupilX = enemy.x+7 * currentScale + eyeOffsetX * 0.6;
+                const rightPupilY = enemy.y-5 * currentScale + eyeOffsetY * 0.6;
                 
                 ctx.beginPath();
                 ctx.arc(leftPupilX, leftPupilY, pupilSize, 0, Math.PI*2);
@@ -879,10 +788,10 @@
                 
                 ctx.fillStyle = '#f5f9ff';
                 ctx.beginPath();
-                ctx.arc(leftPupilX - 1.2 * currentScale, leftPupilY - 1.5 * currentScale, sparkSize, 0, Math.PI*2);
+                ctx.arc(leftPupilX - 1.5 * currentScale, leftPupilY - 2 * currentScale, sparkSize, 0, Math.PI*2);
                 ctx.fill();
                 ctx.beginPath();
-                ctx.arc(rightPupilX - 1.2 * currentScale, rightPupilY - 1.5 * currentScale, sparkSize, 0, Math.PI*2);
+                ctx.arc(rightPupilX - 1.5 * currentScale, rightPupilY - 2 * currentScale, sparkSize, 0, Math.PI*2);
                 ctx.fill();
             }
 
@@ -891,8 +800,8 @@
             const wingAngle = wingPhase * 0.6;
             
             ctx.shadowColor = '#3f9eff';
-            ctx.shadowBlur = 20;
-            const gradF = ctx.createRadialGradient(fly.x-4, fly.y-5, 4, fly.x, fly.y, fly.r+4);
+            ctx.shadowBlur = 28;
+            const gradF = ctx.createRadialGradient(fly.x-4, fly.y-5, 4, fly.x, fly.y, fly.r+5);
             gradF.addColorStop(0, '#a3d0ff');
             gradF.addColorStop(0.6, '#3b8cff');
             gradF.addColorStop(1, '#0e4b9e');
@@ -904,82 +813,82 @@
             ctx.save();
             ctx.translate(fly.x - 8, fly.y - 6);
             ctx.rotate(wingAngle * 0.8);
-            ctx.shadowBlur = 14;
+            ctx.shadowBlur = 18;
             ctx.shadowColor = 'rgba(180, 220, 255, 0.5)';
             ctx.beginPath();
-            ctx.ellipse(0, 0, 13, 5, 0, 0, Math.PI * 2);
-            ctx.fillStyle = 'rgba(200, 240, 255, 0.5)';
+            ctx.ellipse(0, 0, 14, 6, 0, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(200, 240, 255, 0.55)';
             ctx.fill();
-            ctx.strokeStyle = 'rgba(180, 220, 255, 0.6)';
-            ctx.lineWidth = 1.2;
+            ctx.strokeStyle = 'rgba(180, 220, 255, 0.7)';
+            ctx.lineWidth = 1.5;
             ctx.stroke();
             ctx.restore();
 
             ctx.save();
             ctx.translate(fly.x + 8, fly.y - 6);
             ctx.rotate(-wingAngle * 0.8);
-            ctx.shadowBlur = 14;
+            ctx.shadowBlur = 18;
             ctx.shadowColor = 'rgba(180, 220, 255, 0.5)';
             ctx.beginPath();
-            ctx.ellipse(0, 0, 13, 5, 0, 0, Math.PI * 2);
-            ctx.fillStyle = 'rgba(200, 240, 255, 0.5)';
+            ctx.ellipse(0, 0, 14, 6, 0, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(200, 240, 255, 0.55)';
             ctx.fill();
-            ctx.strokeStyle = 'rgba(180, 220, 255, 0.6)';
-            ctx.lineWidth = 1.2;
+            ctx.strokeStyle = 'rgba(180, 220, 255, 0.7)';
+            ctx.lineWidth = 1.5;
             ctx.stroke();
             ctx.restore();
 
-            ctx.shadowBlur = 4;
+            ctx.shadowBlur = 6;
             ctx.shadowColor = 'rgba(0,0,0,0.2)';
             
             const eyeAngle = fly.eyeAngle || 0;
-            const eyeOffX = Math.cos(eyeAngle) * 3.5;
-            const eyeOffY = Math.sin(eyeAngle) * 3.5;
+            const eyeOffX = Math.cos(eyeAngle) * 4;
+            const eyeOffY = Math.sin(eyeAngle) * 4;
             
             ctx.fillStyle = '#f2faff';
             ctx.beginPath();
-            ctx.arc(fly.x-6 + eyeOffX * 0.2, fly.y-3.5 + eyeOffY * 0.2, 5, 0, Math.PI*2);
+            ctx.arc(fly.x-7 + eyeOffX * 0.2, fly.y-4 + eyeOffY * 0.2, 6, 0, Math.PI*2);
             ctx.fill();
             ctx.beginPath();
-            ctx.arc(fly.x+6 + eyeOffX * 0.2, fly.y-3.5 + eyeOffY * 0.2, 5, 0, Math.PI*2);
+            ctx.arc(fly.x+7 + eyeOffX * 0.2, fly.y-4 + eyeOffY * 0.2, 6, 0, Math.PI*2);
             ctx.fill();
             
             ctx.fillStyle = '#111a2e';
             ctx.beginPath();
-            ctx.arc(fly.x-6 + eyeOffX * 0.6, fly.y-3.5 + eyeOffY * 0.6, 2.5, 0, Math.PI*2);
+            ctx.arc(fly.x-7 + eyeOffX * 0.6, fly.y-4 + eyeOffY * 0.6, 3, 0, Math.PI*2);
             ctx.fill();
             ctx.beginPath();
-            ctx.arc(fly.x+6 + eyeOffX * 0.6, fly.y-3.5 + eyeOffY * 0.6, 2.5, 0, Math.PI*2);
+            ctx.arc(fly.x+7 + eyeOffX * 0.6, fly.y-4 + eyeOffY * 0.6, 3, 0, Math.PI*2);
             ctx.fill();
             
             ctx.fillStyle = 'white';
             ctx.beginPath();
-            ctx.arc(fly.x-6 + eyeOffX * 0.6 - 1, fly.y-3.5 + eyeOffY * 0.6 - 1.2, 1, 0, Math.PI*2);
+            ctx.arc(fly.x-7 + eyeOffX * 0.6 - 1.2, fly.y-4 + eyeOffY * 0.6 - 1.5, 1.2, 0, Math.PI*2);
             ctx.fill();
             ctx.beginPath();
-            ctx.arc(fly.x+6 + eyeOffX * 0.6 - 1, fly.y-3.5 + eyeOffY * 0.6 - 1.2, 1, 0, Math.PI*2);
+            ctx.arc(fly.x+7 + eyeOffX * 0.6 - 1.2, fly.y-4 + eyeOffY * 0.6 - 1.5, 1.2, 0, Math.PI*2);
             ctx.fill();
 
             ctx.shadowBlur = 0;
             ctx.beginPath();
-            ctx.arc(fly.x-3, fly.y-5, 3, 0, Math.PI*2);
-            ctx.fillStyle = 'rgba(255,255,255,0.2)';
+            ctx.arc(fly.x-3, fly.y-6, 4, 0, Math.PI*2);
+            ctx.fillStyle = 'rgba(255,255,255,0.25)';
             ctx.fill();
 
             if (!gameActive) {
-                ctx.shadowBlur = 20;
+                ctx.shadowBlur = 28;
                 ctx.shadowColor = '#cc2222';
-                ctx.font = 'bold 40px "Courier New", monospace';
+                ctx.font = 'bold 52px "Courier New", monospace';
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
                 ctx.fillStyle = '#f0d0d0';
                 ctx.strokeStyle = '#3a0e0e';
-                ctx.lineWidth = 4;
-                ctx.strokeText('✖ GAME OVER', W/2, H/2 - 20);
-                ctx.fillText('✖ GAME OVER', W/2, H/2 - 20);
-                ctx.font = '16px monospace';
+                ctx.lineWidth = 6;
+                ctx.strokeText('✖ GAME OVER', 400, 220);
+                ctx.fillText('✖ GAME OVER', 400, 220);
+                ctx.font = '20px monospace';
                 ctx.fillStyle = '#eecfaf';
-                ctx.fillText('нажми "старт"', W/2, H/2 + 40);
+                ctx.fillText('нажми "старт"', 400, 300);
             }
 
             ctx.shadowBlur = 0;
@@ -1037,13 +946,7 @@
             resetGame();
         });
 
-        // ------ Инициализация ------
         function init() {
-            resizeCanvas();
-            window.addEventListener('resize', resizeCanvas);
-            window.addEventListener('orientationchange', () => {
-                setTimeout(resizeCanvas, 300);
-            });
             initControls();
             resetGame();
         }
