@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>SuperFly · TWA</title>
     <style>
         * {
@@ -22,6 +22,38 @@
             touch-action: none;
             margin: 0;
             padding: 8px;
+            orientation: landscape;
+        }
+        @media screen and (orientation: portrait) and (max-width: 768px) {
+            body::before {
+                content: "Поверните телефон горизонтально";
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: #0b111e;
+                color: #b8d0e0;
+                font-size: 24px;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 9999;
+                text-align: center;
+                padding: 40px;
+                font-family: 'Courier New', monospace;
+            }
+            .game-wrapper {
+                display: none;
+            }
+        }
+        @media screen and (orientation: landscape), (min-width: 769px) {
+            body::before {
+                display: none !important;
+            }
+            .game-wrapper {
+                display: block !important;
+            }
         }
         .game-wrapper {
             background: #1a1f2e;
@@ -153,6 +185,7 @@
 
         // ------ Эффекты ------
         let particleEffects = [];
+        let trailPositions = [];
 
         // ------ Игрок (муха) ------
         const fly = {
@@ -211,7 +244,7 @@
             return false;
         }
 
-        // Создать врага в безопасной позиции
+        // Создать врага в безопасной позиции с анимацией роста
         function createEnemy(avoidX, avoidY, avoidRadius = 120) {
             let attempts = 0;
             let x, y, valid;
@@ -243,6 +276,10 @@
                 idleTimer: 0,
                 targetAngle: Math.random() * Math.PI * 2,
                 eyeAngle: 0,
+                // Анимация роста
+                scale: 0.01,
+                growing: true,
+                growSpeed: 0.035 + Math.random() * 0.025,
             };
         }
 
@@ -266,39 +303,43 @@
             }
         }
 
-        // ------ Создание эффекта сбора звезды (уменьшенная дальность, увеличенный размер) ------
-        function createCollectEffect(x, y) {
-            const count = 20;
+        // ------ Создание эффекта сбора звезды ------
+        function createCollectEffect(x, y, isSpecial = false) {
+            const count = isSpecial ? 30 : 16;
+            const colors = isSpecial ? 
+                ['#ffd700', '#ffec8b', '#ffb347', '#ff8c00', '#fff4a0', '#ffed4a'] :
+                ['#9b59b6', '#8e44ad', '#a569bd', '#7d3c98', '#bb8fce'];
+            
             for (let i = 0; i < count; i++) {
                 const angle = Math.random() * Math.PI * 2;
-                const speed = 0.8 + Math.random() * 1.8; // Уменьшена дальность
-                const color = ['#ffd700', '#ffec8b', '#ffb347', '#ff8c00', '#fff4a0'][Math.floor(Math.random() * 5)];
+                const speed = isSpecial ? (0.8 + Math.random() * 2.5) : (0.6 + Math.random() * 1.5);
+                const color = colors[Math.floor(Math.random() * colors.length)];
                 particleEffects.push({
                     x: x,
                     y: y,
                     vx: Math.cos(angle) * speed,
                     vy: Math.sin(angle) * speed - 0.3,
-                    radius: 2.5 + Math.random() * 3.5, // Увеличен размер
+                    radius: isSpecial ? (1.5 + Math.random() * 2.5) : (1.0 + Math.random() * 1.5),
                     life: 1.0,
                     decay: 0.015 + Math.random() * 0.018,
                     color: color,
-                    gravity: 0.04,
+                    gravity: 0.03,
                 });
             }
-            // Искры
-            for (let i = 0; i < 10; i++) {
+            const sparkCount = isSpecial ? 12 : 6;
+            for (let i = 0; i < sparkCount; i++) {
                 const angle = Math.random() * Math.PI * 2;
-                const speed = 1.0 + Math.random() * 2.5;
+                const speed = isSpecial ? (1.0 + Math.random() * 3.0) : (0.8 + Math.random() * 2.0);
                 particleEffects.push({
                     x: x,
                     y: y,
                     vx: Math.cos(angle) * speed,
-                    vy: Math.sin(angle) * speed - 0.5,
-                    radius: 1.5 + Math.random() * 2.0,
+                    vy: Math.sin(angle) * speed - 0.4,
+                    radius: isSpecial ? (0.8 + Math.random() * 1.5) : (0.6 + Math.random() * 1.0),
                     life: 1.0,
                     decay: 0.025 + Math.random() * 0.02,
                     color: '#ffffff',
-                    gravity: 0.06,
+                    gravity: 0.05,
                 });
             }
         }
@@ -314,6 +355,7 @@
             score = 0;
             enemySpawnThreshold = ENEMY_SPAWN_SCORE_INTERVAL;
             particleEffects = [];
+            trailPositions = [];
 
             fly.x = 200; fly.y = 200;
             fly.vx = 0; fly.vy = 0;
@@ -328,11 +370,16 @@
             bonuses = [];
             spawnTimer = 0;
 
+            // Инициализируем след (чуть меньше)
+            for (let i = 0; i < 20; i++) {
+                trailPositions.push({ x: fly.x, y: fly.y, life: 1.0 - i * 0.05 });
+            }
+
             updateUI();
             gameLoop();
         }
 
-        // ------ Спавн бонуса (звезды) ------
+        // ------ Спавн бонуса (звезды) с анимацией роста ------
         function spawnBonus() {
             if (!gameActive) return;
             if (bonuses.length >= MAX_BONUSES) return;
@@ -362,7 +409,17 @@
             } while (!valid);
 
             if (valid) {
-                bonuses.push({ x, y, r: BONUS_RADIUS });
+                const isSpecial = Math.random() < 0.05;
+                bonuses.push({ 
+                    x, y, 
+                    r: isSpecial ? BONUS_RADIUS * 1.3 : BONUS_RADIUS,
+                    isSpecial: isSpecial,
+                    pulse: Math.random() * Math.PI * 2,
+                    // Анимация роста
+                    scale: 0.01,
+                    growing: true,
+                    growSpeed: 0.04 + Math.random() * 0.03,
+                });
             }
         }
 
@@ -410,14 +467,33 @@
             if (fly.y - r < 0) { fly.y = r; fly.vy *= -0.3; }
             if (fly.y + r > H) { fly.y = H - r; fly.vy *= -0.3; }
 
-            // 2. Враги
+            // Обновление следа (немного уменьшен)
+            trailPositions.push({ x: fly.x, y: fly.y, life: 1.0 });
+            if (trailPositions.length > 28) {
+                trailPositions.shift();
+            }
+            for (let i = 0; i < trailPositions.length; i++) {
+                trailPositions[i].life -= 0.035;
+                if (trailPositions[i].life < 0) trailPositions[i].life = 0;
+            }
+
+            // 2. Враги с анимацией роста
             for (let i = 0; i < enemies.length; i++) {
                 const enemy = enemies[i];
+                
+                // Анимация роста врага
+                if (enemy.growing) {
+                    enemy.scale += enemy.growSpeed;
+                    if (enemy.scale >= 1.0) {
+                        enemy.scale = 1.0;
+                        enemy.growing = false;
+                    }
+                }
+                
                 const dxE = fly.x - enemy.x;
                 const dyE = fly.y - enemy.y;
                 const distToPlayer = Math.hypot(dxE, dyE);
 
-                // Обновляем угол глаз врага (на игрока)
                 enemy.eyeAngle = Math.atan2(dyE, dxE);
 
                 const isChasing = distToPlayer < enemy.chaseRadius && gameActive;
@@ -438,7 +514,6 @@
                         enemy.vy *= 0.9;
                     }
                 } else {
-                    // Блуждание
                     enemy.idleTimer = (enemy.idleTimer || 0) + 1;
                     if (enemy.idleTimer > 60 + Math.random() * 80) {
                         enemy.idleTimer = 0;
@@ -517,29 +592,47 @@
             // 5. Сбор бонусов
             for (let i = bonuses.length - 1; i >= 0; i--) {
                 const b = bonuses[i];
-                if (Math.hypot(fly.x - b.x, fly.y - b.y) < fly.r + b.r - 2) {
-                    createCollectEffect(b.x, b.y);
-                    score++;
+                // Пропускаем бонусы, которые ещё не выросли
+                if (b.growing && b.scale < 0.3) continue;
+                
+                const currentRadius = b.r * (b.scale || 1);
+                if (Math.hypot(fly.x - b.x, fly.y - b.y) < fly.r + currentRadius - 2) {
+                    const isSpecial = b.isSpecial || false;
+                    const points = isSpecial ? 3 : 1;
+                    createCollectEffect(b.x, b.y, isSpecial);
+                    score += points;
                     updateUI();
                     bonuses.splice(i, 1);
                     checkAndSpawnEnemy();
                 }
             }
 
-            // 6. Обновление частиц
+            // 6. Обновление анимации роста бонусов
+            for (const b of bonuses) {
+                if (b.growing) {
+                    b.scale += b.growSpeed;
+                    if (b.scale >= 1.0) {
+                        b.scale = 1.0;
+                        b.growing = false;
+                    }
+                }
+                b.pulse = (b.pulse || 0) + 0.05;
+            }
+
+            // 7. Обновление частиц
             for (let i = particleEffects.length - 1; i >= 0; i--) {
                 const p = particleEffects[i];
                 p.x += p.vx;
                 p.y += p.vy;
                 p.vy += p.gravity || 0.05;
                 p.life -= p.decay;
-                p.radius *= 0.998;
-                if (p.life <= 0 || p.radius < 0.2) {
+                p.radius *= 0.997;
+                if (p.life <= 0 || p.radius < 0.1) {
                     particleEffects.splice(i, 1);
                 }
             }
 
-            // 7. Спавн бонусов
+            // 8. Спавн бонусов
             if (gameActive) {
                 spawnTimer++;
                 if (spawnTimer >= SPAWN_COOLDOWN) {
@@ -574,34 +667,100 @@
             ctx.arc(560, 140, 30, 0, Math.PI*2);
             ctx.fill();
 
-            // бонусы (звёзды)
-            for (const b of bonuses) {
-                ctx.shadowColor = '#f5e56b';
-                ctx.shadowBlur = 22;
-                const gradB = ctx.createRadialGradient(b.x-3, b.y-3, 2, b.x, b.y, b.r+4);
-                gradB.addColorStop(0, '#fcee8f');
-                gradB.addColorStop(0.7, '#e8b83a');
-                gradB.addColorStop(1, '#b87c1a');
+            // След мухи (чуть уменьшенный)
+            for (let i = 0; i < trailPositions.length; i++) {
+                const pos = trailPositions[i];
+                if (pos.life <= 0) continue;
+                const alpha = pos.life * 0.6;
+                const radius = (pos.life * 5 + 2) * 0.7;
+                ctx.globalAlpha = alpha;
+                ctx.shadowBlur = 18;
+                ctx.shadowColor = '#4a9eff';
+                // Внешнее свечение
+                const gradient = ctx.createRadialGradient(pos.x, pos.y, 0, pos.x, pos.y, radius * 1.4);
+                gradient.addColorStop(0, `rgba(80, 180, 255, ${alpha * 0.5})`);
+                gradient.addColorStop(0.5, `rgba(40, 120, 255, ${alpha * 0.25})`);
+                gradient.addColorStop(1, `rgba(20, 80, 255, 0)`);
                 ctx.beginPath();
-                ctx.arc(b.x, b.y, b.r, 0, Math.PI*2);
-                ctx.fillStyle = gradB;
+                ctx.arc(pos.x, pos.y, radius * 1.4, 0, Math.PI * 2);
+                ctx.fillStyle = gradient;
                 ctx.fill();
-                ctx.shadowBlur = 8;
+                
+                // Ядро следа
+                ctx.shadowBlur = 12;
+                ctx.shadowColor = '#3f9eff';
                 ctx.beginPath();
-                ctx.arc(b.x-3, b.y-4, 4, 0, Math.PI*2);
-                ctx.fillStyle = '#fffbe6';
+                ctx.arc(pos.x, pos.y, radius * 0.5, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(100, 200, 255, ${alpha * 0.4})`;
                 ctx.fill();
                 ctx.shadowBlur = 0;
-                ctx.strokeStyle = '#dba53f';
-                ctx.lineWidth = 1.8;
-                ctx.stroke();
+            }
+            ctx.globalAlpha = 1.0;
+
+            // бонусы (звёзды) с анимацией роста
+            for (const b of bonuses) {
+                const currentScale = b.scale || 1;
+                const currentRadius = b.r * currentScale;
+                
+                if (b.isSpecial) {
+                    const pulseScale = 1 + Math.sin(b.pulse) * 0.15;
+                    const radius = currentRadius * pulseScale;
+                    
+                    ctx.shadowColor = '#ffd700';
+                    ctx.shadowBlur = 35;
+                    const gradB = ctx.createRadialGradient(b.x-3, b.y-3, 2, b.x, b.y, radius+4);
+                    gradB.addColorStop(0, '#fff4a0');
+                    gradB.addColorStop(0.5, '#ffd700');
+                    gradB.addColorStop(1, '#e6a800');
+                    ctx.beginPath();
+                    ctx.arc(b.x, b.y, radius, 0, Math.PI*2);
+                    ctx.fillStyle = gradB;
+                    ctx.fill();
+                    ctx.shadowBlur = 15;
+                    ctx.beginPath();
+                    ctx.arc(b.x-3, b.y-4, 5 * currentScale, 0, Math.PI*2);
+                    ctx.fillStyle = '#fffbe6';
+                    ctx.fill();
+                    ctx.shadowBlur = 0;
+                    ctx.strokeStyle = '#dba53f';
+                    ctx.lineWidth = 2 * currentScale;
+                    ctx.stroke();
+                    ctx.font = `bold ${14 * currentScale}px Arial`;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillStyle = '#fffbe6';
+                    ctx.shadowBlur = 10;
+                    ctx.shadowColor = '#ffd700';
+                    ctx.fillText('✦', b.x, b.y - 1);
+                    ctx.shadowBlur = 0;
+                } else {
+                    ctx.shadowColor = '#9b59b6';
+                    ctx.shadowBlur = 22;
+                    const gradB = ctx.createRadialGradient(b.x-3, b.y-3, 2, b.x, b.y, currentRadius+4);
+                    gradB.addColorStop(0, '#d7bde2');
+                    gradB.addColorStop(0.5, '#9b59b6');
+                    gradB.addColorStop(1, '#6c3483');
+                    ctx.beginPath();
+                    ctx.arc(b.x, b.y, currentRadius, 0, Math.PI*2);
+                    ctx.fillStyle = gradB;
+                    ctx.fill();
+                    ctx.shadowBlur = 8;
+                    ctx.beginPath();
+                    ctx.arc(b.x-3, b.y-4, 4 * currentScale, 0, Math.PI*2);
+                    ctx.fillStyle = '#e8d5f5';
+                    ctx.fill();
+                    ctx.shadowBlur = 0;
+                    ctx.strokeStyle = '#8e44ad';
+                    ctx.lineWidth = 1.8 * currentScale;
+                    ctx.stroke();
+                }
             }
 
             // эффекты частиц
             for (const p of particleEffects) {
                 const alpha = p.life;
                 ctx.globalAlpha = alpha;
-                ctx.shadowBlur = 12;
+                ctx.shadowBlur = 10;
                 ctx.shadowColor = p.color;
                 ctx.beginPath();
                 ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
@@ -611,60 +770,60 @@
             }
             ctx.globalAlpha = 1.0;
 
-            // враги (с глазами, смотрящими на игрока)
+            // враги с анимацией роста
             for (const enemy of enemies) {
+                const currentScale = enemy.scale || 1;
+                const currentRadius = enemy.r * currentScale;
+                
                 ctx.shadowColor = '#d03030';
                 ctx.shadowBlur = 28;
-                const gradE = ctx.createRadialGradient(enemy.x-5, enemy.y-6, 5, enemy.x, enemy.y, enemy.r+6);
+                const gradE = ctx.createRadialGradient(enemy.x-5, enemy.y-6, 5 * currentScale, enemy.x, enemy.y, currentRadius+6);
                 gradE.addColorStop(0, '#e05a5a');
                 gradE.addColorStop(0.7, '#b12a2a');
                 gradE.addColorStop(1, '#611515');
                 ctx.beginPath();
-                ctx.arc(enemy.x, enemy.y, enemy.r, 0, Math.PI*2);
+                ctx.arc(enemy.x, enemy.y, currentRadius, 0, Math.PI*2);
                 ctx.fillStyle = gradE;
                 ctx.fill();
                 
-                // Глаза врага
                 ctx.shadowBlur = 8;
-                const eyeOffsetX = Math.cos(enemy.eyeAngle || 0) * 5;
-                const eyeOffsetY = Math.sin(enemy.eyeAngle || 0) * 5;
+                const eyeOffsetX = Math.cos(enemy.eyeAngle || 0) * 5 * currentScale;
+                const eyeOffsetY = Math.sin(enemy.eyeAngle || 0) * 5 * currentScale;
+                const eyeSize = 6 * currentScale;
+                const pupilSize = 3.2 * currentScale;
+                const sparkSize = 1.5 * currentScale;
                 
-                // Левый глаз (белок)
                 ctx.fillStyle = '#f0f4fa';
                 ctx.beginPath();
-                ctx.arc(enemy.x-7 + eyeOffsetX * 0.3, enemy.y-5 + eyeOffsetY * 0.3, 6, 0, Math.PI*2);
+                ctx.arc(enemy.x-7 * currentScale + eyeOffsetX * 0.3, enemy.y-5 * currentScale + eyeOffsetY * 0.3, eyeSize, 0, Math.PI*2);
                 ctx.fill();
-                
-                // Правый глаз (белок)
                 ctx.beginPath();
-                ctx.arc(enemy.x+7 + eyeOffsetX * 0.3, enemy.y-5 + eyeOffsetY * 0.3, 6, 0, Math.PI*2);
+                ctx.arc(enemy.x+7 * currentScale + eyeOffsetX * 0.3, enemy.y-5 * currentScale + eyeOffsetY * 0.3, eyeSize, 0, Math.PI*2);
                 ctx.fill();
                 
-                // Зрачки
                 ctx.fillStyle = '#1c222e';
-                const leftPupilX = enemy.x-7 + eyeOffsetX * 0.6;
-                const leftPupilY = enemy.y-5 + eyeOffsetY * 0.6;
-                const rightPupilX = enemy.x+7 + eyeOffsetX * 0.6;
-                const rightPupilY = enemy.y-5 + eyeOffsetY * 0.6;
+                const leftPupilX = enemy.x-7 * currentScale + eyeOffsetX * 0.6;
+                const leftPupilY = enemy.y-5 * currentScale + eyeOffsetY * 0.6;
+                const rightPupilX = enemy.x+7 * currentScale + eyeOffsetX * 0.6;
+                const rightPupilY = enemy.y-5 * currentScale + eyeOffsetY * 0.6;
                 
                 ctx.beginPath();
-                ctx.arc(leftPupilX, leftPupilY, 3.2, 0, Math.PI*2);
+                ctx.arc(leftPupilX, leftPupilY, pupilSize, 0, Math.PI*2);
                 ctx.fill();
                 ctx.beginPath();
-                ctx.arc(rightPupilX, rightPupilY, 3.2, 0, Math.PI*2);
+                ctx.arc(rightPupilX, rightPupilY, pupilSize, 0, Math.PI*2);
                 ctx.fill();
                 
-                // Блики
                 ctx.fillStyle = '#f5f9ff';
                 ctx.beginPath();
-                ctx.arc(leftPupilX - 1.5, leftPupilY - 2, 1.5, 0, Math.PI*2);
+                ctx.arc(leftPupilX - 1.5 * currentScale, leftPupilY - 2 * currentScale, sparkSize, 0, Math.PI*2);
                 ctx.fill();
                 ctx.beginPath();
-                ctx.arc(rightPupilX - 1.5, rightPupilY - 2, 1.5, 0, Math.PI*2);
+                ctx.arc(rightPupilX - 1.5 * currentScale, rightPupilY - 2 * currentScale, sparkSize, 0, Math.PI*2);
                 ctx.fill();
             }
 
-            // ------ ИГРОК (муха с глазами, смотрящими на курсор) ------
+            // ИГРОК
             const wingPhase = Math.sin(fly.wingAngle);
             const wingAngle = wingPhase * 0.6;
             
@@ -679,7 +838,6 @@
             ctx.fillStyle = gradF;
             ctx.fill();
 
-            // Крылья
             ctx.save();
             ctx.translate(fly.x - 8, fly.y - 6);
             ctx.rotate(wingAngle * 0.8);
@@ -708,28 +866,22 @@
             ctx.stroke();
             ctx.restore();
 
-            // Глаза игрока (смотрят на курсор)
             ctx.shadowBlur = 6;
             ctx.shadowColor = 'rgba(0,0,0,0.2)';
             
-            // Белки глаз
             const eyeAngle = fly.eyeAngle || 0;
             const eyeOffX = Math.cos(eyeAngle) * 4;
             const eyeOffY = Math.sin(eyeAngle) * 4;
             
             ctx.fillStyle = '#f2faff';
-            // Левый глаз
             ctx.beginPath();
             ctx.arc(fly.x-7 + eyeOffX * 0.2, fly.y-4 + eyeOffY * 0.2, 6, 0, Math.PI*2);
             ctx.fill();
-            // Правый глаз
             ctx.beginPath();
             ctx.arc(fly.x+7 + eyeOffX * 0.2, fly.y-4 + eyeOffY * 0.2, 6, 0, Math.PI*2);
             ctx.fill();
             
-            // Зрачки (направлены на курсор)
             ctx.fillStyle = '#111a2e';
-            const pupilOff = 3.5;
             ctx.beginPath();
             ctx.arc(fly.x-7 + eyeOffX * 0.6, fly.y-4 + eyeOffY * 0.6, 3, 0, Math.PI*2);
             ctx.fill();
@@ -737,7 +889,6 @@
             ctx.arc(fly.x+7 + eyeOffX * 0.6, fly.y-4 + eyeOffY * 0.6, 3, 0, Math.PI*2);
             ctx.fill();
             
-            // Блики
             ctx.fillStyle = 'white';
             ctx.beginPath();
             ctx.arc(fly.x-7 + eyeOffX * 0.6 - 1.2, fly.y-4 + eyeOffY * 0.6 - 1.5, 1.2, 0, Math.PI*2);
@@ -746,14 +897,12 @@
             ctx.arc(fly.x+7 + eyeOffX * 0.6 - 1.2, fly.y-4 + eyeOffY * 0.6 - 1.5, 1.2, 0, Math.PI*2);
             ctx.fill();
 
-            // Блик на теле
             ctx.shadowBlur = 0;
             ctx.beginPath();
             ctx.arc(fly.x-3, fly.y-6, 4, 0, Math.PI*2);
             ctx.fillStyle = 'rgba(255,255,255,0.25)';
             ctx.fill();
 
-            // Game Over
             if (!gameActive) {
                 ctx.shadowBlur = 28;
                 ctx.shadowColor = '#cc2222';
@@ -819,14 +968,12 @@
             }, { passive: false });
         }
 
-        // ------ Кнопка рестарта ------
         document.getElementById('restartButton').addEventListener('click', resetGame);
         document.getElementById('restartButton').addEventListener('touchstart', (e) => {
             e.preventDefault();
             resetGame();
         });
 
-        // ------ Инициализация ------
         function init() {
             initControls();
             resetGame();
