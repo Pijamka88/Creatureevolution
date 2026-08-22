@@ -22,6 +22,7 @@
             touch-action: none;
             margin: 0;
             padding: 8px;
+            /* Вертикальная ориентация */
         }
         .game-wrapper {
             background: #1a1f2e;
@@ -40,7 +41,7 @@
             box-shadow: inset 0 0 0 3px #2d3a4a, 0 0 0 4px #0f141f;
             width: 100%;
             height: auto;
-            aspect-ratio: 800 / 500;
+            aspect-ratio: 400 / 600;
             touch-action: none;
             cursor: crosshair;
         }
@@ -55,7 +56,7 @@
             font-size: 1.1rem;
             padding: 0 4px;
             flex-wrap: wrap;
-            gap: 8px 12px;
+            gap: 6px 10px;
         }
         .score-box {
             background: #0f1622;
@@ -76,7 +77,7 @@
             border-radius: 40px;
             border-bottom: 4px solid #4a2a2a;
             color: #ff8a7a;
-            font-size: 1.0rem;
+            font-size: 1rem;
             display: flex;
             align-items: center;
             gap: 6px;
@@ -87,7 +88,7 @@
             border-bottom: 4px solid #151f2b;
             color: #eaf2f9;
             font-weight: bold;
-            font-size: 1.0rem;
+            font-size: 1rem;
             padding: 4px 18px;
             border-radius: 40px;
             cursor: pointer;
@@ -120,15 +121,17 @@
                 font-size: 0.9rem;
                 padding: 2px 14px;
             }
+        }
+        @media (min-width: 600px) {
             .game-wrapper {
-                padding: 10px 10px 16px;
+                max-width: 500px;
             }
         }
     </style>
 </head>
 <body>
 <div class="game-wrapper">
-    <canvas id="gameCanvas" width="800" height="500"></canvas>
+    <canvas id="gameCanvas" width="400" height="600"></canvas>
     <div class="ui-panel">
         <span class="score-box">⭐ <span id="scoreDisplay">0</span></span>
         <span class="enemy-counter">👾 <span id="enemyCountDisplay">1</span></span>
@@ -144,7 +147,7 @@
         const scoreSpan = document.getElementById('scoreDisplay');
         const enemyCountSpan = document.getElementById('enemyCountDisplay');
 
-        const W = 800, H = 500;
+        const W = 400, H = 600;
 
         // Игровое состояние
         let gameActive = false;
@@ -161,11 +164,11 @@
 
         // ------ Игрок (муха) ------
         const fly = {
-            x: 200, y: 200,
-            r: 14,
-            speed: 4.6,
+            x: 200, y: 300,
+            r: 12,
+            speed: 4.2,
             vx: 0, vy: 0,
-            targetX: 200, targetY: 200,
+            targetX: 200, targetY: 300,
             wingAngle: 0,
             wingSpeed: 0.25,
             eyeAngle: 0,
@@ -175,17 +178,17 @@
         let enemies = [];
 
         const ENEMY_BASE = {
-            r: 16,
-            speed: 1.9,
-            chaseRadius: 280,
-            idleSpeed: 0.6,
+            r: 14,
+            speed: 1.7,
+            chaseRadius: 250,
+            idleSpeed: 0.5,
         };
 
         // ------ Бонусы (звёзды) ------
         let bonuses = [];
-        const BONUS_RADIUS = 11;
-        const MAX_BONUSES = 9;
-        const SPAWN_COOLDOWN = 26;
+        const BONUS_RADIUS = 10;
+        const MAX_BONUSES = 8;
+        const SPAWN_COOLDOWN = 28;
         let spawnTimer = 0;
 
         // ------ Вспомогательные функции ------
@@ -217,10 +220,10 @@
         }
 
         // Создать врага в безопасной позиции с анимацией роста
-        function createEnemy(avoidX, avoidY, avoidRadius = 120) {
+        function createEnemy(avoidX, avoidY, avoidRadius = 100) {
             let attempts = 0;
             let x, y, valid;
-            const padding = 35;
+            const padding = 30;
             do {
                 x = padding + Math.random() * (W - 2 * padding);
                 y = padding + Math.random() * (H - 2 * padding);
@@ -248,7 +251,6 @@
                 idleTimer: 0,
                 targetAngle: Math.random() * Math.PI * 2,
                 eyeAngle: 0,
-                // Анимация роста
                 scale: 0.01,
                 growing: true,
                 growSpeed: 0.035 + Math.random() * 0.025,
@@ -259,12 +261,12 @@
         function checkAndSpawnEnemy() {
             if (!gameActive) return;
             if (score >= enemySpawnThreshold) {
-                if (enemies.length < 10) {
-                    const newEnemy = createEnemy(fly.x, fly.y, 140);
+                if (enemies.length < 8) {
+                    const newEnemy = createEnemy(fly.x, fly.y, 120);
                     if (!isOverlappingWithEnemies(newEnemy.x, newEnemy.y, newEnemy.r)) {
                         enemies.push(newEnemy);
                     } else {
-                        const retry = createEnemy(fly.x, fly.y, 160);
+                        const retry = createEnemy(fly.x, fly.y, 140);
                         if (!isOverlappingWithEnemies(retry.x, retry.y, retry.r)) {
                             enemies.push(retry);
                         }
@@ -277,37 +279,37 @@
 
         // ------ Создание эффекта сбора звезды ------
         function createCollectEffect(x, y, isSpecial = false) {
-            const count = isSpecial ? 30 : 16;
+            const count = isSpecial ? 25 : 14;
             const colors = isSpecial ? 
                 ['#ffd700', '#ffec8b', '#ffb347', '#ff8c00', '#fff4a0', '#ffed4a'] :
                 ['#9b59b6', '#8e44ad', '#a569bd', '#7d3c98', '#bb8fce'];
             
             for (let i = 0; i < count; i++) {
                 const angle = Math.random() * Math.PI * 2;
-                const speed = isSpecial ? (0.8 + Math.random() * 2.5) : (0.6 + Math.random() * 1.5);
+                const speed = isSpecial ? (0.6 + Math.random() * 2.0) : (0.5 + Math.random() * 1.2);
                 const color = colors[Math.floor(Math.random() * colors.length)];
                 particleEffects.push({
                     x: x,
                     y: y,
                     vx: Math.cos(angle) * speed,
                     vy: Math.sin(angle) * speed - 0.3,
-                    radius: isSpecial ? (1.5 + Math.random() * 2.5) : (1.0 + Math.random() * 1.5),
+                    radius: isSpecial ? (1.2 + Math.random() * 2.0) : (0.8 + Math.random() * 1.2),
                     life: 1.0,
                     decay: 0.015 + Math.random() * 0.018,
                     color: color,
                     gravity: 0.03,
                 });
             }
-            const sparkCount = isSpecial ? 12 : 6;
+            const sparkCount = isSpecial ? 10 : 5;
             for (let i = 0; i < sparkCount; i++) {
                 const angle = Math.random() * Math.PI * 2;
-                const speed = isSpecial ? (1.0 + Math.random() * 3.0) : (0.8 + Math.random() * 2.0);
+                const speed = isSpecial ? (0.8 + Math.random() * 2.5) : (0.6 + Math.random() * 1.5);
                 particleEffects.push({
                     x: x,
                     y: y,
                     vx: Math.cos(angle) * speed,
                     vy: Math.sin(angle) * speed - 0.4,
-                    radius: isSpecial ? (0.8 + Math.random() * 1.5) : (0.6 + Math.random() * 1.0),
+                    radius: isSpecial ? (0.6 + Math.random() * 1.2) : (0.5 + Math.random() * 0.8),
                     life: 1.0,
                     decay: 0.025 + Math.random() * 0.02,
                     color: '#ffffff',
@@ -329,14 +331,14 @@
             particleEffects = [];
             trailPositions = [];
 
-            fly.x = 200; fly.y = 200;
+            fly.x = 200; fly.y = 300;
             fly.vx = 0; fly.vy = 0;
-            fly.targetX = 200; fly.targetY = 200;
+            fly.targetX = 200; fly.targetY = 300;
             fly.wingAngle = 0;
             fly.eyeAngle = 0;
 
             enemies = [];
-            const firstEnemy = createEnemy(fly.x, fly.y, 160);
+            const firstEnemy = createEnemy(fly.x, fly.y, 140);
             enemies.push(firstEnemy);
 
             bonuses = [];
@@ -356,7 +358,7 @@
             if (!gameActive) return;
             if (bonuses.length >= MAX_BONUSES) return;
 
-            const padding = 30;
+            const padding = 25;
             let x, y, valid;
             let attempts = 0;
             do {
@@ -364,10 +366,10 @@
                 y = padding + Math.random() * (H - 2 * padding);
                 valid = true;
                 
-                if (Math.hypot(x - fly.x, y - fly.y) < 50) valid = false;
+                if (Math.hypot(x - fly.x, y - fly.y) < 45) valid = false;
                 
                 for (const e of enemies) {
-                    if (Math.hypot(x - e.x, y - e.y) < 50) { valid = false; break; }
+                    if (Math.hypot(x - e.x, y - e.y) < 45) { valid = false; break; }
                 }
                 
                 if (valid) {
@@ -387,7 +389,6 @@
                     r: isSpecial ? BONUS_RADIUS * 1.3 : BONUS_RADIUS,
                     isSpecial: isSpecial,
                     pulse: Math.random() * Math.PI * 2,
-                    // Анимация роста
                     scale: 0.01,
                     growing: true,
                     growSpeed: 0.04 + Math.random() * 0.03,
@@ -453,7 +454,6 @@
             for (let i = 0; i < enemies.length; i++) {
                 const enemy = enemies[i];
                 
-                // Анимация роста врага
                 if (enemy.growing) {
                     enemy.scale += enemy.growSpeed;
                     if (enemy.scale >= 1.0) {
@@ -504,7 +504,7 @@
                     enemy.vy = Math.sin(newAngle) * idleSpeed;
 
                     const distFromCenter = Math.hypot(enemy.x - W/2, enemy.y - H/2);
-                    if (distFromCenter > 300) {
+                    if (distFromCenter > 250) {
                         const toCenter = Math.atan2(H/2 - enemy.y, W/2 - enemy.x);
                         enemy.targetAngle = toCenter;
                         enemy.idleTimer = 70;
@@ -564,7 +564,6 @@
             // 5. Сбор бонусов
             for (let i = bonuses.length - 1; i >= 0; i--) {
                 const b = bonuses[i];
-                // Пропускаем бонусы, которые ещё не выросли
                 if (b.growing && b.scale < 0.3) continue;
                 
                 const currentRadius = b.r * (b.scale || 1);
@@ -611,7 +610,7 @@
                     spawnTimer = 0;
                     spawnBonus();
                 }
-                if (bonuses.length < 4 && Math.random() < 0.02) spawnBonus();
+                if (bonuses.length < 3 && Math.random() < 0.02) spawnBonus();
             }
         }
 
@@ -629,14 +628,14 @@
             // облака
             ctx.fillStyle = 'rgba(255,255,245,0.18)';
             ctx.beginPath();
-            ctx.arc(100, 70, 45, 0, Math.PI*2);
-            ctx.arc(150, 90, 35, 0, Math.PI*2);
-            ctx.arc(60, 110, 30, 0, Math.PI*2);
+            ctx.arc(80, 80, 35, 0, Math.PI*2);
+            ctx.arc(120, 100, 28, 0, Math.PI*2);
+            ctx.arc(50, 120, 25, 0, Math.PI*2);
             ctx.fill();
             ctx.beginPath();
-            ctx.arc(600, 120, 50, 0, Math.PI*2);
-            ctx.arc(660, 100, 40, 0, Math.PI*2);
-            ctx.arc(560, 140, 30, 0, Math.PI*2);
+            ctx.arc(300, 150, 40, 0, Math.PI*2);
+            ctx.arc(340, 130, 32, 0, Math.PI*2);
+            ctx.arc(270, 170, 25, 0, Math.PI*2);
             ctx.fill();
 
             // След мухи
@@ -644,11 +643,10 @@
                 const pos = trailPositions[i];
                 if (pos.life <= 0) continue;
                 const alpha = pos.life * 0.6;
-                const radius = (pos.life * 5 + 2) * 0.7;
+                const radius = (pos.life * 4 + 2) * 0.7;
                 ctx.globalAlpha = alpha;
                 ctx.shadowBlur = 18;
                 ctx.shadowColor = '#4a9eff';
-                // Внешнее свечение
                 const gradient = ctx.createRadialGradient(pos.x, pos.y, 0, pos.x, pos.y, radius * 1.4);
                 gradient.addColorStop(0, `rgba(80, 180, 255, ${alpha * 0.5})`);
                 gradient.addColorStop(0.5, `rgba(40, 120, 255, ${alpha * 0.25})`);
@@ -658,7 +656,6 @@
                 ctx.fillStyle = gradient;
                 ctx.fill();
                 
-                // Ядро следа
                 ctx.shadowBlur = 12;
                 ctx.shadowColor = '#3f9eff';
                 ctx.beginPath();
@@ -669,7 +666,7 @@
             }
             ctx.globalAlpha = 1.0;
 
-            // бонусы (звёзды) с анимацией роста
+            // бонусы
             for (const b of bonuses) {
                 const currentScale = b.scale || 1;
                 const currentRadius = b.r * currentScale;
@@ -742,7 +739,7 @@
             }
             ctx.globalAlpha = 1.0;
 
-            // враги с анимацией роста
+            // враги
             for (const enemy of enemies) {
                 const currentScale = enemy.scale || 1;
                 const currentRadius = enemy.r * currentScale;
@@ -811,12 +808,12 @@
             ctx.fill();
 
             ctx.save();
-            ctx.translate(fly.x - 8, fly.y - 6);
+            ctx.translate(fly.x - 7, fly.y - 5);
             ctx.rotate(wingAngle * 0.8);
             ctx.shadowBlur = 18;
             ctx.shadowColor = 'rgba(180, 220, 255, 0.5)';
             ctx.beginPath();
-            ctx.ellipse(0, 0, 14, 6, 0, 0, Math.PI * 2);
+            ctx.ellipse(0, 0, 12, 5, 0, 0, Math.PI * 2);
             ctx.fillStyle = 'rgba(200, 240, 255, 0.55)';
             ctx.fill();
             ctx.strokeStyle = 'rgba(180, 220, 255, 0.7)';
@@ -825,12 +822,12 @@
             ctx.restore();
 
             ctx.save();
-            ctx.translate(fly.x + 8, fly.y - 6);
+            ctx.translate(fly.x + 7, fly.y - 5);
             ctx.rotate(-wingAngle * 0.8);
             ctx.shadowBlur = 18;
             ctx.shadowColor = 'rgba(180, 220, 255, 0.5)';
             ctx.beginPath();
-            ctx.ellipse(0, 0, 14, 6, 0, 0, Math.PI * 2);
+            ctx.ellipse(0, 0, 12, 5, 0, 0, Math.PI * 2);
             ctx.fillStyle = 'rgba(200, 240, 255, 0.55)';
             ctx.fill();
             ctx.strokeStyle = 'rgba(180, 220, 255, 0.7)';
@@ -847,48 +844,48 @@
             
             ctx.fillStyle = '#f2faff';
             ctx.beginPath();
-            ctx.arc(fly.x-7 + eyeOffX * 0.2, fly.y-4 + eyeOffY * 0.2, 6, 0, Math.PI*2);
+            ctx.arc(fly.x-6 + eyeOffX * 0.2, fly.y-3 + eyeOffY * 0.2, 5, 0, Math.PI*2);
             ctx.fill();
             ctx.beginPath();
-            ctx.arc(fly.x+7 + eyeOffX * 0.2, fly.y-4 + eyeOffY * 0.2, 6, 0, Math.PI*2);
+            ctx.arc(fly.x+6 + eyeOffX * 0.2, fly.y-3 + eyeOffY * 0.2, 5, 0, Math.PI*2);
             ctx.fill();
             
             ctx.fillStyle = '#111a2e';
             ctx.beginPath();
-            ctx.arc(fly.x-7 + eyeOffX * 0.6, fly.y-4 + eyeOffY * 0.6, 3, 0, Math.PI*2);
+            ctx.arc(fly.x-6 + eyeOffX * 0.6, fly.y-3 + eyeOffY * 0.6, 2.5, 0, Math.PI*2);
             ctx.fill();
             ctx.beginPath();
-            ctx.arc(fly.x+7 + eyeOffX * 0.6, fly.y-4 + eyeOffY * 0.6, 3, 0, Math.PI*2);
+            ctx.arc(fly.x+6 + eyeOffX * 0.6, fly.y-3 + eyeOffY * 0.6, 2.5, 0, Math.PI*2);
             ctx.fill();
             
             ctx.fillStyle = 'white';
             ctx.beginPath();
-            ctx.arc(fly.x-7 + eyeOffX * 0.6 - 1.2, fly.y-4 + eyeOffY * 0.6 - 1.5, 1.2, 0, Math.PI*2);
+            ctx.arc(fly.x-6 + eyeOffX * 0.6 - 1, fly.y-3 + eyeOffY * 0.6 - 1.2, 1, 0, Math.PI*2);
             ctx.fill();
             ctx.beginPath();
-            ctx.arc(fly.x+7 + eyeOffX * 0.6 - 1.2, fly.y-4 + eyeOffY * 0.6 - 1.5, 1.2, 0, Math.PI*2);
+            ctx.arc(fly.x+6 + eyeOffX * 0.6 - 1, fly.y-3 + eyeOffY * 0.6 - 1.2, 1, 0, Math.PI*2);
             ctx.fill();
 
             ctx.shadowBlur = 0;
             ctx.beginPath();
-            ctx.arc(fly.x-3, fly.y-6, 4, 0, Math.PI*2);
+            ctx.arc(fly.x-3, fly.y-5, 3, 0, Math.PI*2);
             ctx.fillStyle = 'rgba(255,255,255,0.25)';
             ctx.fill();
 
             if (!gameActive) {
                 ctx.shadowBlur = 28;
                 ctx.shadowColor = '#cc2222';
-                ctx.font = 'bold 52px "Courier New", monospace';
+                ctx.font = 'bold 40px "Courier New", monospace';
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
                 ctx.fillStyle = '#f0d0d0';
                 ctx.strokeStyle = '#3a0e0e';
-                ctx.lineWidth = 6;
-                ctx.strokeText('✖ GAME OVER', 400, 220);
-                ctx.fillText('✖ GAME OVER', 400, 220);
-                ctx.font = '20px monospace';
+                ctx.lineWidth = 5;
+                ctx.strokeText('✖ GAME OVER', W/2, 260);
+                ctx.fillText('✖ GAME OVER', W/2, 260);
+                ctx.font = '18px monospace';
                 ctx.fillStyle = '#eecfaf';
-                ctx.fillText('нажми "старт"', 400, 300);
+                ctx.fillText('нажми "старт"', W/2, 330);
             }
 
             ctx.shadowBlur = 0;
